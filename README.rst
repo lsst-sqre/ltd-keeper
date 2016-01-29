@@ -10,8 +10,9 @@ Keeper is implemented as a Python `Flask <http://flask.pocoo.org>`_ app.
 
 ****
 
-Copyright 2016 AURA/LSST.
+Copyright 2016 AURA/LSST, MIT License.
 
-License: MIT.
+Parts of this codebase are based on `miguelgrinberg/oreilly-flask-apis-video <https://github.com/miguelgrinberg/oreilly-flask-apis-video>`_;
+Copyright 2014 Miguel Grinberg, MIT License.
 
 .. _SQR-006: http://sqr-006.lsst.io
