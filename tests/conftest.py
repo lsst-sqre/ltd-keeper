@@ -1,3 +1,5 @@
+"""py.test fixtures available to all test modules without explicit import."""
+
 import pytest
 
 from app import create_app, db
@@ -35,4 +37,13 @@ def empty_app(request):
 def basic_client(empty_app):
     """Client with username/password auth, using the `app` application."""
     client = TestClient(empty_app, DEFAULT_USERNAME, DEFAULT_PASSWORD)
+    return client
+
+
+@pytest.fixture
+def client(empty_app):
+    """Client with token-based auth, using the `app` application."""
+    _c = TestClient(empty_app, DEFAULT_USERNAME, DEFAULT_PASSWORD)
+    r = _c.get('/token')
+    client = TestClient(empty_app, r.json['token'])
     return client
