@@ -46,7 +46,6 @@ class Product(db.Model):
 
     __tablename__ = 'products'
     id = db.Column(db.Integer, primary_key=True)
-    builds = db.relationship('Build', backref='product', lazy='dynamic')
     eups_package = db.Column(db.Unicode(256), nullable=False, unique=True)
     doc_repo = db.Column(db.String(256), nullable=False)
     name = db.Column(db.Unicode(256), nullable=False)
@@ -55,6 +54,11 @@ class Product(db.Model):
     # TODO add
     # - build_bucket_domain
     # - http_schema
+
+    # One-to-many relationships to builds and editions
+    # are defined in those classes
+    builds = db.relationship('Build', backref='product', lazy='dynamic')
+    editions = db.relationship('Edition', backref='product', lazy='dynamic')
 
     def get_url(self):
         """API URL for this entity."""
@@ -118,5 +122,91 @@ class Build(db.Model):
             self.name = data['name']
         except KeyError as e:
             raise ValidationError('Invalid Build: missing ' + e.args[0])
+
+        return self
+
+
+class Edition(db.Model):
+    """DB model for Editions. Editions are fixed-location publications of the
+    docs. Editions are updated by new builds; though not all builds are used
+    by Editions.
+    """
+
+    __tablename__ = 'editions'
+    id = db.Column(db.Integer, primary_key=True)
+    # Product that this Edition belongs do
+    product_id = db.Column(db.Integer, db.ForeignKey('products.id'),
+                           index=True)
+    # Build currently used by this Edition
+    build_id = db.Column(db.Integer, db.ForeignKey('build.id'),
+                         index=True)
+    # What product Git refs this Edition tracks and publishes
+    tracked_refs = db.Column(db.String(1024))
+    # Root path in the product's S3 bucket
+    bucket_root = db.Column(db.String(256), nullable=False)
+    # url-safe slug for edition
+    slug = db.Column(db.String(256), nullable=False)
+    # Human-readable title for edition
+    title = db.Column(db.Unicode(256), nullable=False)
+    # full url where the documentation is published from
+    published_url = db.Column(db.String(256), nullable=False)
+    # Date when this edition was initially created
+    creation_date = db.Column(db.DateTime, default=datetime.now(),
+                              nullable=False)
+    # Date when the edition was updated (e.g., new build)
+    rebuilt_date = db.Column(db.DateTime, default=datetime.now(),
+                             nullable=False)
+    # set only when the Edition is deprecated (ready for deletion)
+    end_date = db.Column(db.DateTime, nullable=True)
+
+    # Relationships
+    build = db.relationship('Build', uselist=False)  # one-to-one
+
+    def get_url(self):
+        """API URL for this entity."""
+        return url_for('api.get_edition', id=self.id, _external=True)
+
+    def export_data(self):
+        """Export entity as JSON-compatible dict."""
+        return {
+            'self_url': self.get_url(),
+            'product_url': self.product.get_url(),
+            'build_url': self.build.get_url(),
+            'tracked_refs': self.tracked_refs,
+            'slug': self.slug,
+            'title': self.title,
+            'published_url': self.published_url,
+            'creation_date': self.creation_date,
+            'rebuilt_date': self.rebuilt_date,
+            'end_date': self.end_date
+        }
+
+    def import_data(self, data):
+        """Convert a dict `data` into a table row."""
+        try:
+            prod_endpoint, prod_args = split_url(data['product_url'])
+            build_endpoint, build_args = split_url(data['build_url'])
+            self.tracked_refs = self.tracked_refs
+            self.slug = data['slug']
+            self.title = data['title']
+            self.published_url = data['published_url']
+        except KeyError as e:
+            raise ValidationError('Invalid Edition: missing ' + e.args[0])
+
+        if prod_endpoint != 'api.get_product' or 'id' not in prod_args:
+            raise ValidationError('Invalid product_url: ' +
+                                  data['product_url'])
+        self.product = Product.query.get(prod_args['id'])
+        if self.product is None:
+            raise ValidationError('Invalid product_url: ' +
+                                  data['product_url'])
+
+        if build_endpoint != 'api.get_build' or 'id' not in build_args:
+            raise ValidationError('Invalid build_url: ' +
+                                  data['build_url'])
+        self.build = Build.query.get(build_args['id'])
+        if self.build is None:
+            raise ValidationError('Invalid build_url: ' +
+                                  data['build_url'])
 
         return self
