@@ -1,5 +1,7 @@
 """Utilities for the Flask API and SQLAlchemy models."""
 
+from dateutil import parser as datetime_parser
+from dateutil.tz import tzutc
 
 from flask.globals import _app_ctx_stack, _request_ctx_stack
 from werkzeug.urls import url_parse
@@ -47,3 +49,14 @@ def format_utc_datetime(dt):
         return None
     else:
         return dt.isoformat() + 'Z'
+
+
+def parse_utc_datetime(datetime_str):
+    """Parse a date string, returning a UTC datetime object."""
+    if datetime_str is not None:
+        date = datetime_parser.parse(datetime_str)\
+            .astimezone(tzutc())\
+            .replace(tzinfo=None)
+        return date
+    else:
+        return None

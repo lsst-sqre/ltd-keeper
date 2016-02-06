@@ -6,7 +6,7 @@ from flask import url_for, current_app
 
 from . import db
 from .exceptions import ValidationError
-from .utils import split_url, format_utc_datetime
+from .utils import split_url, format_utc_datetime, parse_utc_datetime
 
 
 class User(db.Model):
@@ -46,14 +46,16 @@ class Product(db.Model):
 
     __tablename__ = 'products'
     id = db.Column(db.Integer, primary_key=True)
-    eups_package = db.Column(db.Unicode(256), nullable=False, unique=True)
+    # URL/path-safe identifier for this product
+    slug = db.Column(db.Unicode(256), nullable=False, unique=True)
+    # URL of the Git documentation repo (i.e., on GitHub)
     doc_repo = db.Column(db.String(256), nullable=False)
-    name = db.Column(db.Unicode(256), nullable=False)
+    # Human-readlable product title
+    title = db.Column(db.Unicode(256), nullable=False)
+    # Domain name, without protocol or path
     domain = db.Column(db.String(256), nullable=False)
-    build_bucket = db.Column(db.String(256), nullable=True)
-    # TODO add
-    # - build_bucket_domain
-    # - http_schema
+    # Name of the S3 bucket hosting builds/versions
+    bucket_name = db.Column(db.String(256), nullable=True)
 
     # One-to-many relationships to builds and editions
     # are defined in those classes
@@ -68,21 +70,21 @@ class Product(db.Model):
         """Export entity as JSON-compatible dict."""
         return {
             'self_url': self.get_url(),
-            'eups_package': self.eups_package,
+            'slug': self.slug,
             'doc_repo': self.doc_repo,
-            'name': self.name,
+            'title': self.title,
             'domain': self.domain,
-            'build_bucket': self.build_bucket
+            'bucket_name': self.bucket_name
         }
 
     def import_data(self, data):
         """Convert a dict `data` into a table row."""
         try:
-            self.eups_package = data['eups_package']
+            self.slug = data['slug']
             self.doc_repo = data['doc_repo']
-            self.name = data['name']
+            self.title = data['title']
             self.domain = data['domain']
-            self.build_bucket = data['build_bucket']
+            self.bucket_name = data['bucket_name']
         except KeyError as e:
             raise ValidationError('Invalid Product: missing ' + e.args[0])
         return self
@@ -97,10 +99,15 @@ class Build(db.Model):
                            index=True)
     # name of build; URL-safe slug used as directory in build bucket
     name = db.Column(db.Unicode(256), nullable=False)
-    creation_date = db.Column(db.DateTime, default=datetime.now(),
-                              nullable=False)
-    end_date = db.Column(db.DateTime, nullable=True)
+    # auto-assigned date build was created
+    date_created = db.Column(db.DateTime, default=datetime.now(),
+                             nullable=False)
+    # set only when the build is deprecated (ready for deletion)
+    date_ended = db.Column(db.DateTime, nullable=True)
     # FIXME add build metadata
+
+    # Relationships
+    # product - from Product class
 
     def get_url(self):
         """API URL for this entity."""
@@ -112,8 +119,8 @@ class Build(db.Model):
             'self_url': self.get_url(),
             'product_url': self.product.get_url(),
             'name': self.name,
-            'creation_date': format_utc_datetime(self.creation_date),
-            'end_date': format_utc_datetime(self.end_date)
+            'date_created': format_utc_datetime(self.date_created),
+            'date_ended': format_utc_datetime(self.date_ended)
         }
 
     def import_data(self, data):
@@ -122,6 +129,15 @@ class Build(db.Model):
             self.name = data['name']
         except KeyError as e:
             raise ValidationError('Invalid Build: missing ' + e.args[0])
+
+        self.date_created = datetime.now()
+
+        if 'date_ended' in data:
+            try:
+                self.date_ended = parse_utc_datetime(data['date_ended'])
+            except:
+                raise ValidationError('Invalid Edition, could not parse '
+                                      'date_ended ' + data['date_ended'])
 
         return self
 
@@ -151,13 +167,13 @@ class Edition(db.Model):
     # full url where the documentation is published from
     published_url = db.Column(db.String(256), nullable=False)
     # Date when this edition was initially created
-    creation_date = db.Column(db.DateTime, default=datetime.now(),
-                              nullable=False)
+    date_created = db.Column(db.DateTime, default=datetime.now(),
+                             nullable=False)
     # Date when the edition was updated (e.g., new build)
-    rebuilt_date = db.Column(db.DateTime, default=datetime.now(),
+    date_rebuilt = db.Column(db.DateTime, default=datetime.now(),
                              nullable=False)
     # set only when the Edition is deprecated (ready for deletion)
-    end_date = db.Column(db.DateTime, nullable=True)
+    date_ended = db.Column(db.DateTime, nullable=True)
 
     # Relationships
     build = db.relationship('Build', uselist=False)  # one-to-one
@@ -176,9 +192,9 @@ class Edition(db.Model):
             'slug': self.slug,
             'title': self.title,
             'published_url': self.published_url,
-            'creation_date': self.creation_date,
-            'rebuilt_date': self.rebuilt_date,
-            'end_date': self.end_date
+            'date_created': format_utc_datetime(self.date_created),
+            'rebuilt_date': format_utc_datetime(self.date_rebuilt),
+            'date_ended': format_utc_datetime(self.date_ended)
         }
 
     def import_data(self, data):
@@ -208,5 +224,14 @@ class Edition(db.Model):
         if self.build is None:
             raise ValidationError('Invalid build_url: ' +
                                   data['build_url'])
+
+        if 'date_ended' in data:
+            try:
+                self.date_ended = parse_utc_datetime(data['date_ended'])
+            except:
+                raise ValidationError('Invalid Edition, could not parse '
+                                      'date_ended ' + data['date_ended'])
+
+        self.date_rebuilt = datetime.now()
 
         return self
