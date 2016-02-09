@@ -30,6 +30,32 @@ def create_app(config_name):
     @app.route('/token')
     @password_auth.login_required
     def get_auth_token():
+        """Obtain a token for API users.
+
+        **Example request**
+
+        .. code-block:: http
+
+           GET /token HTTP/1.1
+           Host: localhost
+           Accept: application/json
+
+        **Example response**
+
+        .. code-block:: http
+
+           HTTP/1.1 200 OK
+           Vary: Accept
+           Content-Type: application/json
+
+           {
+             'token': ''
+           }
+
+        :reqheader Authorization: ``username:password``
+        :>json string token: Token string. Use this token in the basic auth
+           ``username`` field.
+        """
         return jsonify({'token': g.user.generate_auth_token()})
 
     return app
