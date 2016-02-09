@@ -37,19 +37,25 @@ def create_app(config_name):
         .. code-block:: http
 
            GET /token HTTP/1.1
-           Host: localhost
-           Accept: application/json
+           Accept: */*
+           Accept-Encoding: gzip, deflate
+           Authorization: Basic dXNlcjpwYXNz
+           Connection: keep-alive
+           Host: localhost:5000
+           User-Agent: HTTPie/0.9.3
 
         **Example response**
 
         .. code-block:: http
 
-           HTTP/1.1 200 OK
-           Vary: Accept
+           HTTP/1.0 200 OK
+           Content-Length: 139
            Content-Type: application/json
+           Date: Tue, 09 Feb 2016 20:23:11 GMT
+           Server: Werkzeug/0.11.3 Python/3.5.0
 
            {
-             'token': ''
+               "token": "eyJhbGciOiJIUzI1NiIsImlhdCI6MTQ1NTA0OTM5MSwiZXhwIjoxNDU1MDUyOTkxfQ.eyJpZCI6MX0.rnAI6_aJp4DtKLiJ7qkfW-luUMUNsps-ZBZFAaIBsZQ"
            }
 
         :reqheader Authorization: ``username:password``
