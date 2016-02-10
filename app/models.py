@@ -54,7 +54,7 @@ class Product(db.Model):
     title = db.Column(db.Unicode(256), nullable=False)
     # Domain name, without protocol or path
     domain = db.Column(db.String(256), nullable=False)
-    # Name of the S3 bucket hosting builds/versions
+    # Name of the S3 bucket hosting builds
     bucket_name = db.Column(db.String(256), nullable=True)
 
     # One-to-many relationships to builds and editions
@@ -154,7 +154,7 @@ class Edition(db.Model):
     product_id = db.Column(db.Integer, db.ForeignKey('products.id'),
                            index=True)
     # Build currently used by this Edition
-    build_id = db.Column(db.Integer, db.ForeignKey('build.id'),
+    build_id = db.Column(db.Integer, db.ForeignKey('builds.id'),
                          index=True)
     # What product Git refs this Edition tracks and publishes
     tracked_refs = db.Column(db.String(1024))
