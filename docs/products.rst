@@ -26,6 +26,10 @@ Method Summary
 
 - :http:get:`/v1/products/(int:id)/builds/` --- list all builds for a product.
 
+- :http:post:`/v1/products/(int:id)/editions/` --- create a new edition for a product.
+
+- :http:get:`/v1/products/(int:id)/editions/` --- list all edition for a product.
+
 *See also:*
 
 - :doc:`/builds/ <builds>` for editing or deleting a build.
@@ -36,4 +40,4 @@ Reference
 =========
 
 .. autoflask:: app:create_app(config_name='development')
-   :endpoints: api.get_products, api.get_product, api.new_product, api.edit_product, api.new_build, api.get_product_builds
+   :endpoints: api.get_products, api.get_product, api.new_product, api.edit_product, api.new_build, api.get_product_builds, api.new_edition, api.get_product_editions

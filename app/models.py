@@ -158,8 +158,6 @@ class Edition(db.Model):
                          index=True)
     # What product Git refs this Edition tracks and publishes
     tracked_refs = db.Column(db.String(1024))
-    # Root path in the product's S3 bucket
-    bucket_root = db.Column(db.String(256), nullable=False)
     # url-safe slug for edition
     slug = db.Column(db.String(256), nullable=False)
     # Human-readable title for edition
@@ -193,26 +191,28 @@ class Edition(db.Model):
             'title': self.title,
             'published_url': self.published_url,
             'date_created': format_utc_datetime(self.date_created),
-            'rebuilt_date': format_utc_datetime(self.date_rebuilt),
+            'date_rebuilt': format_utc_datetime(self.date_rebuilt),
             'date_ended': format_utc_datetime(self.date_ended)
         }
 
     def import_data(self, data):
         """Convert a dict `data` into a table row."""
         try:
-            prod_endpoint, prod_args = split_url(data['product_url'])
             build_endpoint, build_args = split_url(data['build_url'])
-            self.tracked_refs = self.tracked_refs
+            self.tracked_refs = data['tracked_refs']
             self.slug = data['slug']
             self.title = data['title']
             self.published_url = data['published_url']
         except KeyError as e:
             raise ValidationError('Invalid Edition: missing ' + e.args[0])
 
-        if prod_endpoint != 'api.get_product' or 'id' not in prod_args:
-            raise ValidationError('Invalid product_url: ' +
-                                  data['product_url'])
-        self.product = Product.query.get(prod_args['id'])
+        if 'product_url' in data:
+            # In some routes can get product from URL arg itself
+            prod_endpoint, prod_args = split_url(data['product_url'])
+            if prod_endpoint != 'api.get_product' or 'id' not in prod_args:
+                raise ValidationError('Invalid product_url: ' +
+                                      data['product_url'])
+            self.product = Product.query.get(prod_args['id'])
         if self.product is None:
             raise ValidationError('Invalid product_url: ' +
                                   data['product_url'])

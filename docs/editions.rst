@@ -11,7 +11,18 @@ Editions are merely pointers to a Build; an Edition is updated by pointing to a 
 Methods
 =======
 
+- :http:get:`/v1/editions/(int:id)` --- show a single edition.
+
+- :http:put:`/v1/editions/(int:id)` --- update an edition.
+
+- :http:delete:`/v1/editions/(int:id)` --- deprecate an edition.
+
 *See also:*
+
+- :doc:`/products/ <products>` for creating a new edition associated with a product.
 
 Reference
 =========
+
+.. autoflask:: app:create_app(config_name='development')
+   :endpoints: api.get_edition, api.edit_edition, api.deprecate_edition
