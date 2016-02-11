@@ -144,12 +144,16 @@ def new_product():
        the documentation for this product is served from.
     :<json string bucket_name: Name of the S3 bucket hosting builds.
     :resheader Location: URL of the created product.
-    :statuscode 201: no error
+    :statuscode 201: No error.
     """
     product = Product()
-    product.import_data(request.json)
-    db.session.add(product)
-    db.session.commit()
+    try:
+        product.import_data(request.json)
+        db.session.add(product)
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        raise
     return jsonify({}), 201, {'Location': product.get_url()}
 
 
@@ -163,10 +167,15 @@ def edit_product(id):
 
     :reqheader Authorization: Include the token in a username field with a
         blank password; ``<token>:``.
+    :statuscode 200: No error.
     :statuscode 404: Product not found.
     """
     product = Product.query.get_or_404(id)
-    product.import_data(request.json)
-    db.session.add(product)
-    db.session.commit()
+    try:
+        product.import_data(request.json)
+        db.session.add(product)
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        raise
     return jsonify({})

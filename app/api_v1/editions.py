@@ -66,9 +66,13 @@ def new_edition(id):
     """
     product = Product.query.get_or_404(id)
     edition = Edition(product=product)
-    edition.import_data(request.json)
-    db.session.add(edition)
-    db.session.commit()
+    try:
+        edition.import_data(request.json)
+        db.session.add(edition)
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        raise
     return jsonify({}), 201, {'Location': edition.get_url()}
 
 
@@ -271,7 +275,11 @@ def edit_edition(id):
     :statuscode 200: No errors.
     """
     edition = Edition.query.get_or_404(id)
-    edition.import_data(request.json)
-    db.session.add(edition)
-    db.session.commit()
+    try:
+        edition.import_data(request.json)
+        db.session.add(edition)
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        raise
     return jsonify({})
