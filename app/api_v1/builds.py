@@ -20,6 +20,10 @@ def new_build(id):
     :http:post:`/v1/builds/(int:id)/uploaded` to register that the doc
     has been uploaded.
 
+    .. todo::
+
+       Update examples.
+
     **Example request**
 
     .. code-block:: http
@@ -35,7 +39,7 @@ def new_build(id):
        User-Agent: HTTPie/0.9.3
 
        {
-           "name": "b1"
+           "slug": "b1"
        }
 
     **Example response**
@@ -52,7 +56,7 @@ def new_build(id):
        {
            "date_created": "2016-02-11T10:39:32.833623Z",
            "date_ended": null,
-           "name": "b1",
+           "slug": "b1",
            "product_url": "http://localhost:5000/v1/products/1",
            "self_url": "http://localhost:5000/v1/builds/1",
            "uploaded": false
@@ -65,12 +69,16 @@ def new_build(id):
     :>json string date_created: UTC date time when the build was created.
     :>json string date_ended: UTC date time when the build was deprecated;
         will be ``null`` for builds are are *not deprecated*.
-    :>json string name: Name of build; URL-safe slug.
+    :>json string slug: slug of build; URL-safe slug.
     :>json string product_url: URL of parent product entity.
     :>json string self_url: URL of this build entity.
     :>json string uploaded: True if the built documentation has been uploaded
-        to the S3 bucket. Use :http:post:`/v1/build/(int:id)/uploaded` to
+        to the S3 bucket. Use :http:post:`/v1/builds/(int:id)/uploaded` to
         set this to `True`.
+    :>json string bucket_name: Name of the S3 bucket hosting the built
+        documentation.
+    :>json string bucket_root_dir: Directory (path prefix) in the S3 bucket
+        where this documentation build is located.
 
     :resheader Location: URL of the created build.
     :statuscode 201: No error.
@@ -217,6 +225,10 @@ def get_product_builds(id):
 def get_build(id):
     """Show metadata for a single build.
 
+    .. todo::
+
+       Update examples.
+
     **Example request**
 
     .. code-block:: http
@@ -241,7 +253,7 @@ def get_build(id):
        {
            "date_created": "2016-02-09T17:28:14.941424Z",
            "date_ended": null,
-           "name": "b1",
+           "slug": "b1",
            "product_url": "http://localhost:5000/v1/products/1",
            "self_url": "http://localhost:5000/v1/builds/1"
            "uploaded": false
@@ -252,12 +264,16 @@ def get_build(id):
     :>json string date_created: UTC date time when the build was created.
     :>json string date_ended: UTC date time when the build was deprecated;
         will be ``null`` for builds are are *not deprecated*.
-    :>json string name: Name of build; URL-safe slug.
+    :>json string slug: Name of build; URL-safe slug.
     :>json string product_url: URL of parent product entity.
     :>json string self_url: URL of this build entity.
     :>json string uploaded: True if the built documentation has been uploaded
-        to the S3 bucket. Use :http:post:`/v1/build/(int:id)/uploaded` to
+        to the S3 bucket. Use :http:post:`/v1/builds/(int:id)/uploaded` to
         set this to `True`.
+    :>json string bucket_name: Name of the S3 bucket hosting the built
+        documentation.
+    :>json string bucket_root_dir: Directory (path prefix) in the S3 bucket
+        where this documentation build is located.
 
     :statuscode 200: No error.
     :statuscode 404: Build not found.

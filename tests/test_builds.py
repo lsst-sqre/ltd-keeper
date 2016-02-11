@@ -19,11 +19,11 @@ def test_builds(client):
     assert len(r.json['builds']) == 0
 
     # Add a build
-    b1 = {'name': 'b1'}
+    b1 = {'slug': 'b1'}
     r = client.post('/v1/products/1/builds/', b1)
     assert r.status == 201
     assert r.json['product_url'] == prod_url
-    assert r.json['name'] == b1['name']
+    assert r.json['slug'] == b1['slug']
     assert r.json['date_created'] is not None
     assert r.json['date_ended'] is None
     assert r.json['uploaded'] is False
@@ -36,6 +36,8 @@ def test_builds(client):
     # Get build
     r = client.get('/v1/builds/1')
     assert r.status == 200
+    assert r.json['bucket_name'] == 'bucket-name'
+    assert r.json['bucket_root_dir'] == 'lsst_apps/builds/b1'
 
     # Register upload
     r = client.post('/v1/builds/1/uploaded', {})
@@ -50,6 +52,6 @@ def test_builds(client):
 
     r = client.get('/v1/builds/1')
     assert r.json['product_url'] == prod_url
-    assert r.json['name'] == b1['name']
+    assert r.json['slug'] == b1['slug']
     assert r.json['date_created'] is not None
     assert r.json['date_ended'] is not None

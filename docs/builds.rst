@@ -11,6 +11,8 @@ The methods listed on this page allow you to list maintain builds (such as showi
 Methods
 =======
 
+- :http:post:`/v1/builds/(int:id)/uploaded` --- register a build upload.
+
 - :http:get:`/v1/builds/(int:id)` --- show a build.
 
 - :http:delete:`/v1/builds/(int:id)` --- deprecate a build.
@@ -25,4 +27,4 @@ Reference
 =========
 
 .. autoflask:: app:create_app(config_name='development')
-   :endpoints: api.get_build, api.deprecate_build
+   :endpoints: api.get_build, api.register_build_upload, api.deprecate_build

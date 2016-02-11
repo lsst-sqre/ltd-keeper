@@ -98,18 +98,22 @@ class Build(db.Model):
     product_id = db.Column(db.Integer, db.ForeignKey('products.id'),
                            index=True)
     # name of build; URL-safe slug used as directory in build bucket
-    name = db.Column(db.Unicode(256), nullable=False)
+    slug = db.Column(db.Unicode(256), nullable=False)
     # auto-assigned date build was created
     date_created = db.Column(db.DateTime, default=datetime.now(),
                              nullable=False)
     # set only when the build is deprecated (ready for deletion)
     date_ended = db.Column(db.DateTime, nullable=True)
-    # FIXME add build metadata
 
     uploaded = db.Column(db.Boolean, default=False)
 
     # Relationships
     # product - from Product class
+
+    @property
+    def bucket_root_dirname(self):
+        """Directory in the bucket where the build is located."""
+        return '/'.join((self.product.slug, 'builds', self.slug))
 
     def get_url(self):
         """API URL for this entity."""
@@ -120,16 +124,18 @@ class Build(db.Model):
         return {
             'self_url': self.get_url(),
             'product_url': self.product.get_url(),
-            'name': self.name,
+            'slug': self.slug,
             'date_created': format_utc_datetime(self.date_created),
             'date_ended': format_utc_datetime(self.date_ended),
             'uploaded': self.uploaded,
+            'bucket_name': self.product.bucket_name,
+            'bucket_root_dir': self.bucket_root_dirname
         }
 
     def import_data(self, data):
         """Convert a dict `data` into a table row."""
         try:
-            self.name = data['name']
+            self.slug = data['slug']
         except KeyError as e:
             raise ValidationError('Invalid Build: missing ' + e.args[0])
 
