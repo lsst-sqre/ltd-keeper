@@ -9,10 +9,14 @@ from ..auth import token_auth
 from ..models import Product, Edition
 
 
-@api.route('/products/<int:id>/editions/', methods=['POST'])
+@api.route('/products/<slug>/editions/', methods=['POST'])
 @token_auth.login_required
-def new_edition(id):
+def new_edition(slug):
     """Create a new Edition for a Product (token required).
+
+    .. todo::
+
+       Update example.
 
     **Example request**
 
@@ -52,7 +56,7 @@ def new_edition(id):
     :reqheader Authorization: Include the token in a username field with a
         blank password; ``<token>:``.
 
-    :param id: ID of the product.
+    :param slug: Product slug.
 
     :<json string slug: URL-safe name for edition.
     :<json string title: Human-readable name for edition.
@@ -64,7 +68,7 @@ def new_edition(id):
 
     :statuscode 201: No errors.
     """
-    product = Product.query.get_or_404(id)
+    product = Product.query.filter_by(slug=slug).first_or_404()
     edition = Edition(product=product)
     try:
         edition.import_data(request.json)
@@ -119,9 +123,13 @@ def deprecate_edition(id):
     return jsonify({}), 202
 
 
-@api.route('/products/<int:id>/editions/', methods=['GET'])
-def get_product_editions(id):
+@api.route('/products/<slug>/editions/', methods=['GET'])
+def get_product_editions(slug):
     """List all editions published for a Product.
+
+    .. todo::
+
+       Update example.
 
     **Example request**
 
@@ -156,7 +164,7 @@ def get_product_editions(id):
     :statuscode 200: No errors.
     """
     edition_urls = [edition.get_url() for edition in
-                    Edition.query.filter(Edition.product_id == id).all()]
+                    Edition.query.filter(Product.slug == slug).all()]
     return jsonify({'editions': edition_urls})
 
 

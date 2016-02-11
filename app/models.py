@@ -64,7 +64,7 @@ class Product(db.Model):
 
     def get_url(self):
         """API URL for this entity."""
-        return url_for('api.get_product', id=self.id, _external=True)
+        return url_for('api.get_product', slug=self.slug, _external=True)
 
     def export_data(self):
         """Export entity as JSON-compatible dict."""

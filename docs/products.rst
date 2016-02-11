@@ -16,19 +16,19 @@ Method Summary
 
 - :http:get:`/v1/products/` --- list all documentation products.
 
-- :http:get:`/v1/products/(int:id)` --- show a single product.
+- :http:get:`/v1/products/(slug)` --- show a single product.
 
 - :http:post:`/v1/products/` --- create a new product.
 
-- :http:put:`/v1/products/(int:id)` --- update a product's metadata.
+- :http:put:`/v1/products/(slug)` --- update a product's metadata.
 
-- :http:post:`/v1/products/(int:id)/builds/` --- create a new build for a product.
+- :http:post:`/v1/products/(slug)/builds/` --- create a new build for a product.
 
-- :http:get:`/v1/products/(int:id)/builds/` --- list all builds for a product.
+- :http:get:`/v1/products/(slug)/builds/` --- list all builds for a product.
 
-- :http:post:`/v1/products/(int:id)/editions/` --- create a new edition for a product.
+- :http:post:`/v1/products/(slug)/editions/` --- create a new edition for a product.
 
-- :http:get:`/v1/products/(int:id)/editions/` --- list all edition for a product.
+- :http:get:`/v1/products/(slug)/editions/` --- list all edition for a product.
 
 *See also:*
 

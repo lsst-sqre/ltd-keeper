@@ -9,9 +9,9 @@ from ..auth import token_auth
 from ..models import Product, Build
 
 
-@api.route('/products/<int:id>/builds/', methods=['POST'])
+@api.route('/products/<slug>/builds/', methods=['POST'])
 @token_auth.login_required
-def new_build(id):
+def new_build(slug):
     """Add a new build for a product (token required).
 
     This method only adds a record for the build and specifies where the build
@@ -64,7 +64,7 @@ def new_build(id):
 
     :reqheader Authorization: Include the token in a username field with a
         blank password; ``<token>:``.
-    :param id: ID of the Product.
+    :param slug: Product slug.
 
     :<json string slug: Optional slug of build; URL-safe slug. If slug is
         not specified, then one will automatically be specified.
@@ -86,7 +86,7 @@ def new_build(id):
     :resheader Location: URL of the created build.
     :statuscode 201: No error.
     """
-    product = Product.query.get_or_404(id)
+    product = Product.query.filter_by(slug=slug).first_or_404()
     build = Build(product=product)
     try:
         build.import_data(request.json)
@@ -187,9 +187,13 @@ def deprecate_build(id):
     return jsonify({}), 202
 
 
-@api.route('/products/<int:id>/builds/', methods=['GET'])
-def get_product_builds(id):
+@api.route('/products/<slug>/builds/', methods=['GET'])
+def get_product_builds(slug):
     """List all builds for a product.
+
+    .. todo::
+
+       Update example.
 
     **Example request**
 
@@ -222,9 +226,8 @@ def get_product_builds(id):
     :>json array builds: List of URLs of Build entities for this product.
     :statuscode 200: No error.
     """
-    print(id)
     build_urls = [build.get_url() for build in
-                  Build.query.filter(Build.product_id == id).all()]
+                  Build.query.filter(Product.slug == slug).all()]
     return jsonify({'builds': build_urls})
 
 

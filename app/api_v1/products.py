@@ -11,6 +11,10 @@ from ..models import Product
 def get_products():
     """List all documentation products (anonymous access allowed).
 
+    .. todo::
+
+       Update example.
+
     **Example request**
 
     .. code-block:: http
@@ -45,8 +49,8 @@ def get_products():
                                  Product.query.all()]})
 
 
-@api.route('/products/<int:id>', methods=['GET'])
-def get_product(id):
+@api.route('/products/<slug>', methods=['GET'])
+def get_product(slug):
     """Get the record of a single documentation product (anonymous access
     allowed).
 
@@ -91,13 +95,18 @@ def get_product(id):
 
     :statuscode 404: Product not found.
     """
-    return jsonify(Product.query.get_or_404(id).export_data())
+    product = Product.query.filter_by(slug=slug).first_or_404()
+    return jsonify(product.export_data())
 
 
 @api.route('/products/', methods=['POST'])
 @token_auth.login_required
 def new_product():
     """Create a new documentation product (token required).
+
+    .. todo::
+
+       Update example.
 
     **Example request**
 
@@ -157,9 +166,9 @@ def new_product():
     return jsonify({}), 201, {'Location': product.get_url()}
 
 
-@api.route('/products/<int:id>', methods=['PUT'])
+@api.route('/products/<slug>', methods=['PUT'])
 @token_auth.login_required
-def edit_product(id):
+def edit_product(slug):
     """Update a product (token required).
 
     See :http:post:`/v1/products/` for documentation on the JSON-formatted
@@ -170,7 +179,7 @@ def edit_product(id):
     :statuscode 200: No error.
     :statuscode 404: Product not found.
     """
-    product = Product.query.get_or_404(id)
+    product = Product.query.filter_by(slug=slug).first_or_404()
     try:
         product.import_data(request.json)
         db.session.add(product)

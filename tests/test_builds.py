@@ -15,16 +15,16 @@ def test_builds(client):
     r = client.post('/v1/products/', p)
     assert r.status == 201
 
-    prod_url = client.get('/v1/products/1').json['self_url']
+    prod_url = client.get('/v1/products/lsst_apps').json['self_url']
 
     # Initially no builds
-    r = client.get('/v1/products/1/builds/')
+    r = client.get('/v1/products/lsst_apps/builds/')
     assert r.status == 200
     assert len(r.json['builds']) == 0
 
     # Add a build
     b1 = {'slug': 'b1'}
-    r = client.post('/v1/products/1/builds/', b1)
+    r = client.post('/v1/products/lsst_apps/builds/', b1)
     assert r.status == 201
     assert r.json['product_url'] == prod_url
     assert r.json['slug'] == b1['slug']
@@ -34,10 +34,10 @@ def test_builds(client):
 
     # Re-add build with same slug; should fail
     with pytest.raises(ValidationError):
-        r = client.post('/v1/products/1/builds/', b1)
+        r = client.post('/v1/products/lsst_apps/builds/', b1)
 
     # List builds
-    r = client.get('/v1/products/1/builds/')
+    r = client.get('/v1/products/lsst_apps/builds/')
     assert r.status == 200
     assert len(r.json['builds']) == 1
 
@@ -65,10 +65,10 @@ def test_builds(client):
     assert r.json['date_ended'] is not None
 
     # Add some auto-slugged builds
-    r = client.post('/v1/products/1/builds/', {'foo': 'bar'})
+    r = client.post('/v1/products/lsst_apps/builds/', {'foo': 'bar'})
     assert r.status == 201
     assert r.json['slug'] == '1'
 
-    r = client.post('/v1/products/1/builds/', {'foo': 'bar'})
+    r = client.post('/v1/products/lsst_apps/builds/', {'foo': 'bar'})
     assert r.status == 201
     assert r.json['slug'] == '2'

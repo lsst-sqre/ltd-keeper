@@ -49,8 +49,8 @@ def test_products(client):
     # assert r.status == 404
 
     # Modify existing product
-    r = client.put('/v1/products/2', p2v2)
+    r = client.put('/v1/products/qserv', p2v2)
     assert r.status == 200
-    r = client.get('/v1/products/2')
+    r = client.get('/v1/products/qserv')
     for k, v in p2v2.items():
         assert r.json[k] == v
