@@ -1,5 +1,9 @@
 """Tests for the builds API."""
 
+import pytest
+
+from app.exceptions import ValidationError
+
 
 def test_builds(client):
     # Add a sample product
@@ -13,7 +17,7 @@ def test_builds(client):
 
     prod_url = client.get('/v1/products/1').json['self_url']
 
-    # Intially no builds
+    # Initially no builds
     r = client.get('/v1/products/1/builds/')
     assert r.status == 200
     assert len(r.json['builds']) == 0
@@ -27,6 +31,10 @@ def test_builds(client):
     assert r.json['date_created'] is not None
     assert r.json['date_ended'] is None
     assert r.json['uploaded'] is False
+
+    # Re-add build with same slug; should fail
+    with pytest.raises(ValidationError):
+        r = client.post('/v1/products/1/builds/', b1)
 
     # List builds
     r = client.get('/v1/products/1/builds/')
@@ -55,3 +63,12 @@ def test_builds(client):
     assert r.json['slug'] == b1['slug']
     assert r.json['date_created'] is not None
     assert r.json['date_ended'] is not None
+
+    # Add some auto-slugged builds
+    r = client.post('/v1/products/1/builds/', {'foo': 'bar'})
+    assert r.status == 201
+    assert r.json['slug'] == '1'
+
+    r = client.post('/v1/products/1/builds/', {'foo': 'bar'})
+    assert r.status == 201
+    assert r.json['slug'] == '2'

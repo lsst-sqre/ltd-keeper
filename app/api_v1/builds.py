@@ -66,6 +66,9 @@ def new_build(id):
         blank password; ``<token>:``.
     :param id: ID of the Product.
 
+    :<json string slug: Optional slug of build; URL-safe slug. If slug is
+        not specified, then one will automatically be specified.
+
     :>json string date_created: UTC date time when the build was created.
     :>json string date_ended: UTC date time when the build was deprecated;
         will be ``null`` for builds are are *not deprecated*.
@@ -85,9 +88,13 @@ def new_build(id):
     """
     product = Product.query.get_or_404(id)
     build = Build(product=product)
-    build.import_data(request.json)
-    db.session.add(build)
-    db.session.commit()
+    try:
+        build.import_data(request.json)
+        db.session.add(build)
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        raise
     return jsonify(build.export_data()), 201, {'Location': build.get_url()}
 
 

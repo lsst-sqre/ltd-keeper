@@ -98,7 +98,7 @@ class Build(db.Model):
     product_id = db.Column(db.Integer, db.ForeignKey('products.id'),
                            index=True)
     # name of build; URL-safe slug used as directory in build bucket
-    slug = db.Column(db.Unicode(256), nullable=False)
+    slug = db.Column(db.String(256), nullable=False)
     # auto-assigned date build was created
     date_created = db.Column(db.DateTime, default=datetime.now(),
                              nullable=False)
@@ -134,10 +134,28 @@ class Build(db.Model):
 
     def import_data(self, data):
         """Convert a dict `data` into a table row."""
-        try:
+        if data is None:
+            data = {}
+
+        if 'slug' in data:
+            identical_slugs = len(
+                Build.query.autoflush(False)
+                .filter(Build.product == self.product)
+                .filter(Build.slug == data['slug'])
+                .all())
+            if identical_slugs > 0:
+                raise ValidationError('Invalid Build, slug already exists')
             self.slug = data['slug']
-        except KeyError as e:
-            raise ValidationError('Invalid Build: missing ' + e.args[0])
+        else:
+            # auto-create a slug
+            all_builds = Build.query.autoflush(False)\
+                .filter(Build.product == self.product)\
+                .all()
+            slugs = [b.slug for b in all_builds]
+            trial_slug_n = 1
+            while str(trial_slug_n) in slugs:
+                trial_slug_n += 1
+            self.slug = str(trial_slug_n)
 
         self.date_created = datetime.now()
 
@@ -145,7 +163,7 @@ class Build(db.Model):
             try:
                 self.date_ended = parse_utc_datetime(data['date_ended'])
             except:
-                raise ValidationError('Invalid Edition, could not parse '
+                raise ValidationError('Invalid Build, could not parse '
                                       'date_ended ' + data['date_ended'])
 
         return self
