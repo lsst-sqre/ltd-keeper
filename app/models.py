@@ -106,6 +106,8 @@ class Build(db.Model):
     date_ended = db.Column(db.DateTime, nullable=True)
     # FIXME add build metadata
 
+    uploaded = db.Column(db.Boolean, default=False)
+
     # Relationships
     # product - from Product class
 
@@ -120,7 +122,8 @@ class Build(db.Model):
             'product_url': self.product.get_url(),
             'name': self.name,
             'date_created': format_utc_datetime(self.date_created),
-            'date_ended': format_utc_datetime(self.date_ended)
+            'date_ended': format_utc_datetime(self.date_ended),
+            'uploaded': self.uploaded,
         }
 
     def import_data(self, data):
@@ -140,6 +143,12 @@ class Build(db.Model):
                                       'date_ended ' + data['date_ended'])
 
         return self
+
+    def register_upload(self):
+        """Acknowledge a build upload to the bucket; sets `uploaded` field to
+        `True`.
+        """
+        self.uploaded = True
 
 
 class Edition(db.Model):

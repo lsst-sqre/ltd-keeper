@@ -3,11 +3,11 @@
 
 def test_builds(client):
     # Add a sample product
-    p = {'eups_package': 'lsst_apps',
+    p = {'slug': 'lsst_apps',
          'doc_repo': 'https://github.com/lsst/pipelines_docs.git',
-         'name': 'LSST Science Pipelines',
+         'title': 'LSST Science Pipelines',
          'domain': 'pipelines.lsst.io',
-         'build_bucket': 'bucket-name'}
+         'bucket_name': 'bucket-name'}
     r = client.post('/v1/products/', p)
     assert r.status == 201
 
@@ -22,6 +22,11 @@ def test_builds(client):
     b1 = {'name': 'b1'}
     r = client.post('/v1/products/1/builds/', b1)
     assert r.status == 201
+    assert r.json['product_url'] == prod_url
+    assert r.json['name'] == b1['name']
+    assert r.json['date_created'] is not None
+    assert r.json['date_ended'] is None
+    assert r.json['uploaded'] is False
 
     # List builds
     r = client.get('/v1/products/1/builds/')
@@ -30,17 +35,21 @@ def test_builds(client):
 
     # Get build
     r = client.get('/v1/builds/1')
-    assert r.json['product_url'] == prod_url
-    assert r.json['name'] == b1['name']
-    assert r.json['creation_date'] is not None
-    assert r.json['end_date'] is None
+    assert r.status == 200
+
+    # Register upload
+    r = client.post('/v1/builds/1/uploaded', {})
+    assert r.status == 202
+
+    r = client.get('/v1/builds/1')
+    assert r.json['uploaded'] is True
 
     # Deprecate build
-    r = client.post('/v1/builds/1/deprecate', {})
+    r = client.delete('/v1/builds/1')
     assert r.status == 202
 
     r = client.get('/v1/builds/1')
     assert r.json['product_url'] == prod_url
     assert r.json['name'] == b1['name']
-    assert r.json['creation_date'] is not None
-    assert r.json['end_date'] is not None
+    assert r.json['date_created'] is not None
+    assert r.json['date_ended'] is not None

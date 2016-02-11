@@ -14,6 +14,12 @@ from ..models import Product, Build
 def new_build(id):
     """Add a new build for a product (token required).
 
+    This method only adds a record for the build and specifies where the build
+    should be uploaded. The client is reponsible for uploading the build.
+    Once the documentation is uploaded, send
+    :http:post:`/v1/builds/(int:id)/uploaded` to register that the doc
+    has been uploaded.
+
     **Example request**
 
     .. code-block:: http
@@ -36,19 +42,36 @@ def new_build(id):
 
     .. code-block:: http
 
-       HTTP/1.0 201 CREATED
-       Content-Length: 2
+       HTTP/1.0 201 OK
+       Content-Length: 217
        Content-Type: application/json
-       Date: Wed, 10 Feb 2016 00:28:14 GMT
+       Date: Thu, 11 Feb 2016 17:39:32 GMT
        Location: http://localhost:5000/v1/builds/1
        Server: Werkzeug/0.11.3 Python/3.5.0
 
-       {}
+       {
+           "date_created": "2016-02-11T10:39:32.833623Z",
+           "date_ended": null,
+           "name": "b1",
+           "product_url": "http://localhost:5000/v1/products/1",
+           "self_url": "http://localhost:5000/v1/builds/1",
+           "uploaded": false
+       }
 
     :reqheader Authorization: Include the token in a username field with a
         blank password; ``<token>:``.
     :param id: ID of the Product.
-    :<json string name: Name of build; URL-safe slug.
+
+    :>json string date_created: UTC date time when the build was created.
+    :>json string date_ended: UTC date time when the build was deprecated;
+        will be ``null`` for builds are are *not deprecated*.
+    :>json string name: Name of build; URL-safe slug.
+    :>json string product_url: URL of parent product entity.
+    :>json string self_url: URL of this build entity.
+    :>json string uploaded: True if the built documentation has been uploaded
+        to the S3 bucket. Use :http:post:`/v1/build/(int:id)/uploaded` to
+        set this to `True`.
+
     :resheader Location: URL of the created build.
     :statuscode 201: No error.
     """
@@ -57,7 +80,55 @@ def new_build(id):
     build.import_data(request.json)
     db.session.add(build)
     db.session.commit()
-    return jsonify({}), 201, {'Location': build.get_url()}
+    return jsonify(build.export_data()), 201, {'Location': build.get_url()}
+
+
+@api.route('/builds/<int:id>/uploaded', methods=['POST'])
+@token_auth.login_required
+def register_build_upload(id):
+    """Mark a build as uploaded (token required).
+
+    This method should be called when the documentation has been successfully
+    uploaded to the S3 bucket.
+
+    The ``uploaded`` field for the build record is changed to ``True``.
+
+    **Example request**
+
+    .. code-block:: http
+
+       POST /v1/builds/1/uploaded HTTP/1.1
+       Accept: */*
+       Accept-Encoding: gzip, deflate
+       Authorization: Basic ZXlKaGJHY2lPaUpJVXpJMU5pSXNJbWxoZENJNk1UUTFOVEl4...
+       Connection: keep-alive
+       Content-Length: 0
+       Host: localhost:5000
+       User-Agent: HTTPie/0.9.3
+
+    **Example response**
+
+    .. code-block:: http
+
+       HTTP/1.0 202 ACCEPTED
+       Content-Length: 2
+       Content-Type: application/json
+       Date: Thu, 11 Feb 2016 17:53:36 GMT
+       Location: http://localhost:5000/v1/builds/1
+       Server: Werkzeug/0.11.3 Python/3.5.0
+
+       {}
+
+    :reqheader Authorization: Include the token in a username field with a
+        blank password; ``<token>:``.
+    :param id: ID of the build.
+    :resheader Location: URL of the created build.
+    :statuscode 202: No error.
+    """
+    build = Build.query.get_or_404(id)
+    build.register_upload()
+    db.session.commit()
+    return jsonify({}), 202, {'Location': build.get_url()}
 
 
 @api.route('/builds/<int:id>', methods=['DELETE'])
@@ -96,7 +167,7 @@ def deprecate_build(id):
     :statuscode 202: No error.
     """
     build = Build.query.get_or_404(id)
-    build.end_date = datetime.now()
+    build.date_ended = datetime.now()
     db.session.commit()
     return jsonify({}), 202
 
@@ -173,6 +244,7 @@ def get_build(id):
            "name": "b1",
            "product_url": "http://localhost:5000/v1/products/1",
            "self_url": "http://localhost:5000/v1/builds/1"
+           "uploaded": false
        }
 
     :param id: ID of the Build.
@@ -183,6 +255,9 @@ def get_build(id):
     :>json string name: Name of build; URL-safe slug.
     :>json string product_url: URL of parent product entity.
     :>json string self_url: URL of this build entity.
+    :>json string uploaded: True if the built documentation has been uploaded
+        to the S3 bucket. Use :http:post:`/v1/build/(int:id)/uploaded` to
+        set this to `True`.
 
     :statuscode 200: No error.
     :statuscode 404: Build not found.

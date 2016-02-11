@@ -7,21 +7,21 @@ def test_products(client):
     assert len(r.json['products']) == 0
 
     # Add first product
-    p1 = {'eups_package': 'lsst_apps',
+    p1 = {'slug': 'lsst_apps',
           'doc_repo': 'https://github.com/lsst/pipelines_docs.git',
-          'name': 'LSST Science Pipelines',
+          'title': 'LSST Science Pipelines',
           'domain': 'pipelines.lsst.io',
-          'build_bucket': 'bucket-name'}
+          'bucket_name': 'bucket-name'}
     r = client.post('/v1/products/', p1)
     assert r.status == 201
     p1_url = r.headers['Location']
 
     # Add second product
-    p2 = {'eups_package': 'qserv',
+    p2 = {'slug': 'qserv',
           'doc_repo': 'https://github.com/lsst/qserv_docs.git',
-          'name': 'Qserv',
+          'title': 'Qserv',
           'domain': 'qserv.lsst.io',
-          'build_bucket': 'bucket-name'}
+          'bucket_name': 'bucket-name'}
     r = client.post('/v1/products/', p2)
     assert r.status == 201
     p2_url = r.headers['Location']
@@ -41,7 +41,7 @@ def test_products(client):
         assert r.json[k] == v
 
     p2v2 = dict(p2)
-    p2v2['build_bucket'] = 'different-bucket'
+    p2v2['bucket_name'] = 'bucket_name'
 
     # # Try modifying non-existant product
     # # Throws werkzeug.exceptions.NotFound rather than emitting 404 response
