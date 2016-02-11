@@ -60,16 +60,16 @@ def new_build(id):
     return jsonify({}), 201, {'Location': build.get_url()}
 
 
-@api.route('/builds/<int:id>/deprecate', methods=['POST'])
+@api.route('/builds/<int:id>', methods=['DELETE'])
 @token_auth.login_required
 def deprecate_build(id):
-    """Mark a build as deprecated.
+    """Mark a build as deprecated (token required).
 
     **Example request**
 
     .. code-block:: http
 
-       POST /v1/builds/1/deprecate HTTP/1.1
+       DELETE /v1/builds/1 HTTP/1.1
        Accept: */*
        Accept-Encoding: gzip, deflate
        Authorization: Basic ZXlKbGVIQWlPakUwTlRVeE16RTJOVFVzSW1Gc1p5STZJa2hU...

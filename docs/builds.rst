@@ -13,7 +13,7 @@ Methods
 
 - :http:get:`/v1/builds/(int:id)` --- show a build.
 
-- :http:post:`/v1/builds/(int:id)/deprecate` --- deprecate a build.
+- :http:delete:`/v1/builds/(int:id)` --- deprecate a build.
 
 *See also:*
 
