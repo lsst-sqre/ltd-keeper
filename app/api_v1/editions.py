@@ -1,6 +1,5 @@
 """API v1 routes for Editions."""
 
-from datetime import datetime
 from flask import jsonify, request
 
 from . import api
@@ -66,6 +65,8 @@ def new_edition(slug):
         in order of priority.
     :<json string published_url: Full URL where this edition is published.
 
+    :resheader Location: URL of the created Edition resource.
+
     :statuscode 201: No errors.
     """
     product = Product.query.filter_by(slug=slug).first_or_404()
@@ -116,9 +117,10 @@ def deprecate_edition(id):
        {}
 
     :statuscode 202: No errors.
+    :statuscode 404: Edition not found.
     """
     edition = Edition.query.get_or_404(id)
-    edition.end_date = datetime.now()
+    edition.deprecate()
     db.session.commit()
     return jsonify({}), 202
 
@@ -224,14 +226,48 @@ def get_edition(id):
         in order of priority.
 
     :statuscode 200: No errors.
+    :statuscode 404: Edition not found.
     """
     return jsonify(Edition.query.get_or_404(id).export_data())
 
 
-@api.route('/editions/<int:id>', methods=['PUT'])
+@api.route('/editions/<int:id>/rebuild', methods=['POST'])
+@token_auth.login_required
+def rebuild_edition(id):
+    """Point the Edition to a new Build (token required).
+
+    :<json string build_url: URL of the Build resource this entity should
+        point to.
+
+    :statuscode 202: No Errors.
+    :statuscode 404: Edition not found.
+    """
+    edition = Edition.query.get_or_404(id)
+    try:
+        edition.rebuild_from_data(request.json)
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        raise
+    return jsonify(edition.export_data()), 202
+
+
+@api.route('/editions/<int:id>', methods=['PATCH'])
 @token_auth.login_required
 def edit_edition(id):
     """Edit an Edition (token required).
+
+    This PATCH method allows you to specify a subset of JSON fields to replace
+    existing fields in the Edition resource. Not all fields in an Edition are
+    editable via the API. Specifically, the Edition's ``slug`` and timestamps
+    and relationship to the Product are not editable . See the allowed JSON
+    fields below.
+
+    Use :http:post:`/v1/editions/(int:id)/rebuild` to specifically rebuild the
+    edition with a new build. Use :http:delete:`/v1/editions/(int:id)` to
+    deprecate an edition.
+
+    The full resource record is returned.
 
     **Example request**
 
@@ -270,24 +306,22 @@ def edit_edition(id):
     :param id: ID of the Edition.
 
     :<json string build_url: URL of the build entity this Edition uses.
-    :<json string date_ended: UTC date time when the edition was deprecated;
-        will be ``null`` for editions that are *not deprecated*.
-    :<json string product_url: URL of parent product entity.
     :<json string published_url: Full URL where this edition is published.
-    :<json string slug: URL-safe name for edition.
+        Editing this field will change the CNAME DNS record.
     :<json string title: Human-readable name for edition.
     :<json string tracked_refs: Git ref that this Edition points to. For multi-
         repository builds, this can be a comma-separated list of refs to use,
         in order of priority.
 
     :statuscode 200: No errors.
+    :statuscode 404: Edition resource not found.
     """
     edition = Edition.query.get_or_404(id)
     try:
-        edition.import_data(request.json)
+        edition.patch_data(request.json)
         db.session.add(edition)
         db.session.commit()
     except Exception:
         db.session.rollback()
         raise
-    return jsonify({})
+    return jsonify(edition.export_data())

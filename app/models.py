@@ -229,9 +229,11 @@ class Edition(db.Model):
         }
 
     def import_data(self, data):
-        """Convert a dict `data` into a table row."""
+        """Initialize the edition on POST.
+
+        The Product is set on object initialization.
+        """
         try:
-            build_endpoint, build_args = split_url(data['build_url'])
             self.tracked_refs = data['tracked_refs']
             self.slug = data['slug']
             self.title = data['title']
@@ -239,32 +241,47 @@ class Edition(db.Model):
         except KeyError as e:
             raise ValidationError('Invalid Edition: missing ' + e.args[0])
 
-        if 'product_url' in data:
-            # In some routes can get product from URL arg itself
-            prod_endpoint, prod_args = split_url(data['product_url'])
-            if prod_endpoint != 'api.get_product' or 'id' not in prod_args:
-                raise ValidationError('Invalid product_url: ' +
-                                      data['product_url'])
-            self.product = Product.query.get(prod_args['id'])
-        if self.product is None:
-            raise ValidationError('Invalid product_url: ' +
-                                  data['product_url'])
+        # Set initial build pointer
+        self.rebuild_from_data(data)
 
+        self.date_created = datetime.now()
+
+        return self
+
+    def patch_data(self, data):
+        """Partial update of the Edition."""
+        if 'tracked_refs' in data:
+            self.tracked_refs = data['tracked_refs']
+
+        if 'title' in data:
+            self.title = data['title']
+
+        if 'build_url' in data:
+            self.rebuild(data['build_url'])
+
+        if 'published_url' in data:
+            self.published_url = data['published_url']
+
+    def rebuild_from_data(self, data):
+        """For POST editions/(id)/rebuild."""
+        try:
+            build_url = data['build_url']
+            self.rebuild(build_url)
+        except KeyError as e:
+            raise ValidationError('Invalid Edition: missing ' + e.args[0])
+
+    def rebuild(self, build_url):
+        """Modify the build this edition points to."""
+        build_endpoint, build_args = split_url(build_url)
         if build_endpoint != 'api.get_build' or 'id' not in build_args:
             raise ValidationError('Invalid build_url: ' +
-                                  data['build_url'])
+                                  'build_url')
         self.build = Build.query.get(build_args['id'])
         if self.build is None:
-            raise ValidationError('Invalid build_url: ' +
-                                  data['build_url'])
-
-        if 'date_ended' in data:
-            try:
-                self.date_ended = parse_utc_datetime(data['date_ended'])
-            except:
-                raise ValidationError('Invalid Edition, could not parse '
-                                      'date_ended ' + data['date_ended'])
+            raise ValidationError('Invalid build_url: ' + build_url)
 
         self.date_rebuilt = datetime.now()
 
-        return self
+    def deprecate(self):
+        """Deprecate the Edition; sets the `date_ended` field."""
+        self.date_ended = datetime.now()
