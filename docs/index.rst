@@ -16,3 +16,10 @@ For more information about LSST the Docs, see `SQR-006: Documentation Deployment
    products
    builds
    editions
+
+.. toctree::
+   :caption: Operations
+   :name: ops-guide
+   :maxdepth: 1
+
+   install
