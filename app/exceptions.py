@@ -9,5 +9,10 @@ class ValidationError(ValueError):
 
 
 class Route53Error(Exception):
-    """Errors related to Route53 usage."""
+    """Errors related to Route 53 usage."""
+    pass
+
+
+class S3Error(Exception):
+    """Errors related to AWS S3 usage."""
     pass
