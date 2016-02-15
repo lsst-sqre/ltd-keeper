@@ -6,3 +6,8 @@ class ValidationError(ValueError):
     POST, or PATCH requests.
     """
     pass
+
+
+class Route53Error(Exception):
+    """Errors related to Route53 usage."""
+    pass
