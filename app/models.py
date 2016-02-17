@@ -104,7 +104,11 @@ class Build(db.Model):
                              nullable=False)
     # set only when the build is deprecated (ready for deletion)
     date_ended = db.Column(db.DateTime, nullable=True)
-
+    # comma-separated list of Git refs describing this version of the docs
+    git_refs = db.Column(db.String(16384), nullable=False)
+    # github handle of person requesting the build (optional)
+    github_requester = db.Column(db.String(256), nullable=True)
+    # Flag to indicate the doc has been uploaded to S3.
     uploaded = db.Column(db.Boolean, default=False)
 
     # Relationships
@@ -129,13 +133,24 @@ class Build(db.Model):
             'date_ended': format_utc_datetime(self.date_ended),
             'uploaded': self.uploaded,
             'bucket_name': self.product.bucket_name,
-            'bucket_root_dir': self.bucket_root_dirname
+            'bucket_root_dir': self.bucket_root_dirname,
+            'git_refs': self.git_refs.split(','),
+            'github_requester': self.github_requester
         }
 
     def import_data(self, data):
         """Convert a dict `data` into a table row."""
-        if data is None:
-            data = {}
+        try:
+            git_refs = data['git_refs']
+            if isinstance(git_refs, str):
+                raise ValidationError('Invalid Build: git_refs must be an '
+                                      'array of strings')
+            self.git_refs = ','.join(data['git_refs'])
+        except KeyError as e:
+            raise ValidationError('Invalid Build: missing ' + e.args[0])
+
+        if 'github_requester' in data:
+            self.github_requester = data['github_requester']
 
         if 'slug' in data:
             identical_slugs = len(

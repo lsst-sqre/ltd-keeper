@@ -23,7 +23,9 @@ def test_builds(client):
     assert len(r.json['builds']) == 0
 
     # Add a build
-    b1 = {'slug': 'b1'}
+    b1 = {'slug': 'b1',
+          'github_requester': 'jonathansick',
+          'git_refs': ['master']}
     r = client.post('/v1/products/lsst_apps/builds/', b1)
     assert r.status == 201
     assert r.json['product_url'] == prod_url
@@ -65,10 +67,23 @@ def test_builds(client):
     assert r.json['date_ended'] is not None
 
     # Add some auto-slugged builds
-    r = client.post('/v1/products/lsst_apps/builds/', {'foo': 'bar'})
+    b2 = {'git_refs': ['master']}
+    r = client.post('/v1/products/lsst_apps/builds/', b2)
     assert r.status == 201
     assert r.json['slug'] == '1'
 
-    r = client.post('/v1/products/lsst_apps/builds/', {'foo': 'bar'})
+    b3 = {'git_refs': ['master']}
+    r = client.post('/v1/products/lsst_apps/builds/', b3)
     assert r.status == 201
     assert r.json['slug'] == '2'
+
+    # Add a build missing 'git_refs'
+    b4 = {'slug': 'bad-build'}
+    with pytest.raises(ValidationError):
+        r = client.post('/v1/products/lsst_apps/builds/', b4)
+
+    # Add a build with a badly formatted git_refs
+    b5 = {'slug': 'another-bad-build',
+          'git_refs': 'master'}
+    with pytest.raises(ValidationError):
+        r = client.post('/v1/products/lsst_apps/builds/', b5)

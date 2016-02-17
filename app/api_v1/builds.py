@@ -66,22 +66,32 @@ def new_build(slug):
         blank password; ``<token>:``.
     :param slug: Product slug.
 
-    :<json string slug: Optional slug of build; URL-safe slug. If slug is
+    :<json string slug: Optional URL-safe slug for the build. If a slug is
         not specified, then one will automatically be specified.
+    :<json github_requester: Optional GitHub username handle of person
+        who triggered the build.
+    :<json array git_refs: Git ref array that describe the version of the
+        documentation being built. Typically this array will be a single
+        string, e.g. ``['master']`` but may be a list of several refs for
+        multi-package builds with ltd-mason.
 
+    :>json string bucket_name: Name of the S3 bucket hosting the built
+        documentation.
+    :>json string bucket_root_dir: Directory (path prefix) in the S3 bucket
+        where this documentation build is located.
     :>json string date_created: UTC date time when the build was created.
     :>json string date_ended: UTC date time when the build was deprecated;
         will be ``null`` for builds are are *not deprecated*.
+    :>json array git_refs: Git ref (or array of Git refs for multi-package
+        builds with ltd-mason) that describe the version of the documentation.
+    :>json string github_requester: GitHub username handle of person
+        who triggered the build (null is not available).
     :>json string slug: slug of build; URL-safe slug.
     :>json string product_url: URL of parent product entity.
     :>json string self_url: URL of this build entity.
     :>json string uploaded: True if the built documentation has been uploaded
         to the S3 bucket. Use :http:post:`/v1/builds/(int:id)/uploaded` to
         set this to `True`.
-    :>json string bucket_name: Name of the S3 bucket hosting the built
-        documentation.
-    :>json string bucket_root_dir: Directory (path prefix) in the S3 bucket
-        where this documentation build is located.
 
     :resheader Location: URL of the created build.
     :statuscode 201: No error.
@@ -271,19 +281,23 @@ def get_build(id):
 
     :param id: ID of the Build.
 
+    :>json string bucket_name: Name of the S3 bucket hosting the built
+        documentation.
+    :>json string bucket_root_dir: Directory (path prefix) in the S3 bucket
+        where this documentation build is located.
     :>json string date_created: UTC date time when the build was created.
     :>json string date_ended: UTC date time when the build was deprecated;
         will be ``null`` for builds are are *not deprecated*.
-    :>json string slug: Name of build; URL-safe slug.
+    :>json array git_refs: Git ref (or array of Git refs for multi-package
+        builds with ltd-mason) that describe the version of the documentation.
+    :>json string github_requester: GitHub username handle of person
+        who triggered the build (null is not available).
+    :>json string slug: slug of build; URL-safe slug.
     :>json string product_url: URL of parent product entity.
     :>json string self_url: URL of this build entity.
     :>json string uploaded: True if the built documentation has been uploaded
         to the S3 bucket. Use :http:post:`/v1/builds/(int:id)/uploaded` to
         set this to `True`.
-    :>json string bucket_name: Name of the S3 bucket hosting the built
-        documentation.
-    :>json string bucket_root_dir: Directory (path prefix) in the S3 bucket
-        where this documentation build is located.
 
     :statuscode 200: No error.
     :statuscode 404: Build not found.

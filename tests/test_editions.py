@@ -13,11 +13,13 @@ def test_editions(client):
     assert r.status == 201
 
     # Create builds
-    r = client.post('/v1/products/lsst_apps/builds/', {'foo': 'bar'})
+    r = client.post('/v1/products/lsst_apps/builds/',
+                    {'git_refs': ['master']})
     assert r.status == 201
     b1_url = r.json['self_url']
 
-    r = client.post('/v1/products/lsst_apps/builds/', {'foo': 'bar'})
+    r = client.post('/v1/products/lsst_apps/builds/',
+                    {'git_refs': ['master']})
     assert r.status == 201
     b2_url = r.json['self_url']
 
