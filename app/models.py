@@ -174,13 +174,6 @@ class Build(db.Model):
 
         self.date_created = datetime.now()
 
-        if 'date_ended' in data:
-            try:
-                self.date_ended = parse_utc_datetime(data['date_ended'])
-            except:
-                raise ValidationError('Invalid Build, could not parse '
-                                      'date_ended ' + data['date_ended'])
-
         return self
 
     def register_upload(self):
@@ -188,6 +181,13 @@ class Build(db.Model):
         `True`.
         """
         self.uploaded = True
+
+    def deprecate_build(self):
+        """Trigger a build deprecation.
+
+        Sets the `date_ended` field.
+        """
+        self.date_ended = datetime.now()
 
 
 class Edition(db.Model):

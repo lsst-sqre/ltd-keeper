@@ -1,6 +1,5 @@
 """API v1 routes for builds."""
 
-from datetime import datetime
 from flask import jsonify, request
 
 from . import api
@@ -81,7 +80,7 @@ def new_build(slug):
         where this documentation build is located.
     :>json string date_created: UTC date time when the build was created.
     :>json string date_ended: UTC date time when the build was deprecated;
-        will be ``null`` for builds are are *not deprecated*.
+        will be ``null`` for builds that are *not deprecated*.
     :>json array git_refs: Git ref (or array of Git refs for multi-package
         builds with ltd-mason) that describe the version of the documentation.
     :>json string github_requester: GitHub username handle of person
@@ -192,7 +191,7 @@ def deprecate_build(id):
     :statuscode 202: No error.
     """
     build = Build.query.get_or_404(id)
-    build.date_ended = datetime.now()
+    build.deprecate_build()
     db.session.commit()
     return jsonify({}), 202
 
@@ -287,7 +286,7 @@ def get_build(id):
         where this documentation build is located.
     :>json string date_created: UTC date time when the build was created.
     :>json string date_ended: UTC date time when the build was deprecated;
-        will be ``null`` for builds are are *not deprecated*.
+        will be ``null`` for builds that are *not deprecated*.
     :>json array git_refs: Git ref (or array of Git refs for multi-package
         builds with ltd-mason) that describe the version of the documentation.
     :>json string github_requester: GitHub username handle of person
