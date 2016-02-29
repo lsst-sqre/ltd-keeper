@@ -21,7 +21,7 @@ def new_edition(slug):
 
     .. code-block:: http
 
-       POST /v1/products/1/editions/ HTTP/1.1
+       POST /products/1/editions/ HTTP/1.1
        Accept: application/json
        Accept-Encoding: gzip, deflate
        Authorization: Basic ZXlKaGJHY2lPaUpJVXpJMU5pSXNJbWxoZENJNk1UUTFOVEUw...
@@ -32,7 +32,7 @@ def new_edition(slug):
        User-Agent: HTTPie/0.9.3
 
        {
-           "build_url": "http://localhost:5000/v1/builds/1",
+           "build_url": "http://localhost:5000/builds/1",
            "published_url": "docs.product.org",
            "slug": "latest",
            "title": "Latest",
@@ -47,7 +47,7 @@ def new_edition(slug):
        Content-Length: 2
        Content-Type: application/json
        Date: Wed, 10 Feb 2016 22:16:50 GMT
-       Location: http://localhost:5000/v1/editions/2
+       Location: http://localhost:5000/editions/2
        Server: Werkzeug/0.11.3 Python/3.5.0
 
        {}
@@ -95,7 +95,7 @@ def deprecate_edition(id):
 
     .. code-block:: http
 
-       DELETE /v1/editions/1 HTTP/1.1
+       DELETE /editions/1 HTTP/1.1
        Accept: */*
        Accept-Encoding: gzip, deflate
        Authorization: Basic ZXlKaGJHY2lPaUpJVXpJMU5pSXNJbWxoZENJNk1UUTFOVEUw...
@@ -137,7 +137,7 @@ def get_product_editions(slug):
 
     .. code-block:: http
 
-       GET /v1/products/1/editions/ HTTP/1.1
+       GET /products/1/editions/ HTTP/1.1
        Accept: */*
        Accept-Encoding: gzip, deflate
        Connection: keep-alive
@@ -156,8 +156,8 @@ def get_product_editions(slug):
 
        {
            "editions": [
-               "http://localhost:5000/v1/editions/1",
-               "http://localhost:5000/v1/editions/2"
+               "http://localhost:5000/editions/1",
+               "http://localhost:5000/editions/2"
            ]
        }
 
@@ -178,7 +178,7 @@ def get_edition(id):
 
     .. code-block:: http
 
-       GET /v1/editions/1 HTTP/1.1
+       GET /editions/1 HTTP/1.1
        Accept: */*
        Accept-Encoding: gzip, deflate
        Connection: keep-alive
@@ -196,13 +196,13 @@ def get_edition(id):
        Server: Werkzeug/0.11.3 Python/3.5.0
 
        {
-           "build_url": "http://localhost:5000/v1/builds/1",
+           "build_url": "http://localhost:5000/builds/1",
            "date_created": "2016-02-10T15:14:17.735864Z",
            "date_ended": null,
-           "product_url": "http://localhost:5000/v1/products/1",
+           "product_url": "http://localhost:5000/products/1",
            "published_url": "docs.product.org",
            "rebuilt_date": "2016-02-10T15:15:09.338565Z",
-           "self_url": "http://localhost:5000/v1/editions/1",
+           "self_url": "http://localhost:5000/editions/1",
            "slug": "latest",
            "title": "Latest",
            "tracked_refs": "master"
@@ -263,8 +263,8 @@ def edit_edition(id):
     and relationship to the Product are not editable . See the allowed JSON
     fields below.
 
-    Use :http:post:`/v1/editions/(int:id)/rebuild` to specifically rebuild the
-    edition with a new build. Use :http:delete:`/v1/editions/(int:id)` to
+    Use :http:post:`/editions/(int:id)/rebuild` to specifically rebuild the
+    edition with a new build. Use :http:delete:`/editions/(int:id)` to
     deprecate an edition.
 
     The full resource record is returned.
@@ -273,7 +273,7 @@ def edit_edition(id):
 
     .. code-block:: http
 
-       PUT /v1/editions/1 HTTP/1.1
+       PUT /editions/1 HTTP/1.1
        Accept: application/json
        Accept-Encoding: gzip, deflate
        Authorization: Basic ZXlKaGJHY2lPaUpJVXpJMU5pSXNJbWxoZENJNk1UUTFOVEUw...
@@ -284,7 +284,7 @@ def edit_edition(id):
        User-Agent: HTTPie/0.9.3
 
        {
-           "build_url": "http://localhost:5000/v1/builds/1",
+           "build_url": "http://localhost:5000/builds/1",
            "published_url": "latest.product.org",
            "slug": "latest",
            "title": "Latest",

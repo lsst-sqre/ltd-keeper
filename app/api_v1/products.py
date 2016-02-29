@@ -19,7 +19,7 @@ def get_products():
 
     .. code-block:: http
 
-       GET /v1/products/ HTTP/1.1
+       GET /products/ HTTP/1.1
        Accept: */*
        Accept-Encoding: gzip, deflate
        Connection: keep-alive
@@ -38,8 +38,8 @@ def get_products():
 
        {
            "products": [
-               "http://localhost:5000/v1/products/1",
-               "http://localhost:5000/v1/products/2"
+               "http://localhost:5000/products/1",
+               "http://localhost:5000/products/2"
            ]
        }
 
@@ -58,7 +58,7 @@ def get_product(slug):
 
     .. code-block:: http
 
-       GET /v1/products/1 HTTP/1.1
+       GET /products/1 HTTP/1.1
        Accept: */*
        Accept-Encoding: gzip, deflate
        Connection: keep-alive
@@ -79,7 +79,7 @@ def get_product(slug):
            "bucket_name": "an-s3-bucket",
            "doc_repo": "https://github.com/lsst/pipelines_docs.git",
            "domain": "pipelines.lsst.io",
-           "self_url": "http://localhost:5000/v1/products/1",
+           "self_url": "http://localhost:5000/products/1",
            "slug": "pipelines",
            "title": "LSST Science Pipelines"
        }
@@ -112,7 +112,7 @@ def new_product():
 
     .. code-block:: http
 
-       POST /v1/products/ HTTP/1.1
+       POST /products/ HTTP/1.1
        Accept: application/json
        Accept-Encoding: gzip, deflate
        Authorization: Basic ZXlKbGVIQWlPakUwTlRVd05qUXdNVElzSW1Gc1p5STZJa2hU...
@@ -138,7 +138,7 @@ def new_product():
        Content-Length: 2
        Content-Type: application/json
        Date: Tue, 09 Feb 2016 23:35:18 GMT
-       Location: http://localhost:5000/v1/products/1
+       Location: http://localhost:5000/products/1
        Server: Werkzeug/0.11.3 Python/3.5.0
 
        {}
@@ -171,7 +171,7 @@ def new_product():
 def edit_product(slug):
     """Update a product (token required).
 
-    See :http:post:`/v1/products/` for documentation on the JSON-formatted
+    See :http:post:`/products/` for documentation on the JSON-formatted
     message body.
 
     :reqheader Authorization: Include the token in a username field with a

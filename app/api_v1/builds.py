@@ -16,7 +16,7 @@ def new_build(slug):
     This method only adds a record for the build and specifies where the build
     should be uploaded. The client is reponsible for uploading the build.
     Once the documentation is uploaded, send
-    :http:post:`/v1/builds/(int:id)/uploaded` to register that the doc
+    :http:post:`/builds/(int:id)/uploaded` to register that the doc
     has been uploaded.
 
     .. todo::
@@ -27,7 +27,7 @@ def new_build(slug):
 
     .. code-block:: http
 
-       POST /v1/products/1/builds/ HTTP/1.1
+       POST /products/1/builds/ HTTP/1.1
        Accept: application/json
        Accept-Encoding: gzip, deflate
        Authorization: Basic ZXlKbGVIQWlPakUwTlRVd05qUXdNVElzSW1Gc1p5STZJa2hU...
@@ -49,15 +49,15 @@ def new_build(slug):
        Content-Length: 217
        Content-Type: application/json
        Date: Thu, 11 Feb 2016 17:39:32 GMT
-       Location: http://localhost:5000/v1/builds/1
+       Location: http://localhost:5000/builds/1
        Server: Werkzeug/0.11.3 Python/3.5.0
 
        {
            "date_created": "2016-02-11T10:39:32.833623Z",
            "date_ended": null,
            "slug": "b1",
-           "product_url": "http://localhost:5000/v1/products/1",
-           "self_url": "http://localhost:5000/v1/builds/1",
+           "product_url": "http://localhost:5000/products/1",
+           "self_url": "http://localhost:5000/builds/1",
            "uploaded": false
        }
 
@@ -89,7 +89,7 @@ def new_build(slug):
     :>json string product_url: URL of parent product entity.
     :>json string self_url: URL of this build entity.
     :>json string uploaded: True if the built documentation has been uploaded
-        to the S3 bucket. Use :http:post:`/v1/builds/(int:id)/uploaded` to
+        to the S3 bucket. Use :http:post:`/builds/(int:id)/uploaded` to
         set this to `True`.
 
     :resheader Location: URL of the created build.
@@ -121,7 +121,7 @@ def register_build_upload(id):
 
     .. code-block:: http
 
-       POST /v1/builds/1/uploaded HTTP/1.1
+       POST /builds/1/uploaded HTTP/1.1
        Accept: */*
        Accept-Encoding: gzip, deflate
        Authorization: Basic ZXlKaGJHY2lPaUpJVXpJMU5pSXNJbWxoZENJNk1UUTFOVEl4...
@@ -138,7 +138,7 @@ def register_build_upload(id):
        Content-Length: 2
        Content-Type: application/json
        Date: Thu, 11 Feb 2016 17:53:36 GMT
-       Location: http://localhost:5000/v1/builds/1
+       Location: http://localhost:5000/builds/1
        Server: Werkzeug/0.11.3 Python/3.5.0
 
        {}
@@ -164,7 +164,7 @@ def deprecate_build(id):
 
     .. code-block:: http
 
-       DELETE /v1/builds/1 HTTP/1.1
+       DELETE /builds/1 HTTP/1.1
        Accept: */*
        Accept-Encoding: gzip, deflate
        Authorization: Basic ZXlKbGVIQWlPakUwTlRVeE16RTJOVFVzSW1Gc1p5STZJa2hU...
@@ -208,7 +208,7 @@ def get_product_builds(slug):
 
     .. code-block:: http
 
-       GET /v1/products/1/builds/ HTTP/1.1
+       GET /products/1/builds/ HTTP/1.1
        Accept: */*
        Accept-Encoding: gzip, deflate
        Connection: keep-alive
@@ -227,7 +227,7 @@ def get_product_builds(slug):
 
        {
            "builds": [
-               "http://localhost:5000/v1/builds/1"
+               "http://localhost:5000/builds/1"
            ]
        }
 
@@ -252,7 +252,7 @@ def get_build(id):
 
     .. code-block:: http
 
-       GET /v1/builds/1 HTTP/1.1
+       GET /builds/1 HTTP/1.1
        Accept: */*
        Accept-Encoding: gzip, deflate
        Connection: keep-alive
@@ -273,8 +273,8 @@ def get_build(id):
            "date_created": "2016-02-09T17:28:14.941424Z",
            "date_ended": null,
            "slug": "b1",
-           "product_url": "http://localhost:5000/v1/products/1",
-           "self_url": "http://localhost:5000/v1/builds/1"
+           "product_url": "http://localhost:5000/products/1",
+           "self_url": "http://localhost:5000/builds/1"
            "uploaded": false
        }
 
@@ -295,7 +295,7 @@ def get_build(id):
     :>json string product_url: URL of parent product entity.
     :>json string self_url: URL of this build entity.
     :>json string uploaded: True if the built documentation has been uploaded
-        to the S3 bucket. Use :http:post:`/v1/builds/(int:id)/uploaded` to
+        to the S3 bucket. Use :http:post:`/builds/(int:id)/uploaded` to
         set this to `True`.
 
     :statuscode 200: No error.

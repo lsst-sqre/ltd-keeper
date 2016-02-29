@@ -2,7 +2,7 @@
 
 
 def test_products(client):
-    r = client.get('/v1/products/')
+    r = client.get('/products/')
     assert r.status == 200
     assert len(r.json['products']) == 0
 
@@ -12,7 +12,7 @@ def test_products(client):
           'title': 'LSST Science Pipelines',
           'domain': 'pipelines.lsst.io',
           'bucket_name': 'bucket-name'}
-    r = client.post('/v1/products/', p1)
+    r = client.post('/products/', p1)
     assert r.status == 201
     p1_url = r.headers['Location']
 
@@ -22,12 +22,12 @@ def test_products(client):
           'title': 'Qserv',
           'domain': 'qserv.lsst.io',
           'bucket_name': 'bucket-name'}
-    r = client.post('/v1/products/', p2)
+    r = client.post('/products/', p2)
     assert r.status == 201
     p2_url = r.headers['Location']
 
     # Test listing of products
-    r = client.get('/v1/products/')
+    r = client.get('/products/')
     assert r.status == 200
     assert r.json['products'] == [p1_url, p2_url]
 
@@ -45,12 +45,12 @@ def test_products(client):
 
     # # Try modifying non-existant product
     # # Throws werkzeug.exceptions.NotFound rather than emitting 404 response
-    # r = client.put('/v1/products/3', p2v2)
+    # r = client.put('/products/3', p2v2)
     # assert r.status == 404
 
     # Modify existing product
-    r = client.put('/v1/products/qserv', p2v2)
+    r = client.put('/products/qserv', p2v2)
     assert r.status == 200
-    r = client.get('/v1/products/qserv')
+    r = client.get('/products/qserv')
     for k, v in p2v2.items():
         assert r.json[k] == v
