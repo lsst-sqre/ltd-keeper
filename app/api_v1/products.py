@@ -44,6 +44,8 @@ def get_products():
        }
 
     :>json array products: List of product URLs.
+
+    :statuscode 200: No error.
     """
     return jsonify({'products': [product.get_url() for product in
                                  Product.query.all()]})
@@ -93,6 +95,7 @@ def get_product(slug):
     :>json string self_url: URL of this Product.
     :>json string slug: URL/path-safe identifier for this product.
 
+    :statuscode 200: No error.
     :statuscode 404: Product not found.
     """
     product = Product.query.filter_by(slug=slug).first_or_404()

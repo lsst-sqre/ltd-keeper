@@ -68,6 +68,7 @@ def new_edition(slug):
     :resheader Location: URL of the created Edition resource.
 
     :statuscode 201: No errors.
+    :statuscode 404: Product not found.
     """
     product = Product.query.filter_by(slug=slug).first_or_404()
     edition = Edition(product=product)
@@ -116,13 +117,13 @@ def deprecate_edition(id):
 
        {}
 
-    :statuscode 202: No errors.
+    :statuscode 200: No errors.
     :statuscode 404: Edition not found.
     """
     edition = Edition.query.get_or_404(id)
     edition.deprecate()
     db.session.commit()
-    return jsonify({}), 202
+    return jsonify({}), 200
 
 
 @api.route('/products/<slug>/editions/', methods=['GET'])
@@ -164,6 +165,7 @@ def get_product_editions(slug):
     :param id: ID of the Product.
     :>json array editions: List of URLs of Edition entities for this Product.
     :statuscode 200: No errors.
+    :statuscode 404: Product not found.
     """
     edition_urls = [edition.get_url() for edition in
                     Edition.query.filter(Product.slug == slug).all()]
@@ -239,7 +241,7 @@ def rebuild_edition(id):
     :<json string build_url: URL of the Build resource this entity should
         point to.
 
-    :statuscode 202: No Errors.
+    :statuscode 200: No Errors.
     :statuscode 404: Edition not found.
     """
     edition = Edition.query.get_or_404(id)
@@ -249,7 +251,7 @@ def rebuild_edition(id):
     except Exception:
         db.session.rollback()
         raise
-    return jsonify(edition.export_data()), 202
+    return jsonify(edition.export_data()), 200
 
 
 @api.route('/editions/<int:id>', methods=['PATCH'])

@@ -44,7 +44,7 @@ def test_editions(client):
 
     # Re-build the edition
     r = client.post(e1_url + '/rebuild', {'build_url': b2_url})
-    assert r.status == 202
+    assert r.status == 200
     assert r.json['build_url'] == b2_url
 
     # Change the title with PATCH
@@ -54,7 +54,7 @@ def test_editions(client):
 
     # Deprecate the editon
     r = client.delete(e1_url)
-    assert r.status == 202
+    assert r.status == 200
 
     r = client.get(e1_url)
     assert r.status == 200

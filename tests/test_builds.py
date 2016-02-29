@@ -51,14 +51,14 @@ def test_builds(client):
 
     # Register upload
     r = client.post('/builds/1/uploaded', {})
-    assert r.status == 202
+    assert r.status == 200
 
     r = client.get('/builds/1')
     assert r.json['uploaded'] is True
 
     # Deprecate build
     r = client.delete('/builds/1')
-    assert r.status == 202
+    assert r.status == 200
 
     r = client.get('/builds/1')
     assert r.json['product_url'] == prod_url

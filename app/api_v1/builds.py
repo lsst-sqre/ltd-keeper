@@ -94,6 +94,7 @@ def new_build(slug):
 
     :resheader Location: URL of the created build.
     :statuscode 201: No error.
+    :statuscode 404: Product not found.
     """
     product = Product.query.filter_by(slug=slug).first_or_404()
     build = Build(product=product)
@@ -147,12 +148,13 @@ def register_build_upload(id):
         blank password; ``<token>:``.
     :param id: ID of the build.
     :resheader Location: URL of the created build.
-    :statuscode 202: No error.
+    :statuscode 200: No error.
+    :statuscode 404: Build not found.
     """
     build = Build.query.get_or_404(id)
     build.register_upload()
     db.session.commit()
-    return jsonify({}), 202, {'Location': build.get_url()}
+    return jsonify({}), 200, {'Location': build.get_url()}
 
 
 @api.route('/builds/<int:id>', methods=['DELETE'])
@@ -188,12 +190,13 @@ def deprecate_build(id):
     :reqheader Authorization: Include the token in a username field with a
         blank password; ``<token>:``.
     :param id: ID of the build.
-    :statuscode 202: No error.
+    :statuscode 200: No error.
+    :statuscode 404: Build not found.
     """
     build = Build.query.get_or_404(id)
     build.deprecate_build()
     db.session.commit()
-    return jsonify({}), 202
+    return jsonify({}), 200
 
 
 @api.route('/products/<slug>/builds/', methods=['GET'])
@@ -231,9 +234,10 @@ def get_product_builds(slug):
            ]
        }
 
-    :param id: ID of the Product.
+    :param slug: Slug of the Product.
     :>json array builds: List of URLs of Build entities for this product.
     :statuscode 200: No error.
+    :statuscode 404: Product not found.
     """
     build_urls = [build.get_url() for build in
                   Build.query.filter(Product.slug == slug).all()]
