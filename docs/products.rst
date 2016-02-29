@@ -20,7 +20,7 @@ Method Summary
 
 - :http:post:`/products/` --- create a new product.
 
-- :http:put:`/products/(slug)` --- update a product's metadata.
+- :http:patch:`/products/(slug)` --- update a product's metadata.
 
 - :http:post:`/products/(slug)/builds/` --- create a new build for a product.
 

@@ -169,25 +169,29 @@ def new_product():
     return jsonify({}), 201, {'Location': product.get_url()}
 
 
-@api.route('/products/<slug>', methods=['PUT'])
+@api.route('/products/<slug>', methods=['PATCH'])
 @token_auth.login_required
 def edit_product(slug):
     """Update a product (token required).
 
-    See :http:post:`/products/` for documentation on the JSON-formatted
-    message body.
+    Not all fields can be updated: in particular ``'slug'``, ``'domain'``, and
+    ``'bucket-name'``. Support for updating these Product attributes may be
+    added later.
 
     :reqheader Authorization: Include the token in a username field with a
         blank password; ``<token>:``.
+    :<json string doc_repo: URL of the Git documentation repo (i.e., on
+       GitHub) (optional).
+    :<json string title: Human-readable product title (optional).
     :statuscode 200: No error.
     :statuscode 404: Product not found.
     """
     product = Product.query.filter_by(slug=slug).first_or_404()
     try:
-        product.import_data(request.json)
+        product.patch_data(request.json)
         db.session.add(product)
         db.session.commit()
     except Exception:
         db.session.rollback()
         raise
-    return jsonify({})
+    return jsonify({}), 200, {'Location': product.get_url()}

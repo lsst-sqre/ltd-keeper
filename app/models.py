@@ -89,6 +89,17 @@ class Product(db.Model):
             raise ValidationError('Invalid Product: missing ' + e.args[0])
         return self
 
+    def patch_data(self, data):
+        """Partial update of fields from PUT requests on an existing product.
+
+        Currently only updates to doc_repo and title are supported.
+        """
+        if 'doc_repo' in data:
+            self.doc_repo = data['doc_repo']
+
+        if 'title' in data:
+            self.title = data['title']
+
 
 class Build(db.Model):
     """DB model for documentation builds."""

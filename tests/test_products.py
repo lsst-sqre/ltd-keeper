@@ -41,7 +41,7 @@ def test_products(client):
         assert r.json[k] == v
 
     p2v2 = dict(p2)
-    p2v2['bucket_name'] = 'bucket_name'
+    p2v2['title'] = 'Qserve Data Access'
 
     # # Try modifying non-existant product
     # # Throws werkzeug.exceptions.NotFound rather than emitting 404 response
@@ -49,8 +49,10 @@ def test_products(client):
     # assert r.status == 404
 
     # Modify existing product
-    r = client.put('/products/qserv', p2v2)
+    r = client.patch('/products/qserv', p2v2)
     assert r.status == 200
     r = client.get('/products/qserv')
+    assert r.status == 200
+    print(r.json)
     for k, v in p2v2.items():
         assert r.json[k] == v
