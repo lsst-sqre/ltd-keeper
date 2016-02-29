@@ -60,9 +60,9 @@ def new_edition(slug):
     :<json string slug: URL-safe name for edition.
     :<json string title: Human-readable name for edition.
     :<json string build_url: URL of the build entity this Edition uses.
-    :<json string tracked_refs: Git ref that this Edition points to. For multi-
-        repository builds, this can be a comma-separated list of refs to use,
-        in order of priority.
+    :<json array tracked_refs: Git ref(s) that this Edition points to.
+        For multi-package documentation builds this is a list of Git refs that
+        are checked out, in order of priority, for each component repository.
     :<json string published_url: Full URL where this edition is published.
 
     :resheader Location: URL of the created Edition resource.
@@ -311,9 +311,9 @@ def edit_edition(id):
     :<json string published_url: Full URL where this edition is published.
         Editing this field will change the CNAME DNS record.
     :<json string title: Human-readable name for edition.
-    :<json string tracked_refs: Git ref that this Edition points to. For multi-
-        repository builds, this can be a comma-separated list of refs to use,
-        in order of priority.
+    :<json array tracked_refs: Git ref(s) that this Edition points to.
+        For multi-package documentation builds this is a list of Git refs that
+        are checked out, in order of priority, for each component repository.
 
     :statuscode 200: No errors.
     :statuscode 404: Edition resource not found.

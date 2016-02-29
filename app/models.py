@@ -6,7 +6,8 @@ from flask import url_for, current_app
 
 from . import db
 from .exceptions import ValidationError
-from .utils import split_url, format_utc_datetime, parse_utc_datetime
+from .utils import split_url, format_utc_datetime, \
+    JSONEncodedVARCHAR, MutableList
 
 
 class User(db.Model):
@@ -115,8 +116,8 @@ class Build(db.Model):
                              nullable=False)
     # set only when the build is deprecated (ready for deletion)
     date_ended = db.Column(db.DateTime, nullable=True)
-    # comma-separated list of Git refs describing this version of the docs
-    git_refs = db.Column(db.String(16384), nullable=False)
+    # json-persisted list of Git refs that determine the version of Product
+    git_refs = db.Column(MutableList.as_mutable(JSONEncodedVARCHAR(2048)))
     # github handle of person requesting the build (optional)
     github_requester = db.Column(db.String(256), nullable=True)
     # Flag to indicate the doc has been uploaded to S3.
@@ -145,7 +146,7 @@ class Build(db.Model):
             'uploaded': self.uploaded,
             'bucket_name': self.product.bucket_name,
             'bucket_root_dir': self.bucket_root_dirname,
-            'git_refs': self.git_refs.split(','),
+            'git_refs': self.git_refs,
             'github_requester': self.github_requester
         }
 
@@ -156,7 +157,7 @@ class Build(db.Model):
             if isinstance(git_refs, str):
                 raise ValidationError('Invalid Build: git_refs must be an '
                                       'array of strings')
-            self.git_refs = ','.join(data['git_refs'])
+            self.git_refs = git_refs
         except KeyError as e:
             raise ValidationError('Invalid Build: missing ' + e.args[0])
 
@@ -216,7 +217,7 @@ class Edition(db.Model):
     build_id = db.Column(db.Integer, db.ForeignKey('builds.id'),
                          index=True)
     # What product Git refs this Edition tracks and publishes
-    tracked_refs = db.Column(db.String(1024))
+    tracked_refs = db.Column(MutableList.as_mutable(JSONEncodedVARCHAR(2048)))
     # url-safe slug for edition
     slug = db.Column(db.String(256), nullable=False)
     # Human-readable title for edition
@@ -260,12 +261,17 @@ class Edition(db.Model):
         The Product is set on object initialization.
         """
         try:
-            self.tracked_refs = data['tracked_refs']
+            tracked_refs = data['tracked_refs']
             self.slug = data['slug']
             self.title = data['title']
             self.published_url = data['published_url']
         except KeyError as e:
             raise ValidationError('Invalid Edition: missing ' + e.args[0])
+
+        if isinstance(tracked_refs, str):
+            raise ValidationError('Invalid Edition: tracked_refs must be an '
+                                  'array of strings')
+        self.tracked_refs = tracked_refs
 
         # Set initial build pointer
         self.rebuild_from_data(data)
@@ -277,6 +283,10 @@ class Edition(db.Model):
     def patch_data(self, data):
         """Partial update of the Edition."""
         if 'tracked_refs' in data:
+            tracked_refs = data['tracked_refs']
+            if isinstance(tracked_refs, str):
+                raise ValidationError('Invalid Edition: tracked_refs must '
+                                      'be an array of strings')
             self.tracked_refs = data['tracked_refs']
 
         if 'title' in data:

@@ -2,6 +2,10 @@
 
 from dateutil import parser as datetime_parser
 from dateutil.tz import tzutc
+import json
+
+from sqlalchemy.types import TypeDecorator, VARCHAR
+from sqlalchemy.ext.mutable import Mutable
 
 from flask.globals import _app_ctx_stack, _request_ctx_stack
 from werkzeug.urls import url_parse
@@ -60,3 +64,59 @@ def parse_utc_datetime(datetime_str):
         return date
     else:
         return None
+
+
+class JSONEncodedVARCHAR(TypeDecorator):
+    """Custom column JSON datatype that's persisted as a JSON string.
+
+    Example::
+
+        col = db.Column(JSONEncodedVARCHAR(1024))
+
+    Adapted from SQLAlchemy example code: http://ls.st/4ad
+    """
+    impl = VARCHAR
+
+    def process_bind_param(self, value, dialect):
+        if value is not None:
+            value = json.dumps(value)
+
+        return value
+
+    def process_result_value(self, value, dialect):
+        if value is not None:
+            value = json.loads(value)
+        return value
+
+
+class MutableList(Mutable, list):
+    """Wrapper for a JSONEncodedVARCHAR column to allow an underlying list
+    type to be mutable.
+
+    Example::
+
+        col = db.Column(MutableList.as_mutable(JSONEncodedVARCHAR(1024)))
+
+    Adapted from SQLAlchemy docs: http://ls.st/djv
+    """
+    @classmethod
+    def coerce(cls, key, value):
+        """Convert plain lists to MutableList."""
+        if not isinstance(value, MutableList):
+            if isinstance(value, list):
+                return MutableList(value)
+
+            # this call will raise ValueError
+            return Mutable.coerce(key, value)
+        else:
+            return value
+
+    def __setitem__(self, index, value):
+        """Detect list set events and emit change events."""
+        list.__setitem__(self, index, value)
+        self.changed()
+
+    def __delitem__(self, index):
+        """Detect list del events and emit change events."""
+        list.__delitem__(self, index)
+        self.changed()

@@ -24,7 +24,7 @@ def test_editions(client):
     b2_url = r.json['self_url']
 
     # Setup an edition
-    e1 = {'tracked_refs': 'master',
+    e1 = {'tracked_refs': ['master'],
           'slug': 'latest',
           'title': 'Latest',
           'published_url': 'pipelines.lsst.io',
@@ -34,7 +34,7 @@ def test_editions(client):
 
     r = client.get(e1_url)
     assert r.status == 200
-    assert r.json['tracked_refs'] == e1['tracked_refs']
+    assert r.json['tracked_refs'][0] == e1['tracked_refs'][0]
     assert r.json['slug'] == e1['slug']
     assert r.json['title'] == e1['title']
     assert r.json['published_url'] == e1['published_url']
@@ -51,6 +51,12 @@ def test_editions(client):
     r = client.patch(e1_url, {'title': "Development version"})
     assert r.status == 200
     assert r.json['title'] == 'Development version'
+
+    # Change the tracked_refs with PATCH
+    r = client.patch(e1_url, {'tracked_refs': ['tickets/DM-9999', 'master']})
+    assert r.status == 200
+    assert r.json['tracked_refs'][0] == 'tickets/DM-9999'
+    assert r.json['tracked_refs'][1] == 'master'
 
     # Deprecate the editon
     r = client.delete(e1_url)
