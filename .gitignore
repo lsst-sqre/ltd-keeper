@@ -62,3 +62,5 @@ target/
 .ipynb_checkpoints
 
 *.sqlite
+
+integration_tests/ltd_keeper_doc_examples.txt
