@@ -12,6 +12,7 @@ For more information about LSST the Docs, see `SQR-006: Documentation Deployment
    :name: http-api
    :maxdepth: 1
 
+   api_intro
    auth
    products
    builds
