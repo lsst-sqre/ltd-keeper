@@ -13,18 +13,14 @@ from ..models import Product, Edition
 def new_edition(slug):
     """Create a new Edition for a Product (token required).
 
-    .. todo::
-
-       Update example.
-
     **Example request**
 
     .. code-block:: http
 
-       POST /products/1/editions/ HTTP/1.1
+       POST /products/lsst_apps/editions/ HTTP/1.1
        Accept: application/json
        Accept-Encoding: gzip, deflate
-       Authorization: Basic ZXlKaGJHY2lPaUpJVXpJMU5pSXNJbWxoZENJNk1UUTFOVEUw...
+       Authorization: Basic ZXlKcFlYUWlPakUwTlRZM056SXpORGdzSW1WNGNDSTZNVFEx...
        Connection: keep-alive
        Content-Length: 150
        Content-Type: application/json
@@ -33,10 +29,12 @@ def new_edition(slug):
 
        {
            "build_url": "http://localhost:5000/builds/1",
-           "published_url": "docs.product.org",
+           "published_url": "pipelines.lsst.io",
            "slug": "latest",
            "title": "Latest",
-           "tracked_refs": "master"
+           "tracked_refs": [
+               "master"
+           ]
        }
 
     **Example response**
@@ -46,24 +44,24 @@ def new_edition(slug):
        HTTP/1.0 201 CREATED
        Content-Length: 2
        Content-Type: application/json
-       Date: Wed, 10 Feb 2016 22:16:50 GMT
-       Location: http://localhost:5000/editions/2
+       Date: Tue, 01 Mar 2016 17:21:29 GMT
+       Location: http://localhost:5000/editions/1
        Server: Werkzeug/0.11.3 Python/3.5.0
 
        {}
 
     :reqheader Authorization: Include the token in a username field with a
         blank password; ``<token>:``.
-
     :param slug: Product slug.
 
+    :<json string build_url: URL of the build entity this Edition uses.
+    :<json string published_url: URL where this edition is published.
     :<json string slug: URL-safe name for edition.
     :<json string title: Human-readable name for edition.
-    :<json string build_url: URL of the build entity this Edition uses.
-    :<json array tracked_refs: Git ref(s) that this Edition points to.
-        For multi-package documentation builds this is a list of Git refs that
+    :<json array tracked_refs: Git ref(s) that describe the version of the
+        Product that this this Edition is intended to point to. For
+        multi-package documentation builds this is a list of Git refs that
         are checked out, in order of priority, for each component repository.
-    :<json string published_url: Full URL where this edition is published.
 
     :resheader Location: URL of the created Edition resource.
 
@@ -97,9 +95,7 @@ def deprecate_edition(id):
     .. code-block:: http
 
        DELETE /editions/1 HTTP/1.1
-       Accept: */*
-       Accept-Encoding: gzip, deflate
-       Authorization: Basic ZXlKaGJHY2lPaUpJVXpJMU5pSXNJbWxoZENJNk1UUTFOVEUw...
+       Authorization: Basic ZXlKcFlYUWlPakUwTlRZM056SXpORGdzSW1WNGNDSTZNVFEx...
        Connection: keep-alive
        Content-Length: 0
        Host: localhost:5000
@@ -109,13 +105,17 @@ def deprecate_edition(id):
 
     .. code-block:: http
 
-       HTTP/1.0 202 ACCEPTED
+       HTTP/1.0 200 OK
        Content-Length: 2
        Content-Type: application/json
-       Date: Wed, 10 Feb 2016 23:13:26 GMT
+       Date: Tue, 01 Mar 2016 17:21:30 GMT
        Server: Werkzeug/0.11.3 Python/3.5.0
 
        {}
+
+    :reqheader Authorization: Include the token in a username field with a
+        blank password; ``<token>:``.
+    :param id: Edition id.
 
     :statuscode 200: No errors.
     :statuscode 404: Edition not found.
@@ -130,40 +130,32 @@ def deprecate_edition(id):
 def get_product_editions(slug):
     """List all editions published for a Product.
 
-    .. todo::
-
-       Update example.
-
     **Example request**
 
     .. code-block:: http
 
-       GET /products/1/editions/ HTTP/1.1
-       Accept: */*
-       Accept-Encoding: gzip, deflate
-       Connection: keep-alive
-       Host: localhost:5000
-       User-Agent: HTTPie/0.9.3
+       GET /products/lsst_apps/editions/ HTTP/1.1
 
     **Example response**
 
     .. code-block:: http
 
        HTTP/1.0 200 OK
-       Content-Length: 108
+       Content-Length: 62
        Content-Type: application/json
-       Date: Wed, 10 Feb 2016 22:21:49 GMT
+       Date: Tue, 01 Mar 2016 18:50:19 GMT
        Server: Werkzeug/0.11.3 Python/3.5.0
 
        {
            "editions": [
-               "http://localhost:5000/editions/1",
-               "http://localhost:5000/editions/2"
+               "http://localhost:5000/editions/1"
            ]
        }
 
-    :param id: ID of the Product.
+    :param slug: Slug of the Product.
+
     :>json array editions: List of URLs of Edition entities for this Product.
+
     :statuscode 200: No errors.
     :statuscode 404: Product not found.
     """
@@ -181,33 +173,30 @@ def get_edition(id):
     .. code-block:: http
 
        GET /editions/1 HTTP/1.1
-       Accept: */*
-       Accept-Encoding: gzip, deflate
-       Connection: keep-alive
-       Host: localhost:5000
-       User-Agent: HTTPie/0.9.3
 
     **Example response**
 
     .. code-block:: http
 
        HTTP/1.0 200 OK
-       Content-Length: 387
+       Content-Length: 413
        Content-Type: application/json
-       Date: Wed, 10 Feb 2016 22:29:49 GMT
+       Date: Tue, 01 Mar 2016 18:50:18 GMT
        Server: Werkzeug/0.11.3 Python/3.5.0
 
        {
            "build_url": "http://localhost:5000/builds/1",
-           "date_created": "2016-02-10T15:14:17.735864Z",
+           "date_created": "2016-03-01T11:50:18.196724Z",
            "date_ended": null,
-           "product_url": "http://localhost:5000/products/1",
-           "published_url": "docs.product.org",
-           "rebuilt_date": "2016-02-10T15:15:09.338565Z",
+           "date_rebuilt": "2016-03-01T11:50:18.196706Z",
+           "product_url": "http://localhost:5000/products/lsst_apps",
+           "published_url": "pipelines.lsst.io",
            "self_url": "http://localhost:5000/editions/1",
            "slug": "latest",
-           "title": "Latest",
-           "tracked_refs": "master"
+           "title": "Development master",
+           "tracked_refs": [
+               "master"
+           ]
        }
 
     :param id: ID of the Edition.
@@ -238,8 +227,70 @@ def get_edition(id):
 def rebuild_edition(id):
     """Point the Edition to a new Build (token required).
 
+    **Example request**
+
+    .. code-block:: http
+
+       POST /editions/1/rebuild HTTP/1.1
+       Accept: application/json
+       Accept-Encoding: gzip, deflate
+       Authorization: Basic ZXlKcFlYUWlPakUwTlRZM056SXpORGdzSW1WNGNDSTZNVFEx...
+       Connection: keep-alive
+       Content-Length: 47
+       Content-Type: application/json
+       Host: localhost:5000
+       User-Agent: HTTPie/0.9.3
+
+       {
+           "build_url": "http://localhost:5000/builds/2"
+       }
+
+    **Example response**
+
+    .. code-block:: http
+
+       HTTP/1.0 200 OK
+       Content-Length: 413
+       Content-Type: application/json
+       Date: Tue, 01 Mar 2016 17:21:29 GMT
+       Server: Werkzeug/0.11.3 Python/3.5.0
+
+       {
+           "build_url": "http://localhost:5000/builds/2",
+           "date_created": "2016-03-01T10:21:29.017615Z",
+           "date_ended": null,
+           "date_rebuilt": "2016-03-01T10:21:29.590839Z",
+           "product_url": "http://localhost:5000/products/lsst_apps",
+           "published_url": "pipelines.lsst.io",
+           "self_url": "http://localhost:5000/editions/1",
+           "slug": "latest",
+           "title": "Development master",
+           "tracked_refs": [
+               "master"
+           ]
+       }
+
+    :reqheader Authorization: Include the token in a username field with a
+        blank password; ``<token>:``.
+    :param id: Edition id.
+
     :<json string build_url: URL of the Build resource this entity should
         point to.
+
+    :>json string build_url: URL of the build entity this Edition uses.
+    :>json string date_created: UTC date time when the edition was created.
+    :>json string date_ended: UTC date time when the edition was deprecated;
+        will be ``null`` for editions that are *not deprecated*.
+    :>json string date_rebuilt: UTC date time when the edition last re-pointed
+        to a different build.
+    :>json string product_url: URL of parent product entity.
+    :>json string published_url: Full URL where this edition is published.
+    :>json string self_url: URL of this Edition entity.
+    :>json string slug: URL-safe name for edition.
+    :>json string title: Human-readable name for edition.
+    :>json string tracked_refs: Git ref that this Edition points to. For multi-
+        repository builds, this can be a comma-separated list of refs to use,
+        in order of priority.
 
     :statuscode 200: No Errors.
     :statuscode 404: Edition not found.
@@ -275,22 +326,18 @@ def edit_edition(id):
 
     .. code-block:: http
 
-       PUT /editions/1 HTTP/1.1
+       PATCH /editions/1 HTTP/1.1
        Accept: application/json
        Accept-Encoding: gzip, deflate
-       Authorization: Basic ZXlKaGJHY2lPaUpJVXpJMU5pSXNJbWxoZENJNk1UUTFOVEUw...
+       Authorization: Basic ZXlKcFlYUWlPakUwTlRZM056SXpORGdzSW1WNGNDSTZNVFEx...
        Connection: keep-alive
-       Content-Length: 152
+       Content-Length: 31
        Content-Type: application/json
        Host: localhost:5000
        User-Agent: HTTPie/0.9.3
 
        {
-           "build_url": "http://localhost:5000/builds/1",
-           "published_url": "latest.product.org",
-           "slug": "latest",
-           "title": "Latest",
-           "tracked_refs": "master"
+           "title": "Development master"
        }
 
     **Example response**
@@ -298,22 +345,54 @@ def edit_edition(id):
     .. code-block:: http
 
        HTTP/1.0 200 OK
-       Content-Length: 2
+       Content-Length: 413
        Content-Type: application/json
-       Date: Wed, 10 Feb 2016 22:56:32 GMT
+       Date: Tue, 01 Mar 2016 17:21:29 GMT
        Server: Werkzeug/0.11.3 Python/3.5.0
 
-       {}
+       {
+           "build_url": "http://localhost:5000/builds/2",
+           "date_created": "2016-03-01T10:21:29.017615Z",
+           "date_ended": null,
+           "date_rebuilt": "2016-03-01T10:21:29.590839Z",
+           "product_url": "http://localhost:5000/products/lsst_apps",
+           "published_url": "pipelines.lsst.io",
+           "self_url": "http://localhost:5000/editions/1",
+           "slug": "latest",
+           "title": "Development master",
+           "tracked_refs": [
+               "master"
+           ]
+       }
 
+    :reqheader Authorization: Include the token in a username field with a
+        blank password; ``<token>:``.
     :param id: ID of the Edition.
 
-    :<json string build_url: URL of the build entity this Edition uses.
-    :<json string published_url: Full URL where this edition is published.
-        Editing this field will change the CNAME DNS record.
+    :<json string build_url: URL of the build entity this Edition uses
+        (optional). Setting this is equivalent to sending a
+        :http:post:`/editions/(int:id)/rebuild`.
+    :<json string published_url: Full URL where this edition is published
+        (optional). Setting this field will change the CNAME DNS record.
     :<json string title: Human-readable name for edition.
     :<json array tracked_refs: Git ref(s) that this Edition points to.
         For multi-package documentation builds this is a list of Git refs that
         are checked out, in order of priority, for each component repository.
+
+    :>json string build_url: URL of the build entity this Edition uses.
+    :>json string date_created: UTC date time when the edition was created.
+    :>json string date_ended: UTC date time when the edition was deprecated;
+        will be ``null`` for editions that are *not deprecated*.
+    :>json string date_rebuilt: UTC date time when the edition last re-pointed
+        to a different build.
+    :>json string product_url: URL of parent product entity.
+    :>json string published_url: Full URL where this edition is published.
+    :>json string self_url: URL of this Edition entity.
+    :>json string slug: URL-safe name for edition.
+    :>json string title: Human-readable name for edition.
+    :>json string tracked_refs: Git ref that this Edition points to. For multi-
+        repository builds, this can be a comma-separated list of refs to use,
+        in order of priority.
 
     :statuscode 200: No errors.
     :statuscode 404: Edition resource not found.

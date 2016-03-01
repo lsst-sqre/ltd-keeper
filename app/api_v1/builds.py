@@ -16,28 +16,27 @@ def new_build(slug):
     This method only adds a record for the build and specifies where the build
     should be uploaded. The client is reponsible for uploading the build.
     Once the documentation is uploaded, send
-    :http:post:`/builds/(int:id)/uploaded` to register that the doc
-    has been uploaded.
-
-    .. todo::
-
-       Update examples.
+    :http:post:`/builds/(int:id)/uploaded`.
 
     **Example request**
 
     .. code-block:: http
 
-       POST /products/1/builds/ HTTP/1.1
+       POST /products/lsst_apps/builds/ HTTP/1.1
        Accept: application/json
        Accept-Encoding: gzip, deflate
-       Authorization: Basic ZXlKbGVIQWlPakUwTlRVd05qUXdNVElzSW1Gc1p5STZJa2hU...
+       Authorization: Basic ZXlKcFlYUWlPakUwTlRZM056SXpORGdzSW1WNGNDSTZNVFEx...
        Connection: keep-alive
-       Content-Length: 14
+       Content-Length: 74
        Content-Type: application/json
        Host: localhost:5000
        User-Agent: HTTPie/0.9.3
 
        {
+           "git_refs": [
+               "master"
+           ],
+           "github_requester": "jonathansick",
            "slug": "b1"
        }
 
@@ -45,19 +44,25 @@ def new_build(slug):
 
     .. code-block:: http
 
-       HTTP/1.0 201 OK
-       Content-Length: 217
+       HTTP/1.0 201 CREATED
+       Content-Length: 368
        Content-Type: application/json
-       Date: Thu, 11 Feb 2016 17:39:32 GMT
+       Date: Tue, 01 Mar 2016 17:21:27 GMT
        Location: http://localhost:5000/builds/1
        Server: Werkzeug/0.11.3 Python/3.5.0
 
        {
-           "date_created": "2016-02-11T10:39:32.833623Z",
+           "bucket_name": "an-s3-bucket",
+           "bucket_root_dir": "lsst_apps/builds/b1",
+           "date_created": "2016-03-01T10:21:27.583795Z",
            "date_ended": null,
-           "slug": "b1",
-           "product_url": "http://localhost:5000/products/1",
+           "git_refs": [
+               "master"
+           ],
+           "github_requester": "jonathansick",
+           "product_url": "http://localhost:5000/products/lsst_apps",
            "self_url": "http://localhost:5000/builds/1",
+           "slug": "b1",
            "uploaded": false
        }
 
@@ -65,14 +70,14 @@ def new_build(slug):
         blank password; ``<token>:``.
     :param slug: Product slug.
 
-    :<json string slug: Optional URL-safe slug for the build. If a slug is
-        not specified, then one will automatically be specified.
-    :<json github_requester: Optional GitHub username handle of person
-        who triggered the build.
-    :<json array git_refs: Git ref array that describe the version of the
+    :<json array git_refs: Git ref array that describes the version of the
         documentation being built. Typically this array will be a single
         string, e.g. ``['master']`` but may be a list of several refs for
         multi-package builds with ltd-mason.
+    :<json github_requester: Optional GitHub username handle of person
+        who triggered the build.
+    :<json string slug: Optional URL-safe slug for the build. If a slug is
+        not specified, then one will automatically be specified.
 
     :>json string bucket_name: Name of the S3 bucket hosting the built
         documentation.
@@ -81,18 +86,22 @@ def new_build(slug):
     :>json string date_created: UTC date time when the build was created.
     :>json string date_ended: UTC date time when the build was deprecated;
         will be ``null`` for builds that are *not deprecated*.
-    :>json array git_refs: Git ref (or array of Git refs for multi-package
-        builds with ltd-mason) that describe the version of the documentation.
+    :>json array git_refs: Git ref array that describes the version of the
+        documentation being built. Typically this array will be a single
+        string, e.g. ``['master']`` but may be a list of several refs for
+        multi-package builds with ltd-mason.
     :>json string github_requester: GitHub username handle of person
         who triggered the build (null is not available).
-    :>json string slug: slug of build; URL-safe slug.
     :>json string product_url: URL of parent product entity.
     :>json string self_url: URL of this build entity.
+    :>json string slug: Slug of build; URL-safe slug. Will be unique to the
+        Product.
     :>json string uploaded: True if the built documentation has been uploaded
         to the S3 bucket. Use :http:post:`/builds/(int:id)/uploaded` to
         set this to `True`.
 
     :resheader Location: URL of the created build.
+
     :statuscode 201: No error.
     :statuscode 404: Product not found.
     """
@@ -125,7 +134,7 @@ def register_build_upload(id):
        POST /builds/1/uploaded HTTP/1.1
        Accept: */*
        Accept-Encoding: gzip, deflate
-       Authorization: Basic ZXlKaGJHY2lPaUpJVXpJMU5pSXNJbWxoZENJNk1UUTFOVEl4...
+       Authorization: Basic ZXlKcFlYUWlPakUwTlRZM056SXpORGdzSW1WNGNDSTZNVFEx...
        Connection: keep-alive
        Content-Length: 0
        Host: localhost:5000
@@ -135,10 +144,10 @@ def register_build_upload(id):
 
     .. code-block:: http
 
-       HTTP/1.0 202 ACCEPTED
+       HTTP/1.0 200 OK
        Content-Length: 2
        Content-Type: application/json
-       Date: Thu, 11 Feb 2016 17:53:36 GMT
+       Date: Tue, 01 Mar 2016 17:21:28 GMT
        Location: http://localhost:5000/builds/1
        Server: Werkzeug/0.11.3 Python/3.5.0
 
@@ -147,7 +156,9 @@ def register_build_upload(id):
     :reqheader Authorization: Include the token in a username field with a
         blank password; ``<token>:``.
     :param id: ID of the build.
+
     :resheader Location: URL of the created build.
+
     :statuscode 200: No error.
     :statuscode 404: Build not found.
     """
@@ -169,7 +180,7 @@ def deprecate_build(id):
        DELETE /builds/1 HTTP/1.1
        Accept: */*
        Accept-Encoding: gzip, deflate
-       Authorization: Basic ZXlKbGVIQWlPakUwTlRVeE16RTJOVFVzSW1Gc1p5STZJa2hU...
+       Authorization: Basic ZXlKcFlYUWlPakUwTlRZM056SXpORGdzSW1WNGNDSTZNVFEx...
        Connection: keep-alive
        Content-Length: 0
        Host: localhost:5000
@@ -179,10 +190,10 @@ def deprecate_build(id):
 
     .. code-block:: http
 
-       HTTP/1.0 202 ACCEPTED
+       HTTP/1.0 200 OK
        Content-Length: 2
        Content-Type: application/json
-       Date: Wed, 10 Feb 2016 18:15:08 GMT
+       Date: Tue, 01 Mar 2016 17:21:29 GMT
        Server: Werkzeug/0.11.3 Python/3.5.0
 
        {}
@@ -190,6 +201,7 @@ def deprecate_build(id):
     :reqheader Authorization: Include the token in a username field with a
         blank password; ``<token>:``.
     :param id: ID of the build.
+
     :statuscode 200: No error.
     :statuscode 404: Build not found.
     """
@@ -203,39 +215,33 @@ def deprecate_build(id):
 def get_product_builds(slug):
     """List all builds for a product.
 
-    .. todo::
-
-       Update example.
-
     **Example request**
 
     .. code-block:: http
 
-       GET /products/1/builds/ HTTP/1.1
-       Accept: */*
-       Accept-Encoding: gzip, deflate
-       Connection: keep-alive
-       Host: localhost:5000
-       User-Agent: HTTPie/0.9.3
+       GET /products/lsst_apps/builds/ HTTP/1.1
 
     **Example response**
 
     .. code-block:: http
 
        HTTP/1.0 200 OK
-       Content-Length: 61
+       Content-Length: 96
        Content-Type: application/json
-       Date: Wed, 10 Feb 2016 17:40:16 GMT
+       Date: Tue, 01 Mar 2016 17:21:28 GMT
        Server: Werkzeug/0.11.3 Python/3.5.0
 
        {
            "builds": [
-               "http://localhost:5000/builds/1"
+               "http://localhost:5000/builds/1",
+               "http://localhost:5000/builds/2"
            ]
        }
 
     :param slug: Slug of the Product.
+
     :>json array builds: List of URLs of Build entities for this product.
+
     :statuscode 200: No error.
     :statuscode 404: Product not found.
     """
@@ -248,38 +254,35 @@ def get_product_builds(slug):
 def get_build(id):
     """Show metadata for a single build.
 
-    .. todo::
-
-       Update examples.
-
     **Example request**
 
     .. code-block:: http
 
        GET /builds/1 HTTP/1.1
-       Accept: */*
-       Accept-Encoding: gzip, deflate
-       Connection: keep-alive
-       Host: localhost:5000
-       User-Agent: HTTPie/0.9.3
 
     **Example response**
 
     .. code-block:: http
 
        HTTP/1.0 200 OK
-       Content-Length: 196
+       Content-Length: 367
        Content-Type: application/json
-       Date: Wed, 10 Feb 2016 17:48:16 GMT
+       Date: Tue, 01 Mar 2016 17:21:28 GMT
        Server: Werkzeug/0.11.3 Python/3.5.0
 
        {
-           "date_created": "2016-02-09T17:28:14.941424Z",
+           "bucket_name": "an-s3-bucket",
+           "bucket_root_dir": "lsst_apps/builds/b1",
+           "date_created": "2016-03-01T10:21:27.583795Z",
            "date_ended": null,
+           "git_refs": [
+               "master"
+           ],
+           "github_requester": "jonathansick",
+           "product_url": "http://localhost:5000/products/lsst_apps",
+           "self_url": "http://localhost:5000/builds/1",
            "slug": "b1",
-           "product_url": "http://localhost:5000/products/1",
-           "self_url": "http://localhost:5000/builds/1"
-           "uploaded": false
+           "uploaded": true
        }
 
     :param id: ID of the Build.
@@ -291,8 +294,10 @@ def get_build(id):
     :>json string date_created: UTC date time when the build was created.
     :>json string date_ended: UTC date time when the build was deprecated;
         will be ``null`` for builds that are *not deprecated*.
-    :>json array git_refs: Git ref (or array of Git refs for multi-package
-        builds with ltd-mason) that describe the version of the documentation.
+    :>json array git_refs: Git ref array that describes the version of the
+        documentation being built. Typically this array will be a single
+        string, e.g. ``['master']`` but may be a list of several refs for
+        multi-package builds with ltd-mason.
     :>json string github_requester: GitHub username handle of person
         who triggered the build (null is not available).
     :>json string slug: slug of build; URL-safe slug.

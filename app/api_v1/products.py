@@ -11,35 +11,26 @@ from ..models import Product
 def get_products():
     """List all documentation products (anonymous access allowed).
 
-    .. todo::
-
-       Update example.
-
     **Example request**
 
     .. code-block:: http
 
        GET /products/ HTTP/1.1
-       Accept: */*
-       Accept-Encoding: gzip, deflate
-       Connection: keep-alive
-       Host: localhost:5000
-       User-Agent: HTTPie/0.9.3
 
     **Example response**
 
     .. code-block:: http
 
        HTTP/1.0 200 OK
-       Content-Length: 108
+       Content-Length: 122
        Content-Type: application/json
-       Date: Tue, 09 Feb 2016 23:48:29 GMT
+       Date: Tue, 01 Mar 2016 17:21:27 GMT
        Server: Werkzeug/0.11.3 Python/3.5.0
 
        {
            "products": [
-               "http://localhost:5000/products/1",
-               "http://localhost:5000/products/2"
+               "http://localhost:5000/products/lsst_apps",
+               "http://localhost:5000/products/qserv_distrib"
            ]
        }
 
@@ -60,40 +51,38 @@ def get_product(slug):
 
     .. code-block:: http
 
-       GET /products/1 HTTP/1.1
-       Accept: */*
-       Accept-Encoding: gzip, deflate
-       Connection: keep-alive
-       Host: localhost:5000
-       User-Agent: HTTPie/0.9.3
+       GET /products/lsst_apps HTTP/1.1
 
     **Example response**
 
     .. code-block:: http
 
        HTTP/1.0 200 OK
-       Content-Length: 241
+       Content-Length: 246
        Content-Type: application/json
-       Date: Tue, 09 Feb 2016 23:54:46 GMT
+       Date: Tue, 01 Mar 2016 17:21:26 GMT
        Server: Werkzeug/0.11.3 Python/3.5.0
 
        {
            "bucket_name": "an-s3-bucket",
            "doc_repo": "https://github.com/lsst/pipelines_docs.git",
            "domain": "pipelines.lsst.io",
-           "self_url": "http://localhost:5000/products/1",
-           "slug": "pipelines",
+           "self_url": "http://localhost:5000/products/lsst_apps",
+           "slug": "lsst_apps",
            "title": "LSST Science Pipelines"
        }
+
+
+    :param slug: Identifier for this product.
 
     :>json string bucket_name: Name of the S3 bucket hosting builds.
     :>json string doc_repo: URL of the Git documentation repo (i.e., on
        GitHub).
-    :>json string domain: Root domain name (without protocol or path) where
-       the documentation for this product is served from.
-    :>json string title: Human-readable product title.
-    :>json string self_url: URL of this Product.
+    :>json string domain: Root domain name where the documentation for this
+       product is served from.
+    :>json string self_url: URL of this Product resource.
     :>json string slug: URL/path-safe identifier for this product.
+    :>json string title: Human-readable product title.
 
     :statuscode 200: No error.
     :statuscode 404: Product not found.
@@ -107,10 +96,6 @@ def get_product(slug):
 def new_product():
     """Create a new documentation product (token required).
 
-    .. todo::
-
-       Update example.
-
     **Example request**
 
     .. code-block:: http
@@ -118,19 +103,19 @@ def new_product():
        POST /products/ HTTP/1.1
        Accept: application/json
        Accept-Encoding: gzip, deflate
-       Authorization: Basic ZXlKbGVIQWlPakUwTlRVd05qUXdNVElzSW1Gc1p5STZJa2hU...
+       Authorization: Basic ZXlKcFlYUWlPakUwTlRZM056SXpORGdzSW1WNGNDSTZNVFEx...
        Connection: keep-alive
-       Content-Length: 176
+       Content-Length: 150
        Content-Type: application/json
        Host: localhost:5000
        User-Agent: HTTPie/0.9.3
 
        {
            "bucket_name": "an-s3-bucket",
-           "doc_repo": "https://github.com/lsst/pipelines_docs.git",
-           "domain": "pipelines.lsst.io",
-           "slug": "pipelines",
-           "title": "LSST Science Pipelines"
+           "doc_repo": "https://github.com/lsst/qserv.git",
+           "domain": "qserv.lsst.io",
+           "slug": "qserv_distrib",
+           "title": "Qserv"
        }
 
     **Example response**
@@ -140,22 +125,26 @@ def new_product():
        HTTP/1.0 201 CREATED
        Content-Length: 2
        Content-Type: application/json
-       Date: Tue, 09 Feb 2016 23:35:18 GMT
-       Location: http://localhost:5000/products/1
+       Date: Tue, 01 Mar 2016 17:21:26 GMT
+       Location: http://localhost:5000/products/qserv_distrib
        Server: Werkzeug/0.11.3 Python/3.5.0
 
        {}
 
     :reqheader Authorization: Include the token in a username field with a
         blank password; ``<token>:``.
-    :<json string slug: URL/path-safe identifier for this product.
+
+    :<json string bucket_name: Name of the S3 bucket hosting builds.
     :<json string doc_repo: URL of the Git documentation repo (i.e., on
        GitHub).
+    :<json string domain: Root domain name where the documentation for this
+       product is served from.
+    :<json string self_url: URL of this Product resource.
+    :<json string slug: URL/path-safe identifier for this product.
     :<json string title: Human-readable product title.
-    :<json string domain: Root domain name (without protocol or path) where
-       the documentation for this product is served from.
-    :<json string bucket_name: Name of the S3 bucket hosting builds.
+
     :resheader Location: URL of the created product.
+
     :statuscode 201: No error.
     """
     product = Product()
@@ -178,11 +167,34 @@ def edit_product(slug):
     ``'bucket-name'``. Support for updating these Product attributes may be
     added later.
 
+    **Example request**
+
+    .. code-block:: http
+
+       PATCH /products/qserv_distrib HTTP/1.1
+       Accept: application/json
+       Accept-Encoding: gzip, deflate
+       Authorization: Basic ZXlKcFlYUWlPakUwTlRZM056SXpORGdzSW1WNGNDSTZNVFEx...
+       Connection: keep-alive
+       Content-Length: 30
+       Content-Type: application/json
+       Host: localhost:5000
+       User-Agent: HTTPie/0.9.3
+
+       {
+           "title": "Qserv Data Access"
+       }
+
     :reqheader Authorization: Include the token in a username field with a
         blank password; ``<token>:``.
+    :param slug: Product slug.
+
     :<json string doc_repo: URL of the Git documentation repo (i.e., on
        GitHub) (optional).
     :<json string title: Human-readable product title (optional).
+
+    :resheader Location: URL of the created product.
+
     :statuscode 200: No error.
     :statuscode 404: Product not found.
     """

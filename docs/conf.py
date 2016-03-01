@@ -53,7 +53,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = 'LTD-Keeper'
+project = 'LTD Keeper'
 copyright = '2016, AURA/LSST'
 author = 'AURA/LSST'
 

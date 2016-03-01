@@ -55,12 +55,16 @@ def create_app(config_name):
            Server: Werkzeug/0.11.3 Python/3.5.0
 
            {
-               "token": "eyJhbGciOiJIUzI1NiIsImlhdCI6MTQ1NTA0OTM5MSwiZXhwIjoxNDU1MDUyOTkxfQ.eyJpZCI6MX0.rnAI6_aJp4DtKLiJ7qkfW-luUMUNsps-ZBZFAaIBsZQ"
+               "token": "eyJhbGciOiJIUzI1NIsImlhdCI6MTQ1NTA0OTM5MSwiZXhwIjo..."
            }
 
         :reqheader Authorization: ``username:password``
+
         :>json string token: Token string. Use this token in the basic auth
            ``username`` field.
+
+        :statuscode 200: No errors.
+        :statuscode 401: Not authenticated.
         """
         return jsonify({'token': g.user.generate_auth_token()})
 
