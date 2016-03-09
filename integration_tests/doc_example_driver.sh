@@ -115,12 +115,6 @@ http -p hbHB --pretty=format --auth $KEEPER_TOKEN: \
 echo "\n\n---\n"
 
 http -p hbHB --pretty=format --auth $KEEPER_TOKEN: \
-    POST http://localhost:5000/editions/1/rebuild \
-    build_url="http://localhost:5000/builds/2"
-
-echo "\n\n---\n"
-
-http -p hbHB --pretty=format --auth $KEEPER_TOKEN: \
     DELETE http://localhost:5000/builds/1
 
 echo "\n\n---\n"

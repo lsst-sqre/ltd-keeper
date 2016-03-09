@@ -223,89 +223,6 @@ def get_edition(id):
     return jsonify(Edition.query.get_or_404(id).export_data())
 
 
-@api.route('/editions/<int:id>/rebuild', methods=['POST'])
-@token_auth.login_required
-def rebuild_edition(id):
-    """Point the Edition to a new Build (token required).
-
-    **Example request**
-
-    .. code-block:: http
-
-       POST /editions/1/rebuild HTTP/1.1
-       Accept: application/json
-       Accept-Encoding: gzip, deflate
-       Authorization: Basic ZXlKcFlYUWlPakUwTlRZM056SXpORGdzSW1WNGNDSTZNVFEx...
-       Connection: keep-alive
-       Content-Length: 47
-       Content-Type: application/json
-       Host: localhost:5000
-       User-Agent: HTTPie/0.9.3
-
-       {
-           "build_url": "http://localhost:5000/builds/2"
-       }
-
-    **Example response**
-
-    .. code-block:: http
-
-       HTTP/1.0 200 OK
-       Content-Length: 413
-       Content-Type: application/json
-       Date: Tue, 01 Mar 2016 17:21:29 GMT
-       Server: Werkzeug/0.11.3 Python/3.5.0
-
-       {
-           "build_url": "http://localhost:5000/builds/2",
-           "date_created": "2016-03-01T10:21:29.017615Z",
-           "date_ended": null,
-           "date_rebuilt": "2016-03-01T10:21:29.590839Z",
-           "product_url": "http://localhost:5000/products/lsst_apps",
-           "published_url": "pipelines.lsst.io",
-           "self_url": "http://localhost:5000/editions/1",
-           "slug": "latest",
-           "title": "Development master",
-           "tracked_refs": [
-               "master"
-           ]
-       }
-
-    :reqheader Authorization: Include the token in a username field with a
-        blank password; ``<token>:``.
-    :param id: Edition id.
-
-    :<json string build_url: URL of the Build resource this entity should
-        point to.
-
-    :>json string build_url: URL of the build entity this Edition uses.
-    :>json string date_created: UTC date time when the edition was created.
-    :>json string date_ended: UTC date time when the edition was deprecated;
-        will be ``null`` for editions that are *not deprecated*.
-    :>json string date_rebuilt: UTC date time when the edition last re-pointed
-        to a different build.
-    :>json string product_url: URL of parent product entity.
-    :>json string published_url: Full URL where this edition is published.
-    :>json string self_url: URL of this Edition entity.
-    :>json string slug: URL-safe name for edition.
-    :>json string title: Human-readable name for edition.
-    :>json string tracked_refs: Git ref that this Edition points to. For multi-
-        repository builds, this can be a comma-separated list of refs to use,
-        in order of priority.
-
-    :statuscode 200: No Errors.
-    :statuscode 404: Edition not found.
-    """
-    edition = Edition.query.get_or_404(id)
-    try:
-        edition.rebuild_from_data(request.json)
-        db.session.commit()
-    except Exception:
-        db.session.rollback()
-        raise
-    return jsonify(edition.export_data()), 200
-
-
 @api.route('/editions/<int:id>', methods=['PATCH'])
 @token_auth.login_required
 def edit_edition(id):
@@ -317,9 +234,7 @@ def edit_edition(id):
     and relationship to the Product are not editable . See the allowed JSON
     fields below.
 
-    Use :http:post:`/editions/(int:id)/rebuild` to specifically rebuild the
-    edition with a new build. Use :http:delete:`/editions/(int:id)` to
-    deprecate an edition.
+    Use :http:delete:`/editions/(int:id)` to deprecate an edition.
 
     The full resource record is returned.
 
@@ -371,8 +286,7 @@ def edit_edition(id):
     :param id: ID of the Edition.
 
     :<json string build_url: URL of the build entity this Edition uses
-        (optional). Setting this is equivalent to sending a
-        :http:post:`/editions/(int:id)/rebuild`.
+        (optional). Effectively this 'rebuilds' the edition.
     :<json string published_url: Full URL where this edition is published
         (optional). Setting this field will change the CNAME DNS record.
     :<json string title: Human-readable name for edition.

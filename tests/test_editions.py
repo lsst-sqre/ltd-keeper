@@ -43,7 +43,7 @@ def test_editions(client):
     assert r.json['date_ended'] is None
 
     # Re-build the edition
-    r = client.post(e1_url + '/rebuild', {'build_url': b2_url})
+    r = client.patch(e1_url, {'build_url': b2_url})
     assert r.status == 200
     assert r.json['build_url'] == b2_url
 

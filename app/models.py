@@ -281,7 +281,7 @@ class Edition(db.Model):
         self.tracked_refs = tracked_refs
 
         # Set initial build pointer
-        self.rebuild_from_data(data)
+        self.rebuild(data['build_url'])
 
         self.date_created = datetime.now()
 
@@ -304,14 +304,6 @@ class Edition(db.Model):
 
         if 'published_url' in data:
             self.published_url = data['published_url']
-
-    def rebuild_from_data(self, data):
-        """For POST editions/(id)/rebuild."""
-        try:
-            build_url = data['build_url']
-            self.rebuild(build_url)
-        except KeyError as e:
-            raise ValidationError('Invalid Edition: missing ' + e.args[0])
 
     def rebuild(self, build_url):
         """Modify the build this edition points to."""
