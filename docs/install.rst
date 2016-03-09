@@ -1,6 +1,6 @@
-############################
-Installing and Configuration
-############################
+##################################################
+Installing and Configuring for Development/Testing
+##################################################
 
 Installation
 ============
@@ -33,3 +33,28 @@ LTD Keeper uses Amazon Web Services (AWS) for object storage (S3) and DNS config
 
 Credentials for your AWS account should be stored in a :file:`~/.aws/credentials` file.
 See http://boto3.readthedocs.org/en/latest/guide/quickstart.html#configuration for more information about configuring Boto3.
+
+Running Tests
+=============
+
+You can invoke the `pytest <http://pytest.org/latest/>`_-based tests by running::
+
+   ./test.py
+
+Running for Development
+=======================
+
+The 'development' environment configuration provides useful defaults for running an LTD Keeper instance locally.
+Run LTD Keeper in development mode via:
+
+.. code-block:: bash
+
+   ./run.py --dev
+
+See ``config/development.py`` for configuration defaults.
+
+..
+  Running in Production
+  =====================
+  
+  TODO
