@@ -1,4 +1,8 @@
-"""Flask-SQLAlchemy-based database ORM models."""
+"""Flask-SQLAlchemy-based database ORM models.
+
+Copyright 2016 AURA/LSST.
+Copyright 2014 Miguel Grinberg.
+"""
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer

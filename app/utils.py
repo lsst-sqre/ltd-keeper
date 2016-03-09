@@ -1,4 +1,8 @@
-"""Utilities for the Flask API and SQLAlchemy models."""
+"""Utilities for the Flask API and SQLAlchemy models.
+
+Copyright 2016 AURA/LSST.
+Copyright 2014 Miguel Grinberg.
+"""
 
 from dateutil import parser as datetime_parser
 from dateutil.tz import tzutc

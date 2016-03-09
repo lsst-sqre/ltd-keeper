@@ -8,6 +8,9 @@ Use the following decorators to apply authentication to any route:
 
 - `@password_auth.login_required` for password auth (only use to GET a token).
 - `@token_auth.login_required` for token (for all other authenticated routes).
+
+Copyright 2016 AURA/LSST.
+Copyright 2014 Miguel Grinberg.
 """
 
 from flask import jsonify, g, current_app

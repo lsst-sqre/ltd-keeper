@@ -1,3 +1,12 @@
+"""Application initialization.
+
+Applies configurations, creates the DB schema (if necessary) and registers
+all HTTP routes.
+
+Copyright 2016 AURA/LSST.
+Copyright 2014 Miguel Grinberg.
+"""
+
 import os
 from flask import Flask, jsonify, g
 from flask.ext.sqlalchemy import SQLAlchemy

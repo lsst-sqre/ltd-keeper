@@ -1,3 +1,10 @@
+"""Utilties for unit testing.
+
+Copyright 2016 AURA/LSST.
+Copyright 2014 Miguel Grinberg.
+"""
+
+
 from base64 import b64encode
 from collections import namedtuple
 import json
