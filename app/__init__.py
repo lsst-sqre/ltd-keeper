@@ -14,7 +14,7 @@ from flask.ext.sqlalchemy import SQLAlchemy
 db = SQLAlchemy()
 
 
-def create_app(config_name):
+def create_app(config_name='production'):
     """Create an application instance.
 
     This is called by a runner script, such as /run.py.

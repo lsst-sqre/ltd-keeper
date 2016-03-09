@@ -13,3 +13,5 @@ IGNORE_AUTH = True
 SECRET_KEY = 'secret-key'
 SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
     'sqlite:///' + db_path
+DEFAULT_USER = 'user'
+DEFAULT_PASSWORD = 'pass'
