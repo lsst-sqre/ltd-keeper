@@ -160,7 +160,8 @@ def get_product_editions(slug):
     :statuscode 404: Product not found.
     """
     edition_urls = [edition.get_url() for edition in
-                    Edition.query.filter(Product.slug == slug).all()]
+                    Edition.query.filter(Product.slug == slug)
+                    .filter(Edition.date_ended == None).all()]  # NOQA
     return jsonify({'editions': edition_urls})
 
 

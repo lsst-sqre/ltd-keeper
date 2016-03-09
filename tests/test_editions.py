@@ -64,3 +64,9 @@ def test_editions(client):
 
     r = client.get(e1_url)
     assert r.status == 200
+    assert r.json['date_ended'] is not None
+
+    # Deprecated editions no longer in the editions list
+    r = client.get(product_url + '/editions/')
+    assert r.status == 200
+    assert len(r.json['editions']) == 0

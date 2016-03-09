@@ -66,6 +66,11 @@ def test_builds(client):
     assert r.json['date_created'] is not None
     assert r.json['date_ended'] is not None
 
+    # Build no longer in listing
+    r = client.get('/products/lsst_apps/builds/')
+    assert r.status == 200
+    assert len(r.json['builds']) == 0
+
     # Add some auto-slugged builds
     b2 = {'git_refs': ['master']}
     r = client.post('/products/lsst_apps/builds/', b2)

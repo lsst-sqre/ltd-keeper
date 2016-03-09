@@ -246,7 +246,8 @@ def get_product_builds(slug):
     :statuscode 404: Product not found.
     """
     build_urls = [build.get_url() for build in
-                  Build.query.filter(Product.slug == slug).all()]
+                  Build.query.filter(Product.slug == slug)
+                  .filter(Build.date_ended == None).all()]  # NOQA
     return jsonify({'builds': build_urls})
 
 
