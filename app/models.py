@@ -192,11 +192,14 @@ class Build(db.Model):
 
         return self
 
-    def register_upload(self):
-        """Acknowledge a build upload to the bucket; sets `uploaded` field to
-        `True`.
+    def patch_data(self, data):
+        """Modify build via PATCH.
+
+        Only allowed modification is to set 'uploaded' field to True to
+        acknowledge a build upload to the bucket.
         """
-        self.uploaded = True
+        if 'uploaded' in data:
+            self.uploaded = data['uploaded']
 
     def deprecate_build(self):
         """Trigger a build deprecation.

@@ -16,7 +16,7 @@ def new_build(slug):
     This method only adds a record for the build and specifies where the build
     should be uploaded. The client is reponsible for uploading the build.
     Once the documentation is uploaded, send
-    :http:post:`/builds/(int:id)/uploaded`.
+    :http:patch:`/builds/(int:id)` to set the 'uploaded' field to ``True``.
 
     **Example request**
 
@@ -96,8 +96,8 @@ def new_build(slug):
     :>json string self_url: URL of this build entity.
     :>json string slug: Slug of build; URL-safe slug. Will be unique to the
         Product.
-    :>json string uploaded: True if the built documentation has been uploaded
-        to the S3 bucket. Use :http:post:`/builds/(int:id)/uploaded` to
+    :>json bool uploaded: True if the built documentation has been uploaded
+        to the S3 bucket. Use :http:patch:`/builds/(int:id)` to
         set this to `True`.
 
     :resheader Location: URL of the created build.
@@ -117,28 +117,31 @@ def new_build(slug):
     return jsonify(build.export_data()), 201, {'Location': build.get_url()}
 
 
-@api.route('/builds/<int:id>/uploaded', methods=['POST'])
+@api.route('/builds/<int:id>', methods=['PATCH'])
 @token_auth.login_required
-def register_build_upload(id):
+def patch_build(id):
     """Mark a build as uploaded (token required).
 
     This method should be called when the documentation has been successfully
-    uploaded to the S3 bucket.
-
-    The ``uploaded`` field for the build record is changed to ``True``.
+    uploaded to the S3 bucket, setting the 'uploaded' field to ``True``.
 
     **Example request**
 
     .. code-block:: http
 
-       POST /builds/1/uploaded HTTP/1.1
-       Accept: */*
+       PATCH /builds/1 HTTP/1.1
+       Accept: application/json
        Accept-Encoding: gzip, deflate
        Authorization: Basic ZXlKcFlYUWlPakUwTlRZM056SXpORGdzSW1WNGNDSTZNVFEx...
        Connection: keep-alive
-       Content-Length: 0
+       Content-Length: 18
+       Content-Type: application/json
        Host: localhost:5000
        User-Agent: HTTPie/0.9.3
+
+       {
+           "uploaded": true
+       }
 
     **Example response**
 
@@ -156,6 +159,8 @@ def register_build_upload(id):
     :reqheader Authorization: Include the token in a username field with a
         blank password; ``<token>:``.
     :param id: ID of the build.
+    :<json bool uploaded: True if the built documentation has been uploaded
+        to the S3 bucket.
 
     :resheader Location: URL of the created build.
 
@@ -163,7 +168,7 @@ def register_build_upload(id):
     :statuscode 404: Build not found.
     """
     build = Build.query.get_or_404(id)
-    build.register_upload()
+    build.patch_data(request.json)
     db.session.commit()
     return jsonify({}), 200, {'Location': build.get_url()}
 
@@ -304,8 +309,8 @@ def get_build(id):
     :>json string slug: slug of build; URL-safe slug.
     :>json string product_url: URL of parent product entity.
     :>json string self_url: URL of this build entity.
-    :>json string uploaded: True if the built documentation has been uploaded
-        to the S3 bucket. Use :http:post:`/builds/(int:id)/uploaded` to
+    :>json bool uploaded: True if the built documentation has been uploaded
+        to the S3 bucket. Use :http:patch:`/builds/(int:id)` to
         set this to `True`.
 
     :statuscode 200: No error.

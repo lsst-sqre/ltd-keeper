@@ -50,7 +50,7 @@ def test_builds(client):
     assert r.json['bucket_root_dir'] == 'lsst_apps/builds/b1'
 
     # Register upload
-    r = client.post('/builds/1/uploaded', {})
+    r = client.patch('/builds/1', {'uploaded': True})
     assert r.status == 200
 
     r = client.get('/builds/1')

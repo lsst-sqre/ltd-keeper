@@ -11,7 +11,7 @@ The methods listed on this page allow you to list maintain builds (such as showi
 Methods
 =======
 
-- :http:post:`/builds/(int:id)/uploaded` --- register a build upload.
+- :http:patch:`/builds/(int:id)` --- modify a build record, usually to register a build upload.
 
 - :http:get:`/builds/(int:id)` --- show a build.
 
@@ -27,4 +27,4 @@ Reference
 =========
 
 .. autoflask:: app:create_app(config_name='development')
-   :endpoints: api.get_build, api.register_build_upload, api.deprecate_build
+   :endpoints: api.get_build, api.patch_build, api.deprecate_build

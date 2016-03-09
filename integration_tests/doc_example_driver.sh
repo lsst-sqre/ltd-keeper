@@ -73,7 +73,8 @@ http -p hbHB --pretty=format --auth $KEEPER_TOKEN: \
 echo "\n\n---\n"
 
 http -p hbHB --pretty=format --auth $KEEPER_TOKEN: \
-    POST http://localhost:5000/builds/1/uploaded
+    PATCH http://localhost:5000/builds/1 \
+    uploaded:=true
 
 echo "\n\n---\n"
 
