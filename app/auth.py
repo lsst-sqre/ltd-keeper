@@ -1,5 +1,5 @@
 """Helper functions for password and token-based authentication
-using :mod:`flask.ext.httpauth`.
+using :mod:`flask.ext.httpauth` and user authorization.
 
 To apply password-based auth to a route, use the
 `@password_auth.login_required` decorator; use `@token_auth.login
@@ -13,6 +13,7 @@ Copyright 2016 AURA/LSST.
 Copyright 2014 Miguel Grinberg.
 """
 
+from functools import wraps
 from flask import jsonify, g, current_app
 from flask.ext.httpauth import HTTPBasicAuth
 from .models import User
@@ -55,3 +56,42 @@ def unauthorized_token():
                         'message': 'please send your authentication token'})
     response.status_code = 401
     return response
+
+
+def permission_required(permission):
+    """Route decorator to test user authorizations.
+
+    The decorator should be applied *after* the authentication decorator.
+    For example::
+
+        @api.route('/secure')
+        @auth.permission_required(Permission.ADMIN_USER)
+        @token_auth.login_required
+        def hello():
+            pass
+
+    Response with a 403 response if authorization fails. If the user is
+    not set (because the username/password was blank, or because a
+    token_required decorator was not applied, then a 401 response is sent.
+    Authorization requires authentication.
+    """
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if g.get('user', None) is None:
+                # user not authenticated
+                response = jsonify({'status': 401, 'error': 'unauthenticated',
+                                    'message': 'please authenticate'})
+                response.status_code = 401
+                return response
+            elif not g.user.has_permission(permission):
+                # user not authorized
+                response = jsonify({'status': 403, 'error': 'unauthorized',
+                                    'message': 'not authorized'})
+                response.status_code = 403
+                return response
+            else:
+                # user is authenticated+authorized
+                return f(*args, **kwargs)
+        return decorated_function
+    return decorator
