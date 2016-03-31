@@ -15,7 +15,7 @@ from config import config
 db = SQLAlchemy()
 
 
-def create_app(config_name='production'):
+def create_app(profile='production'):
     """Create an application instance.
 
     This is called by a runner script, such as /run.py.
@@ -26,6 +26,7 @@ def create_app(config_name='production'):
 
     # apply configuration
     app.config.from_object(config[profile])
+    config[profile].init_app(app)
 
     # initialize extensions
     db.init_app(app)

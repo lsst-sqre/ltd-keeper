@@ -32,6 +32,7 @@ class DevelopmentConfig(Config):
 
     @classmethod
     def init_app(cls, app):
+        """Initialization hook called during create_app."""
         pass
 
 
@@ -45,6 +46,7 @@ class TestConfig(Config):
 
     @classmethod
     def init_app(cls, app):
+        """Initialization hook called during create_app."""
         pass
 
 
@@ -58,6 +60,7 @@ class ProductionConfig(Config):
 
     @classmethod
     def init_app(cls, app):
+        """Initialization hook called during create_app."""
         pass
 
 
