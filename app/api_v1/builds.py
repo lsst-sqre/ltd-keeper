@@ -4,19 +4,24 @@ from flask import jsonify, request
 
 from . import api
 from .. import db
-from ..auth import token_auth
-from ..models import Product, Build
+from ..auth import token_auth, permission_required
+from ..models import Product, Build, Permission
 
 
 @api.route('/products/<slug>/builds/', methods=['POST'])
+@permission_required(Permission.UPLOAD_BUILD)
 @token_auth.login_required
 def new_build(slug):
-    """Add a new build for a product (token required).
+    """Add a new build for a product.
 
     This method only adds a record for the build and specifies where the build
     should be uploaded. The client is reponsible for uploading the build.
     Once the documentation is uploaded, send
     :http:patch:`/builds/(int:id)` to set the 'uploaded' field to ``True``.
+
+    **Authorization**
+
+    User must be authenticated and have ``upload_build`` permissions.
 
     **Example request**
 
@@ -118,12 +123,17 @@ def new_build(slug):
 
 
 @api.route('/builds/<int:id>', methods=['PATCH'])
+@permission_required(Permission.UPLOAD_BUILD)
 @token_auth.login_required
 def patch_build(id):
-    """Mark a build as uploaded (token required).
+    """Mark a build as uploaded.
 
     This method should be called when the documentation has been successfully
     uploaded to the S3 bucket, setting the 'uploaded' field to ``True``.
+
+    **Authorization**
+
+    User must be authenticated and have ``upload_build`` permissions.
 
     **Example request**
 
@@ -174,9 +184,14 @@ def patch_build(id):
 
 
 @api.route('/builds/<int:id>', methods=['DELETE'])
+@permission_required(Permission.DEPRECATE_BUILD)
 @token_auth.login_required
 def deprecate_build(id):
-    """Mark a build as deprecated (token required).
+    """Mark a build as deprecated.
+
+    **Authorization**
+
+    User must be authenticated and have ``deprecate_build`` permissions.
 
     **Example request**
 

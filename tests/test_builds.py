@@ -1,7 +1,7 @@
 """Tests for the builds API."""
 
 import pytest
-
+from werkzeug.exceptions import NotFound
 from app.exceptions import ValidationError
 
 
@@ -92,3 +92,90 @@ def test_builds(client):
           'git_refs': 'master'}
     with pytest.raises(ValidationError):
         r = client.post('/products/lsst_apps/builds/', b5)
+
+
+# Authorizion tests: POST /products/<slug>/builds/ ===========================
+# Only the build-upload auth'd client should get in
+
+
+def test_post_build_auth_anon(anon_client):
+    r = anon_client.post('/products/test/builds/', {'foo': 'bar'})
+    assert r.status == 401
+
+
+def test_post_build_auth_product_client(product_client):
+    r = product_client.post('/products/test/builds/', {'foo': 'bar'})
+    assert r.status == 403
+
+
+def test_post_build_auth_edition_client(edition_client):
+    r = edition_client.post('/products/test/builds/', {'foo': 'bar'})
+    assert r.status == 403
+
+
+def test_post_build_auth_builduploader_client(upload_build_client):
+    with pytest.raises(NotFound):
+        upload_build_client.post('/products/test/builds/', {'foo': 'bar'})
+
+
+def test_post_build_auth_builddeprecator_client(deprecate_build_client):
+    r = deprecate_build_client.post('/products/test/builds/', {'foo': 'bar'})
+    assert r.status == 403
+
+
+# Authorizion tests: PATCH /products/<slug>/builds/ ==========================
+# Only the build-upload auth'd client should get in
+
+
+def test_patch_build_auth_anon(anon_client):
+    r = anon_client.patch('/builds/1', {'foo': 'bar'})
+    assert r.status == 401
+
+
+def test_patch_build_auth_product_client(product_client):
+    r = product_client.patch('/builds/1', {'foo': 'bar'})
+    assert r.status == 403
+
+
+def test_patch_build_auth_edition_client(edition_client):
+    r = edition_client.patch('/builds/1', {'foo': 'bar'})
+    assert r.status == 403
+
+
+def test_patch_build_auth_builduploader_client(upload_build_client):
+    with pytest.raises(NotFound):
+        upload_build_client.patch('/builds/1', {'foo': 'bar'})
+
+
+def test_patch_build_auth_builddeprecator_client(deprecate_build_client):
+    r = deprecate_build_client.patch('/builds/1', {'foo': 'bar'})
+    assert r.status == 403
+
+
+# Authorizion tests: DELETE /products/<slug>/builds/ =========================
+# Only the build-deprecator auth'd client should get in
+
+
+def test_delete_build_auth_anon(anon_client):
+    r = anon_client.delete('/builds/1')
+    assert r.status == 401
+
+
+def test_delete_build_auth_product_client(product_client):
+    r = product_client.delete('/builds/1')
+    assert r.status == 403
+
+
+def test_delete_build_auth_edition_client(edition_client):
+    r = edition_client.delete('/builds/1')
+    assert r.status == 403
+
+
+def test_delete_build_auth_builduploader_client(upload_build_client):
+    r = upload_build_client.delete('/builds/1')
+    assert r.status == 403
+
+
+def test_delete_build_auth_builddeprecator_client(deprecate_build_client):
+    with pytest.raises(NotFound):
+        deprecate_build_client.delete('/builds/1', {'foo': 'bar'})
