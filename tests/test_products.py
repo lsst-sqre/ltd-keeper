@@ -1,5 +1,9 @@
 """Tests for the product API."""
 
+import pytest
+from werkzeug.exceptions import NotFound
+from app.exceptions import ValidationError
+
 
 def test_products(client):
     r = client.get('/products/')
@@ -56,3 +60,61 @@ def test_products(client):
     print(r.json)
     for k, v in p2v2.items():
         assert r.json[k] == v
+
+
+# Authorizion tests: POST /products/ =========================================
+# Only the full admin client and the product-authorized client should get in
+
+
+def test_post_product_auth_anon(anon_client):
+    r = anon_client.post('/products/', {'foo': 'bar'})
+    assert r.status == 401
+
+
+def test_post_product_auth_product_client(product_client):
+    with pytest.raises(ValidationError):
+        product_client.post('/products/', {'foo': 'bar'})
+
+
+def test_post_product_auth_edition_client(edition_client):
+    r = edition_client.post('/products/', {'foo': 'bar'})
+    assert r.status == 403
+
+
+def test_post_product_auth_builduploader_client(upload_build_client):
+    r = upload_build_client.post('/products/', {'foo': 'bar'})
+    assert r.status == 403
+
+
+def test_post_product_auth_builddeprecator_client(upload_build_client):
+    r = upload_build_client.post('/products/', {'foo': 'bar'})
+    assert r.status == 403
+
+
+# Authorizion tests: PATCH /products/<slug> ==================================
+# Only the full admin client and the product-authorized client should get in
+
+
+def test_patch_product_auth_anon(anon_client):
+    r = anon_client.patch('/products/test', {'foo': 'bar'})
+    assert r.status == 401
+
+
+def test_patch_product_auth_product_client(product_client):
+    with pytest.raises(NotFound):
+        product_client.patch('/products/test', {'foo': 'bar'})
+
+
+def test_patch_product_auth_edition_client(edition_client):
+    r = edition_client.patch('/products/test', {'foo': 'bar'})
+    assert r.status == 403
+
+
+def test_patch_product_auth_builduploader_client(upload_build_client):
+    r = upload_build_client.patch('/products/test', {'foo': 'bar'})
+    assert r.status == 403
+
+
+def test_patch_product_auth_builddeprecator_client(upload_build_client):
+    r = upload_build_client.patch('/products/test', {'foo': 'bar'})
+    assert r.status == 403
