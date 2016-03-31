@@ -14,6 +14,7 @@ class Config(object):
     SECRET_KEY = 'secret-key'
     DEBUG = False
     IGNORE_AUTH = False
+    PREFERRED_URL_SCHEME = 'http'
 
     @abc.abstractclassmethod
     def init_app(cls, app):
@@ -39,10 +40,11 @@ class DevelopmentConfig(Config):
 class TestConfig(Config):
     """Test configuration (for py.test harness)."""
 
-    SERVER_NAME = 'testing.io'
+    SERVER_NAME = 'example.test'
     SQLALCHEMY_DATABASE_URI = 'sqlite:///' \
         + os.path.join(BASEDIR, 'ltd-keeper-test.sqlite')
-    SERVER_NAME = 'testing.io'
+    AWS_ID = os.environ.get('LTD_KEEPER_AWS_ID')
+    AWS_SECRET = os.environ.get('LTD_KEEPER_AWS_SECRET')
 
     @classmethod
     def init_app(cls, app):
@@ -57,6 +59,8 @@ class ProductionConfig(Config):
     SQLALCHEMY_DATABASE_URI = os.environ.get('LTD_KEEPER_DB_URL')
     DEFAULT_USER = os.environ.get('LTD_KEEPER_BOOTSTRAP_USER')
     DEFAULT_PASSWORD = os.environ.get('LTD_KEEPER_BOOTSTRAP_PASSWORD')
+    SERVER_NAME = os.environ.get('LTD_KEEPER_URL')
+    PREFERRED_URL_SCHEME = os.environ.get('LTD_KEEPER_URL_SCHEME')
 
     @classmethod
     def init_app(cls, app):
