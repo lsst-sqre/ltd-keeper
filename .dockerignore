@@ -1,0 +1,10 @@
+.git
+*.pyc
+*.pyd
+*.pyo
+__pycache__
+tests/__pycache__
+app/__pycache__
+app/api_v1/__pycache__
+integration_tests/__pycache__
+*.sqlite
