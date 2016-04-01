@@ -32,3 +32,9 @@ Keeper is configured through the following environment variables when run in a p
 
 ``LTD_KEEPER_URL_SCHEME``
    If the Ingress resource terminates TLS, this should be ``https``. Otherwise it is ``http``.
+
+``LTD_KEEPER_AWS_ID``
+   Amazon Web Services key ID. This key must have access to AWS Route 53 and S3 for the documentation domains and storage bucket, respectively, used by LSST the Docs.
+
+``LTD_KEEPER_AWS_SECRET``
+   Amazon Web Services secret corresponding to ``LTD_KEEPER_AWS_ID``.

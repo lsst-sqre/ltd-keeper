@@ -15,6 +15,8 @@ class Config(object):
     DEBUG = False
     IGNORE_AUTH = False
     PREFERRED_URL_SCHEME = 'http'
+    AWS_ID = os.environ.get('LTD_KEEPER_AWS_ID')
+    AWS_SECRET = os.environ.get('LTD_KEEPER_AWS_SECRET')
 
     @abc.abstractclassmethod
     def init_app(cls, app):
@@ -43,8 +45,6 @@ class TestConfig(Config):
     SERVER_NAME = 'example.test'
     SQLALCHEMY_DATABASE_URI = 'sqlite:///' \
         + os.path.join(BASEDIR, 'ltd-keeper-test.sqlite')
-    AWS_ID = os.environ.get('LTD_KEEPER_AWS_ID')
-    AWS_SECRET = os.environ.get('LTD_KEEPER_AWS_SECRET')
 
     @classmethod
     def init_app(cls, app):
