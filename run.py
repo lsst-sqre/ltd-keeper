@@ -31,7 +31,23 @@ manager = Manager(keeper_app)
 
 @manager.command
 def init():
-    """Initialize the application DB."""
+    """Initialize the application DB.
+
+    ::
+        run.py init
+
+    This creates the table schema in a new DB (not overwriting an exisiting
+    one) and also bootstraps an administrative user given the environment
+    variables
+
+    - `LTD_KEEPER_BOOTSTRAP_USER`
+    - `LTD_KEEPER_BOOTSTRAP_PASSWORD`
+    """
+    _app_db_init()
+
+
+def _app_db_init():
+    """Initialize the DB and add a bootstrap user."""
     with keeper_app.app_context():
         # bootstrap database
         db.create_all()
@@ -43,6 +59,12 @@ def init():
             u.set_password(keeper_app.config['DEFAULT_PASSWORD'])
             db.session.add(u)
             db.session.commit()
+
+
+# In development mode always try to initialize the DB for easy testing
+# Production should use a container that runs the init command.
+if environment == 'development':
+    _app_db_init()
 
 
 if __name__ == '__main__':
