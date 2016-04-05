@@ -19,15 +19,16 @@ For more information about LSST the Docs, see `SQR-006: Documentation Deployment
    editions
 
 .. toctree::
-   :caption: Operations
-   :name: ops-guide
-   :maxdepth: 1
-
-   gke_deploy
-
-.. toctree::
    :caption: Development
    :name: dev-guide
    :maxdepth: 1
 
    install
+   compose
+
+.. toctree::
+   :caption: Operations
+   :name: ops-guide
+   :maxdepth: 1
+
+   gke_deploy
