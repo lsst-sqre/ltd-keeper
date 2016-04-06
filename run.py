@@ -30,7 +30,7 @@ if __name__ == '__main__':
         environment = 'development'
     else:
         environment = 'production'
-    app = create_app(environment)
+    app = create_app(profile=environment)
 
     with app.app_context():
         db.create_all()

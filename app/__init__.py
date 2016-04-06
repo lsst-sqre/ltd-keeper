@@ -7,14 +7,15 @@ Copyright 2016 AURA/LSST.
 Copyright 2014 Miguel Grinberg.
 """
 
-import os
 from flask import Flask, jsonify, g
 from flask.ext.sqlalchemy import SQLAlchemy
+
+from config import config
 
 db = SQLAlchemy()
 
 
-def create_app(config_name='production'):
+def create_app(profile='production'):
     """Create an application instance.
 
     This is called by a runner script, such as /run.py.
@@ -24,9 +25,8 @@ def create_app(config_name='production'):
     app = Flask(__name__)
 
     # apply configuration
-    _this_dir = os.path.dirname(os.path.abspath(__file__))
-    cfg = os.path.join(_this_dir, '../config', config_name + '.py')
-    app.config.from_pyfile(cfg)
+    app.config.from_object(config[profile])
+    config[profile].init_app(app)
 
     # initialize extensions
     db.init_app(app)

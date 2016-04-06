@@ -2,5 +2,5 @@
 Authentication - `/token`
 #########################
 
-.. autoflask:: app:create_app(config_name='development')
+.. autoflask:: app:create_app(profile='development')
    :endpoints: get_auth_token

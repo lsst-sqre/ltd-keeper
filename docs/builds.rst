@@ -26,5 +26,5 @@ Methods
 Reference
 =========
 
-.. autoflask:: app:create_app(config_name='development')
+.. autoflask:: app:create_app(profile='development')
    :endpoints: api.get_build, api.patch_build, api.deprecate_build

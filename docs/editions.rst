@@ -26,5 +26,5 @@ Methods
 Reference
 =========
 
-.. autoflask:: app:create_app(config_name='development')
+.. autoflask:: app:create_app(profile='development')
    :endpoints: api.get_edition, api.edit_edition, api.deprecate_edition

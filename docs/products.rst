@@ -39,5 +39,5 @@ Method Summary
 Reference
 =========
 
-.. autoflask:: app:create_app(config_name='development')
+.. autoflask:: app:create_app(profile='development')
    :endpoints: api.get_products, api.get_product, api.new_product, api.edit_product, api.new_build, api.get_product_builds, api.new_edition, api.get_product_editions
