@@ -208,6 +208,8 @@ class Build(db.Model):
     github_requester = db.Column(db.String(256), nullable=True)
     # Flag to indicate the doc has been uploaded to S3.
     uploaded = db.Column(db.Boolean, default=False)
+    # The surrogate-key header for Fastly (quick purges); 32-char hex
+    surrogate_key = db.Column(db.String(32), nullable=False)
 
     # Relationships
     # product - from Product class
@@ -233,7 +235,8 @@ class Build(db.Model):
             'bucket_name': self.product.bucket_name,
             'bucket_root_dir': self.bucket_root_dirname,
             'git_refs': self.git_refs,
-            'github_requester': self.github_requester
+            'github_requester': self.github_requester,
+            'surrogate_key': self.surrogate_key
         }
 
     def import_data(self, data):

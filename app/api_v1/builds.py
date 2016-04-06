@@ -1,5 +1,6 @@
 """API v1 routes for builds."""
 
+import uuid
 from flask import jsonify, request
 
 from . import api
@@ -68,6 +69,7 @@ def new_build(slug):
            "product_url": "http://localhost:5000/products/lsst_apps",
            "self_url": "http://localhost:5000/builds/1",
            "slug": "b1",
+           "surrogate_key": "d290d35e579141e889e954a0b1f8b611",
            "uploaded": false
        }
 
@@ -101,6 +103,11 @@ def new_build(slug):
     :>json string self_url: URL of this build entity.
     :>json string slug: Slug of build; URL-safe slug. Will be unique to the
         Product.
+    :>json string surrogate_key: The surrogate key attached to the headers
+        of all files on S3 belonging to this build. This allows LTD Keeper
+        to notify Fastly when an Edition is being re-pointed to a new build.
+        The client is responsible for uploading files with this value as
+        the ``x-amz-meta-surrogate-key`` value.
     :>json bool uploaded: True if the built documentation has been uploaded
         to the S3 bucket. Use :http:patch:`/builds/(int:id)` to
         set this to `True`.
@@ -111,7 +118,8 @@ def new_build(slug):
     :statuscode 404: Product not found.
     """
     product = Product.query.filter_by(slug=slug).first_or_404()
-    build = Build(product=product)
+    surrogate_key = uuid.uuid4().hex
+    build = Build(product=product, surrogate_key=surrogate_key)
     try:
         build.import_data(request.json)
         db.session.add(build)
@@ -303,6 +311,7 @@ def get_build(id):
            "product_url": "http://localhost:5000/products/lsst_apps",
            "self_url": "http://localhost:5000/builds/1",
            "slug": "b1",
+           "surrogate_key": "d290d35e579141e889e954a0b1f8b611",
            "uploaded": true
        }
 
@@ -324,6 +333,11 @@ def get_build(id):
     :>json string slug: slug of build; URL-safe slug.
     :>json string product_url: URL of parent product entity.
     :>json string self_url: URL of this build entity.
+    :>json string surrogate_key: The surrogate key attached to the headers
+        of all files on S3 belonging to this build. This allows LTD Keeper
+        to notify Fastly when an Edition is being re-pointed to a new build.
+        The client is responsible for uploading files with this value as
+        the ``x-amz-meta-surrogate-key`` value.
     :>json bool uploaded: True if the built documentation has been uploaded
         to the S3 bucket. Use :http:patch:`/builds/(int:id)` to
         set this to `True`.

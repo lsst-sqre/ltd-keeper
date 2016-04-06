@@ -33,6 +33,7 @@ def test_builds(client):
     assert r.json['date_created'] is not None
     assert r.json['date_ended'] is None
     assert r.json['uploaded'] is False
+    assert len(r.json['surrogate_key']) == 32  # should be a uuid4 -> hex
 
     # Re-add build with same slug; should fail
     with pytest.raises(ValidationError):
