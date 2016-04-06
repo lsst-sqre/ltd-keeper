@@ -17,7 +17,7 @@ See config/{development.py, production.py} for associated configuration.
 import argparse
 
 from app import create_app, db
-from app.models import User
+from app.models import User, Permission
 
 
 if __name__ == '__main__':
@@ -36,7 +36,8 @@ if __name__ == '__main__':
         db.create_all()
         # bootstrap a user
         if User.query.get(1) is None:
-            u = User(username=app.config['DEFAULT_USER'])
+            u = User(username=app.config['DEFAULT_USER'],
+                     permissions=Permission.full_permissions())
             u.set_password(app.config['DEFAULT_PASSWORD'])
             db.session.add(u)
             db.session.commit()

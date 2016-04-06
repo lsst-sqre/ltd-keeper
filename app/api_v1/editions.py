@@ -4,14 +4,19 @@ from flask import jsonify, request
 
 from . import api
 from .. import db
-from ..auth import token_auth
-from ..models import Product, Edition
+from ..auth import token_auth, permission_required
+from ..models import Product, Edition, Permission
 
 
 @api.route('/products/<slug>/editions/', methods=['POST'])
+@permission_required(Permission.ADMIN_EDITION)
 @token_auth.login_required
 def new_edition(slug):
-    """Create a new Edition for a Product (token required).
+    """Create a new Edition for a Product.
+
+    **Authorization**
+
+    User must be authenticated and have ``admin_edition`` permissions.
 
     **Example request**
 
@@ -81,14 +86,19 @@ def new_edition(slug):
 
 
 @api.route('/editions/<int:id>', methods=['DELETE'])
+@permission_required(Permission.ADMIN_EDITION)
 @token_auth.login_required
 def deprecate_edition(id):
-    """Deprecate an Edition of a Product (token required).
+    """Deprecate an Edition of a Product.
 
     When an Edition is deprecated, the current time is added to the
     Edition's ``date_ended`` field. Any Edition record with a non-``null``
     ``date_ended`` field will be garbage-collected by LTD Keeper (the
     deletion does not occur immediately upon API request).
+
+    **Authorization**
+
+    User must be authenticated and have ``admin_edition`` permissions.
 
     **Example request**
 
@@ -224,9 +234,10 @@ def get_edition(id):
 
 
 @api.route('/editions/<int:id>', methods=['PATCH'])
+@permission_required(Permission.ADMIN_EDITION)
 @token_auth.login_required
 def edit_edition(id):
-    """Edit an Edition (token required).
+    """Edit an Edition.
 
     This PATCH method allows you to specify a subset of JSON fields to replace
     existing fields in the Edition resource. Not all fields in an Edition are
@@ -237,6 +248,10 @@ def edit_edition(id):
     Use :http:delete:`/editions/(int:id)` to deprecate an edition.
 
     The full resource record is returned.
+
+    **Authorization**
+
+    User must be authenticated and have ``admin_edition`` permissions.
 
     **Example request**
 

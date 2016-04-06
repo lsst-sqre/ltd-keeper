@@ -3,8 +3,8 @@
 from flask import jsonify, request
 from . import api
 from .. import db
-from ..auth import token_auth
-from ..models import Product
+from ..auth import token_auth, permission_required
+from ..models import Product, Permission
 
 
 @api.route('/products/', methods=['GET'])
@@ -92,9 +92,14 @@ def get_product(slug):
 
 
 @api.route('/products/', methods=['POST'])
+@permission_required(Permission.ADMIN_PRODUCT)
 @token_auth.login_required
 def new_product():
-    """Create a new documentation product (token required).
+    """Create a new documentation product.
+
+    **Authorization**
+
+    User must be authenticated and have ``admin_product`` permissions.
 
     **Example request**
 
@@ -159,13 +164,18 @@ def new_product():
 
 
 @api.route('/products/<slug>', methods=['PATCH'])
+@permission_required(Permission.ADMIN_PRODUCT)
 @token_auth.login_required
 def edit_product(slug):
-    """Update a product (token required).
+    """Update a product.
 
     Not all fields can be updated: in particular ``'slug'``, ``'domain'``, and
     ``'bucket-name'``. Support for updating these Product attributes may be
     added later.
+
+    **Authorization**
+
+    User must be authenticated and have ``admin_product`` permissions.
 
     **Example request**
 

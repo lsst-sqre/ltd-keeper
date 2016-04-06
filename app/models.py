@@ -14,6 +14,61 @@ from .utils import split_url, format_utc_datetime, \
     JSONEncodedVARCHAR, MutableList
 
 
+class Permission(object):
+    """User permission definitions.
+
+    These permissions can be added to the ``permissions`` column of a
+    :class:`User`. For example, to give a user permission to both
+    administer products *and* editions::
+
+        p = Permission
+        user = User(username='test-user',
+                    permissions=p.ADMIN_PRODUCT | p.ADMIN_EDITION)
+
+    You can give a user permission to do everything with the
+    :meth:`User.full_permissions` helper method:
+
+        p = Permission
+        user = User(username='admin-user',
+                    permission=p.full_permissions())
+
+    See :class:`User.has_permission` for how to use these permission
+    bits to test user authorization.
+
+    Attributes
+    ----------
+    ADMIN_USER
+        Permission to create a new API user, view API users, and modify
+        API user permissions.
+    ADMIN_PRODUCT
+        Permission to add, modify and deprecate Products.
+    ADMIN_EDITION
+        Permission to add, modify and deprecate Editions.
+    UPLOAD_BUILD
+        Permission to create a new Build.
+    DEPRECATE_BUILD
+        Permission to deprecate a Build.
+    """
+
+    ADMIN_USER = 0b1
+    ADMIN_PRODUCT = 0b10
+    ADMIN_EDITION = 0b100
+    UPLOAD_BUILD = 0b1000
+    DEPRECATE_BUILD = 0b10000
+
+    @classmethod
+    def full_permissions(self):
+        """Helper method to create a bit mask with all permissions enabled.
+
+        Returns
+        -------
+        permissions : int
+            Bit mask with all permissions enabled.
+        """
+        return self.ADMIN_USER | self.ADMIN_PRODUCT | self.ADMIN_EDITION \
+            | self.UPLOAD_BUILD | self.DEPRECATE_BUILD
+
+
 class User(db.Model):
     """DB model for authenticated API users."""
 
@@ -21,6 +76,7 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), index=True)
     password_hash = db.Column(db.String(128))
+    permissions = db.Column(db.Integer)
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -40,6 +96,32 @@ class User(db.Model):
         except:
             return None
         return User.query.get(data['id'])
+
+    def has_permission(self, permissions):
+        """Verify that a user has a given set of permissions.
+
+        Permissions are defined in the :class:`Permission` class. To check
+        authorization for a user against a specific permissions::
+
+            user.has_permission(Permission.ADMIN_PRODUCT)
+
+        You can also check authorization against multiple permissions::
+
+            user.has_permission(
+                Permission.ADMIN_PRODUCT | PERMISSION.ADMIN_EDITION)
+
+        Arguments
+        ---------
+        permissions : int
+            The permission bits to test. Use attributes from
+            :class:`Permission`.
+
+        Returns
+        -------
+        authorized : bool
+            `True` if a user is authorized with the requested permissions.
+        """
+        return (self.permissions & permissions) == permissions
 
 
 class Product(db.Model):

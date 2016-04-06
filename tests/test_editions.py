@@ -1,5 +1,8 @@
 """Tests for the editions API."""
 
+import pytest
+from werkzeug.exceptions import NotFound
+
 
 def test_editions(client):
     # Add a sample product
@@ -70,3 +73,90 @@ def test_editions(client):
     r = client.get(product_url + '/editions/')
     assert r.status == 200
     assert len(r.json['editions']) == 0
+
+
+# Authorizion tests: POST /products/<slug>/editions/ =========================
+# Only the full admin client and the edition-authorized client should get in
+
+
+def test_post_edition_auth_anon(anon_client):
+    r = anon_client.post('/products/test/editions/', {'foo': 'bar'})
+    assert r.status == 401
+
+
+def test_post_edition_auth_product_client(product_client):
+    r = product_client.post('/products/test/editions/', {'foo': 'bar'})
+    assert r.status == 403
+
+
+def test_post_edition_auth_edition_client(edition_client):
+    with pytest.raises(NotFound):
+        edition_client.post('/products/test/editions/', {'foo': 'bar'})
+
+
+def test_post_edition_auth_builduploader_client(upload_build_client):
+    r = upload_build_client.post('/products/test/editions/', {'foo': 'bar'})
+    assert r.status == 403
+
+
+def test_post_edition_auth_builddeprecator_client(deprecate_build_client):
+    r = deprecate_build_client.post('/products/test/editions/', {'foo': 'bar'})
+    assert r.status == 403
+
+
+# Authorizion tests: PATCH /editions/<slug>/editions/ =========================
+# Only the full admin client and the edition-authorized client should get in
+
+
+def test_patch_edition_auth_anon(anon_client):
+    r = anon_client.patch('/editions/1', {'foo': 'bar'})
+    assert r.status == 401
+
+
+def test_patch_edition_auth_product_client(product_client):
+    r = product_client.patch('/editions/1', {'foo': 'bar'})
+    assert r.status == 403
+
+
+def test_patch_edition_auth_edition_client(edition_client):
+    with pytest.raises(NotFound):
+        edition_client.patch('/editions/1', {'foo': 'bar'})
+
+
+def test_patch_edition_auth_builduploader_client(upload_build_client):
+    r = upload_build_client.patch('/editions/1', {'foo': 'bar'})
+    assert r.status == 403
+
+
+def test_patch_edition_auth_builddeprecator_client(deprecate_build_client):
+    r = deprecate_build_client.patch('/editions/1', {'foo': 'bar'})
+    assert r.status == 403
+
+
+# Authorizion tests: DELETE /editions/<slug> =================================
+# Only the full admin client and the edition-authorized client should get in
+
+
+def test_delete_edition_auth_anon(anon_client):
+    r = anon_client.delete('/editions/1')
+    assert r.status == 401
+
+
+def test_delete_edition_auth_product_client(product_client):
+    r = product_client.delete('/editions/1')
+    assert r.status == 403
+
+
+def test_delete_edition_auth_edition_client(edition_client):
+    with pytest.raises(NotFound):
+        edition_client.delete('/editions/1')
+
+
+def test_delete_edition_auth_builduploader_client(upload_build_client):
+    r = upload_build_client.delete('/editions/1')
+    assert r.status == 403
+
+
+def test_delete_edition_auth_builddeprecator_client(deprecate_build_client):
+    r = deprecate_build_client.delete('/editions/1')
+    assert r.status == 403
