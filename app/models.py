@@ -17,6 +17,24 @@ from .utils import split_url, format_utc_datetime, \
 class Permission(object):
     """User permission definitions.
 
+    These permissions can be added to the ``permissions`` column of a
+    :class:`User`. For example, to give a user permission to both
+    administer products *and* editions::
+
+        p = Permission
+        user = User(username='test-user',
+                    permissions=p.ADMIN_PRODUCT | p.ADMIN_EDITION)
+
+    You can give a user permission to do everything with the
+    :meth:`User.full_permissions` helper method:
+
+        p = Permission
+        user = User(username='admin-user',
+                    permission=p.full_permissions())
+
+    See :class:`User.has_permission` for how to use these permission
+    bits to test user authorization.
+
     Attributes
     ----------
     ADMIN_USER
@@ -40,6 +58,13 @@ class Permission(object):
 
     @classmethod
     def full_permissions(self):
+        """Helper method to create a bit mask with all permissions enabled.
+
+        Returns
+        -------
+        permissions : int
+            Bit mask with all permissions enabled.
+        """
         return self.ADMIN_USER | self.ADMIN_PRODUCT | self.ADMIN_EDITION \
             | self.UPLOAD_BUILD | self.DEPRECATE_BUILD
 
