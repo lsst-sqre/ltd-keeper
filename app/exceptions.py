@@ -16,3 +16,8 @@ class Route53Error(Exception):
 class S3Error(Exception):
     """Errors related to AWS S3 usage."""
     pass
+
+
+class FastlyError(Exception):
+    """"Errors related to Fastly API usage."""
+    pass
