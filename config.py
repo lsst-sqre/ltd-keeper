@@ -17,6 +17,8 @@ class Config(object):
     PREFERRED_URL_SCHEME = 'http'
     AWS_ID = os.environ.get('LTD_KEEPER_AWS_ID')
     AWS_SECRET = os.environ.get('LTD_KEEPER_AWS_SECRET')
+    FASTLY_KEY = os.environ.get('LTD_KEEPER_FASTLY_KEY')
+    FASTLY_SERVICE_ID = os.environ.get('LTD_KEEPER_FASTLY_ID')
 
     # Suppresses a warning until Flask-SQLAlchemy 3
     # See http://stackoverflow.com/a/33790196
