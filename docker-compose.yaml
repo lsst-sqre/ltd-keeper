@@ -14,12 +14,12 @@ services:
   # nginx acts as a reverse proxy for the uWSGI+python web app container
   # This container is configured to forward traffic to http://uwsgi:3031
   nginx:
-    # comment out `build` field to use a pre-built Docker Hub image
-    # build assumes that https://github.com/lsst-sqre/nginx-python-docker
+    # Un-comment the 'build' key to instead rebuild nginx-python from source.
+    # Build assumes that https://github.com/lsst-sqre/nginx-python-docker
     # is cloned along side the ltd-keeper repo.
-    build:
-      context: "../nginx-python-docker"
-    image: lsstsqre/nginx-python-docker:latest
+    # build:
+    #   context: "../nginx-python-docker/compose"
+    image: lsstsqre/nginx-python:compose
     ports:
       - "80:80"
     links:
