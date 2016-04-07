@@ -3,9 +3,13 @@
 See https://docs.fastly.com/api/ for more information about the Fastly API.
 """
 
+import logging
 import requests
 
 from .exceptions import FastlyError
+
+log = logging.getLogger(__name__)
+log.addHandler(logging.NullHandler())
 
 
 class FastlyService(object):
@@ -37,8 +41,9 @@ class FastlyService(object):
         """
         path = '/service/{service}/purge/{surrogate_key}'.format(
             service=self.service_id, surrogate_key=surrogate_key)
+        log.info('Fastly purge {0}'.format(path))
         r = requests.post(self._url(path),
                           headers={'Fastly-Key': self.api_key,
                                    'Accept': 'application/json'})
         if r.status_code != 200:
-            raise FastlyError
+            raise FastlyError(r.json)
