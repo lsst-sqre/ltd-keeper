@@ -1,0 +1,68 @@
+# Pod containing the Nginx and uWSGI (Keeper) containers
+# see http://kubernetes.io/docs/user-guide/pods/
+#
+# Use this to create bare pods for maintenance activities, like running a
+# migration or initializing a database. For regular api serving pods, use the
+# keeper-controller to start up a replication controller that manages pods.
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: keeper-mgmt
+  labels:
+    name: keeper-mgmt
+    tier: management
+spec:
+  containers:
+
+    - name: nginx
+      image: "lsstsqre/nginx-python:k8s"
+      ports:
+        - containerPort: 80
+
+    - name: uwsgi
+      image: "lsstsqre/ltd-keeper:latest"
+      # Container should do nothing on start; let the user access it
+      # http://kubernetes.io/docs/user-guide/containers/#how-docker-handles-command-and-arguments
+      command: ["/bin/sleep", "86400"]
+      ports:
+        - containerPort: 3031
+          name: keeper
+      env:
+        - name: LTD_KEEPER_PROFILE
+          value: production
+        - name: LTD_KEEPER_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: keeper-secrets
+              key: secret-key
+        - name: LTD_KEEPER_AWS_ID
+          valueFrom:
+            secretKeyRef:
+              name: keeper-secrets
+              key: aws-id
+        - name: LTD_KEEPER_AWS_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: keeper-secrets
+              key: aws-secret
+        - name: LTD_KEEPER_BOOTSTRAP_USER
+          valueFrom:
+            secretKeyRef:
+              name: keeper-secrets
+              key: default-user
+        - name: LTD_KEEPER_BOOTSTRAP_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: keeper-secrets
+              key: default-user
+        - name: LTD_KEEPER_URL
+          valueFrom:
+            secretKeyRef:
+              name: keeper-secrets
+              key: server-name
+        - name: LTD_KEEPER_URL_SCHEME
+          valueFrom:
+            secretKeyRef:
+              name: keeper-secrets
+              key: preferred-url-scheme
