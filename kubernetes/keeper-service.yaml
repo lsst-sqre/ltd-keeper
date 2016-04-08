@@ -1,0 +1,19 @@
+# Load balancer service for Keeper pods
+#
+# See http://kubernetes.io/docs/user-guide/services/#type-loadbalancer
+#
+# This Service provides a stable external IP for all pods matching the keeper
+# selector. If there are multiple keeper pods, it will load balance traffic.
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: keeper
+  labels:
+    name: keeper
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 80
+  selector:
+    name: keeper
