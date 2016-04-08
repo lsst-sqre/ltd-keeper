@@ -1,0 +1,20 @@
+# Ingress for the keeper service
+#
+# See http://kubernetes.io/docs/user-guide/ingress/
+#
+# Ingress provides the stable IP in front of the Keeper service and is also
+# used to terminate TLS.
+#
+# Note that Ingress is in Beta and requires setup on Google Container Engine
+# http://kubernetes.io/docs/user-guide/ingress/#prerequisites
+
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: no-rules-map
+spec:
+  tls:
+    secretName: keeper-ingress-secrets
+  backend:
+    serviceName: keeper
+    servicePort: 80
