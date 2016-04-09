@@ -6,8 +6,8 @@ account.
 """
 import sys
 import os.path
-app_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../'))
-sys.path.append(app_path)
+app_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../'))  # NOQA
+sys.path.append(app_path)  # NOQA
 
 import boto3
 import logging
