@@ -28,6 +28,13 @@ spec:
       ports:
         - containerPort: 3031
           name: keeper
+      # Uncomment the securityContext to run as root instead of uwsgi
+      securityContext:
+        runAsUser: 0
+      volumeMounts:
+        # sqlite-persistent-storage's definition below
+        - name: sqlite-persistent-storage
+          mountPath: /var/lib/sqlite
       env:
         - name: LTD_KEEPER_PROFILE
           value: production
@@ -66,3 +73,15 @@ spec:
             secretKeyRef:
               name: keeper-secrets
               key: preferred-url-scheme
+        - name: LTD_KEEPER_DB_URL
+          valueFrom:
+            secretKeyRef:
+              name: keeper-secrets
+              key: db-url
+  volumes:
+    - name: sqlite-persistent-storage
+      gcePersistentDisk:
+        # This disk must already exist via 
+        # gcloud compute disks create --size 1GB keeper-disk
+        pdName: keeper-disk
+        fsType: ext4
