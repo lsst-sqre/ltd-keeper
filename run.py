@@ -21,12 +21,18 @@ import os
 
 from flask.ext.script import Manager
 
-from app import create_app, db
+from app import create_app, db, models
 from app.models import User, Permission
 
 environment = os.getenv('LTD_KEEPER_PROFILE', 'development')
 keeper_app = create_app(profile=environment)
 manager = Manager(keeper_app)
+
+
+@manager.shell
+def make_shell_context():
+    """Pre-populate the shell environment when running run.py shell."""
+    return dict(app=keeper_app, db=db, models=models)
 
 
 @manager.command
