@@ -18,6 +18,10 @@ class Config(object):
     AWS_ID = os.environ.get('LTD_KEEPER_AWS_ID')
     AWS_SECRET = os.environ.get('LTD_KEEPER_AWS_SECRET')
 
+    # Suppresses a warning until Flask-SQLAlchemy 3
+    # See http://stackoverflow.com/a/33790196
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+
     @abc.abstractclassmethod
     def init_app(cls, app):
         pass
