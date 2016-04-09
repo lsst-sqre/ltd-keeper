@@ -23,23 +23,25 @@ Install the pre-requisites with :command:`pip`:
 LTD Keeper also uses `SQLite <http://www.sqlite.org>`_.
 
 
-Running Tests: test.py
+Running Tests: py.test
 ======================
 
-You can invoke the `pytest <http://pytest.org/latest/>`_-based tests by running::
+You can invoke the `pytest <http://pytest.org/latest/>`_-based tests by running:
 
-   ./test.py
+.. code-block:: bash
 
-Running for Development: run.py
-===============================
+   py.test
 
-The 'development' configuration profile provides useful defaults for running an LTD Keeper instance locally (see :file:`config.py`)
+Running for Development: run.py runserver
+=========================================
+
+The 'development' configuration profile provides useful defaults for running an LTD Keeper instance locally (see :file:`config.py`).
 
 Run LTD Keeper in development mode via:
 
 .. code-block:: bash
 
-   ./run.py
+   ./run.py runserver
 
 In development mode a database is automatically initialized.
 The default user has username ``user`` and password ``pass``.
