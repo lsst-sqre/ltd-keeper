@@ -30,7 +30,7 @@ You can invoke the `pytest <http://pytest.org/latest/>`_-based tests by running:
 
 .. code-block:: bash
 
-   py.test
+   py.test --flake8 --cov=app
 
 Running for Development: run.py runserver
 =========================================
