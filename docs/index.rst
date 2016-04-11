@@ -31,4 +31,5 @@ For more information about LSST the Docs, see `SQR-006: Documentation Deployment
    :name: ops-guide
    :maxdepth: 1
 
+   gke-setup
    gke_deploy
