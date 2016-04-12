@@ -33,3 +33,4 @@ For more information about LSST the Docs, see `SQR-006: Documentation Deployment
 
    gke-setup
    gke-config
+   gke-deploy
