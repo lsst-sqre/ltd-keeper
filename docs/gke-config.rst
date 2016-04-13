@@ -9,7 +9,7 @@ See the ``env`` section in :file:`kubernetes/keeper-pod.yaml`, for example.
 The Keeper Git repository includes two secrets templates:
 
 1. :file:`kubernetes/keeper-secrets.template.yaml` creates a secrets resource named ``keeper-secrets`` and is used to configure the Keeper Flask web app.
-2. :file:`kubernetes/keeper-ingress-secrets.template.yaml` creates a secrets resource named ``keeper-ingress-secrets`` and is used to supply TLS certs to the Ingress resource.
+2. :file:`kubernetes/ssl-proxy-secrets.template.yaml` creates a secrets resource named ``ssl-proxy-secret`` and is used to supply TLS certs to the Nginx proxy service.
 
 Setting and Deploying Secrets
 =============================
@@ -60,6 +60,12 @@ A convenient command for encoding a string (and copying it to the clipboard on O
 .. code-block:: bash
 
    echo -n "secret-value" | base64 | pbcopy
+
+To encode a file:
+
+.. code-block:: bash
+
+   base64 -i secret.key | pbcopy
 
 Two recommendations for working with secrets files:
 
@@ -128,3 +134,32 @@ In each block, the first name refers to a key in the secrets file, and the arrow
 
 ``aws-secret`` → ``LTD_KEEPER_AWS_SECRET``
    Amazon Web Services secret corresponding to ``LTD_KEEPER_AWS_ID``.
+
+Nginx SSL Proxy Configuration Reference
+=======================================
+
+This section describes the :file:`kubernetes/ssl-proxy-secrets.template.yaml`, which provides ``ssl-proxy-secret`` to the ssl-proxy pods.
+These secrets includes the SSL certificate, SSL private key, and a DHE parameter.
+
+``proxycert``
+   The SSL certificate (combined with the intermediate).
+   Encode this value with:
+
+   .. code-block:: bash
+
+      base64 -i example_org.crt | pbcopy
+
+``proxykey``
+   The SSL private key.
+
+   .. code-block:: bash
+
+      base64 -i example_org.key | pbcopy
+
+``dhparam``
+   The DHE parameter.
+
+   .. code-block:: bash
+
+      openssl dhparam -out dhparam.pem 2048
+      base64 -i dhparam.pem
