@@ -11,7 +11,7 @@ The steps assume the follow steps described on previous pages have been accompli
 
 2. Created the cluster and persistent storage.
 
-3. Customized the :file:`kubernetes/keeper-secrets.template.yaml` and :file:`kubernetes/keeper-ingress-secrets.template.yaml` files with the appropriate configurations and TLS certs.
+3. Customized the :file:`kubernetes/keeper-secrets.template.yaml` and :file:`kubernetes/ssl-proxy-secrets.template.yaml` files with the appropriate configurations and TLS certs.
 
 Step 1. Deploy Secrets
 ======================
@@ -21,6 +21,7 @@ Deploy the secrets with:
 .. code-block:: bash
 
    kubectl create -f keeper-secrets.yaml
+   kubectl create -f ssl-proxy-secrets.yaml
 
 You can see they have been deployed with:
 
@@ -28,7 +29,43 @@ You can see they have been deployed with:
 
    kubectl get secrets
 
-Step 2. Deploy the Maintenance Pod
+Step 2. Deploy Services
+=======================
+
+.. code-block:: bash
+
+   kubectl create -f ssl-proxy-service.yaml
+   kubectl create -f keeper-service.yaml
+
+Check for the external IP of the ssl-proxy-service with:
+
+.. code-block:: bash
+
+   kubectl get services
+
+Set the domain's A record to this IP.
+This domain was specified as ``server-name`` in :file:`keeper-secrets.yaml`.
+
+Step 3. Deploy the SSL Proxy
+============================
+
+.. code-block:: bash
+
+   kubectl create -f ssl-proxy.yaml
+
+Check that the replication controller exists:
+
+.. code-block:: bash
+
+   kubectl get rc
+
+And that the nginx-ssl-proxy pod exists:
+
+.. code-block:: bash
+
+   kubectl get pods
+
+Step 4. Deploy the Maintenance Pod
 ==================================
 
 We use a standalone maintenance pod to initialize the database.
@@ -69,38 +106,31 @@ This will:
 
 Wait for the pod to terminate by watching ``kubectl get pods``.
 
-Step 3. Deploy the Keeper Pod
-=============================
+Step 5. Deploy LTD Keeper
+=========================
+
+As an API server, LTD Keeper is run as a *deployment*, which is Kubernetes short-hand for a replication controller with Pod templates.
+
+To create a new deployment:
 
 .. code-block:: bash
 
-   kubectl create -f keeper-pod.yaml
+   kubectl create -f keeper-deployment.yaml
 
-Verify that the pod is deployed with
+Check that the replication controller is up:
+
+.. code-block:: bash
+
+   kubectl get rc
+
+Verify that the pod is deployed with:
 
 .. code-block:: bash
 
    kubectl get pods
 
-Step 4. Deploy the LoadBalancer Service
-=======================================
+You can know verify that Keeper is serving over HTTPS:
 
-.. code-block:: bash
+   curl https://keeper.lsst.codes/products/
 
-   kubectl create -f keeper-service.yaml
-
-View the services with
-
-.. code-block:: bash
-
-   » kubectl get services
-   NAME         CLUSTER-IP     EXTERNAL-IP     PORT(S)   AGE
-   keeper       10.63.252.59   104.154.19.40   80/TCP    1m
-   kubernetes   10.63.240.1    <none>          443/TCP   1h
-
-Note that it may take a while for the keeper service to get an external IP.
-
-Step 5. Configure DNS
-=====================
-
-Create a CNAME record so that the domain name configured with the ``server-name`` secret in :file:`keeper-secrets.yaml`.
+(Substitute your deployment hostname as necessary.)
