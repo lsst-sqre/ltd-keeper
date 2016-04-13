@@ -90,6 +90,12 @@ Deploy the secrets with:
 
    kubectl create -f keeper-secrets.yaml
 
+Also add the TLS key and cert to ``keeper-ingress-secrets.yaml`` and deploy:
+
+.. code-block:: bash
+
+   kubectl create -f keeper-ingress-secrets.yaml
+
 You can see they have been deployed with:
 
 .. code-block:: bash
@@ -169,14 +175,24 @@ First we need to set a firewall rule manually, as mentioned in http://kubernetes
 .. code-block:: bash
 
    export TAG=$(basename `gcloud container clusters describe lsst-the-docs --zone us-central1-b | grep gke | awk '{print $2}'` | sed -e s/grp/node/)
-   export NODE_PORT=$(kubectl get -o jsonpath="{.spec.ports[0].nodePort}" services echoheaders)
+   export NODE_PORT=$(kubectl get -o jsonpath="{.spec.ports[0].nodePort}" services keeper)
+   gcloud compute firewall-rules create allow-130-211-0-0-22 \
+     --source-ranges 130.211.0.0/22 \
+     --target-tags $TAG \
+     --allow tcp:$NODE_PORT
 
 .. note::
    
-   Substitute the cluster name, zone as necessary and service name as neccesary.
+   Substitute the cluster name (``lsst-the-docs``), zone (``us-central1-b``) and service name (``keeper``) as neccesary.
 
    Also note that I modified the last sed command to substitute ``grp`` rather than ``group``.
 
 .. note::
 
    The k8s docs for ingress talk about need to make a replication controller for ingress first; I think gke comes with an ingress replication controller?
+
+Now deploy the ingress resource:
+
+.. code-block:: bash
+
+   kubectl create -f keeper-ingress.yaml
