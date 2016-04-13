@@ -59,6 +59,14 @@ Then make this ``lsst-the-docs`` cluster the default and obtain the credentials:
    gcloud config set container/cluster lsst-the-docs
    gcloud container clusters get-credentials lsst-the-docs
 
+You can later rescale this cluster.
+For example:
+
+.. code-block:: bash
+
+   gcloud container clusters resize lsst-the-docs --size=2
+
+Often it's necessary to rescale the cluster when pods can't be scheduled because the existing nodes are fully utilized.
 
 Create Persistent Storage for Keeper
 ====================================
