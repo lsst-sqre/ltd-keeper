@@ -24,6 +24,7 @@ For more information about LSST the Docs, see `SQR-006: Documentation Deployment
    :maxdepth: 1
 
    install
+   docker-image
    compose
 
 .. toctree::
