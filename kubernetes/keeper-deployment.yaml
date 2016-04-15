@@ -1,0 +1,78 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: keeper-deployment
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        name: keeper
+    spec:
+      containers:
+
+        - name: nginx
+          imagePullPolicy: "Always"
+          image: "lsstsqre/nginx-python:k8s"
+          ports:
+            # from keeper-service
+            - name: nginx-keeper
+              containerPort: 8080
+
+        - name: uwsgi
+          imagePullPolicy: "Always"
+          image: "lsstsqre/ltd-keeper:latest"
+          ports:
+            - containerPort: 3031
+              name: keeper
+          volumeMounts:
+            # sqlite-persistent-storage's definition below
+            - name: sqlite-persistent-storage
+              mountPath: /var/lib/sqlite
+          env:
+            - name: LTD_KEEPER_PROFILE
+              value: production
+            - name: LTD_KEEPER_URL_SCHEME
+              value: https
+            - name: LTD_KEEPER_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: keeper-secrets
+                  key: secret-key
+            - name: LTD_KEEPER_AWS_ID
+              valueFrom:
+                secretKeyRef:
+                  name: keeper-secrets
+                  key: aws-id
+            - name: LTD_KEEPER_AWS_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: keeper-secrets
+                  key: aws-secret
+            - name: LTD_KEEPER_BOOTSTRAP_USER
+              valueFrom:
+                secretKeyRef:
+                  name: keeper-secrets
+                  key: default-user
+            - name: LTD_KEEPER_BOOTSTRAP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: keeper-secrets
+                  key: default-user
+            - name: LTD_KEEPER_URL
+              valueFrom:
+                secretKeyRef:
+                  name: keeper-secrets
+                  key: server-name
+            - name: LTD_KEEPER_DB_URL
+              valueFrom:
+                secretKeyRef:
+                  name: keeper-secrets
+                  key: db-url
+      volumes:
+        - name: sqlite-persistent-storage
+          gcePersistentDisk:
+            # This disk must already exist via 
+            # gcloud compute disks create --size 1GB keeper-disk
+            pdName: keeper-disk
+            fsType: ext4
