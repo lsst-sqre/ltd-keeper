@@ -17,9 +17,8 @@ The documentation covers both the REST API consumption and DevOps perspectives.
 
 ****
 
-Copyright 2016 AURA/LSST, MIT License.
+Copyright 2016 AURA/LSST.
 
-Parts of this codebase are based on `miguelgrinberg/oreilly-flask-apis-video <https://github.com/miguelgrinberg/oreilly-flask-apis-video>`_;
-Copyright 2014 Miguel Grinberg, MIT License.
+MIT license. See the LICENSE file. See also licenses/ for licenses of third-party code.
 
 .. _SQR-006: http://sqr-006.lsst.io
