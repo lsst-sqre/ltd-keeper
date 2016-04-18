@@ -15,7 +15,8 @@ log = logging.getLogger(__name__)
 log.addHandler(logging.NullHandler())
 
 
-def delete_directory(bucket_name, root_path, aws_profile='default'):
+def delete_directory(bucket_name, root_path,
+                     aws_access_key_id, aws_secret_access_key):
     """Delete all objects in the S3 bucket named `bucket_name` that are
     found in the `root_path` directory.
 
@@ -26,16 +27,19 @@ def delete_directory(bucket_name, root_path, aws_profile='default'):
     root_path : str
         Directory in the S3 bucket that will be deleted. The `root_path`
         should ideally end in a trailing `'/'`. E.g. `'dir/dir2/'`.
-    aws_profile : str, optional
-        Name of an AWS credential profile in :file:`~/.aws/credentials`
-        that has access to the needed Route 53 hosted zone.
+    aws_access_key_id : str
+        The access key for your AWS account. Also set `aws_secret_access_key`.
+    aws_secret_access_key : str
+        The secret key for your AWS account.
 
     Raises
     ------
     app.exceptions.S3Error
         Thrown by any unexpected faults from the S3 API.
     """
-    session = boto3.session.Session(profile_name=aws_profile)
+    session = boto3.session.Session(
+        aws_access_key_id=aws_access_key_id,
+        aws_secret_access_key=aws_secret_access_key)
     s3 = session.resource('s3')
     bucket = s3.Bucket(bucket_name)
 
