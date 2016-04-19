@@ -163,7 +163,8 @@ def new_product():
     :<json string root_fastly_domain: Root domain name for Fastly CDN used
        by this LSST the Docs installation.
     :<json string self_url: URL of this Product resource.
-    :<json string slug: URL/path-safe identifier for this product.
+    :<json string slug: URL/path-safe identifier for this product. The slug
+       is validated against the regular expression ``^[a-z]([-]*[a-z0-9])*$``.
     :<json string title: Human-readable product title.
 
     :resheader Location: URL of the created product.

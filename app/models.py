@@ -13,7 +13,7 @@ from . import s3
 from . import fastly
 from .exceptions import ValidationError
 from .utils import split_url, format_utc_datetime, \
-    JSONEncodedVARCHAR, MutableList
+    JSONEncodedVARCHAR, MutableList, validate_slug
 
 
 class Permission(object):
@@ -204,6 +204,9 @@ class Product(db.Model):
         # clean any full stops pre-pended on inputted fully qualified domains
         self.root_domain = self.root_domain.lstrip('.')
         self.root_fastly_domain = self.root_fastly_domain.lstrip('.')
+
+        # Validate slug; raises ValidationError
+        validate_slug(self.slug)
 
         return self
 

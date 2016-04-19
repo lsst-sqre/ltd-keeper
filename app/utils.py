@@ -4,6 +4,7 @@ Copyright 2016 AURA/LSST.
 Copyright 2014 Miguel Grinberg.
 """
 
+import re
 from dateutil import parser as datetime_parser
 from dateutil.tz import tzutc
 import json
@@ -15,6 +16,9 @@ from flask.globals import _app_ctx_stack, _request_ctx_stack
 from werkzeug.urls import url_parse
 from werkzeug.exceptions import NotFound
 from .exceptions import ValidationError
+
+# Regular expression to validate url-safe slugs
+SLUG_PATTERN = re.compile('^[a-z]([-]*[a-z0-9])*$')
 
 
 def split_url(url, method='GET'):
@@ -47,6 +51,14 @@ def split_url(url, method='GET'):
     except NotFound:
         raise ValidationError('Invalid URL: ' + url)
     return result
+
+
+def validate_slug(slug):
+    """Validate a URL-safe slug."""
+    m = SLUG_PATTERN.match(slug)
+    if m is None or m.string != slug:
+        raise ValidationError('Invalid slug: ' + slug)
+    return True
 
 
 def format_utc_datetime(dt):
