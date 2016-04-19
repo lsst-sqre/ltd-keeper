@@ -32,6 +32,32 @@ def test_products(client):
     assert r.status == 201
     p2_url = r.headers['Location']
 
+    # Add product with slug that will fail validation
+    with pytest.raises(ValidationError):
+        client.post('/products/',
+                    {'slug': '0qserv',
+                     'doc_repo': 'https://github.com/lsst/qserv_docs.git',
+                     'title': 'Qserv',
+                     'root_domain': 'lsst.io',
+                     'root_fastly_domain': 'global.ssl.fastly.net',
+                     'bucket_name': 'bucket-name'})
+    with pytest.raises(ValidationError):
+        client.post('/products/',
+                    {'slug': 'qserv_distrib',
+                     'doc_repo': 'https://github.com/lsst/qserv_docs.git',
+                     'title': 'Qserv',
+                     'root_domain': 'lsst.io',
+                     'root_fastly_domain': 'global.ssl.fastly.net',
+                     'bucket_name': 'bucket-name'})
+    with pytest.raises(ValidationError):
+        client.post('/products/',
+                    {'slug': 'qserv.distrib',
+                     'doc_repo': 'https://github.com/lsst/qserv_docs.git',
+                     'title': 'Qserv',
+                     'root_domain': 'lsst.io',
+                     'root_fastly_domain': 'global.ssl.fastly.net',
+                     'bucket_name': 'bucket-name'})
+
     # Test listing of products
     r = client.get('/products/')
     assert r.status == 200
