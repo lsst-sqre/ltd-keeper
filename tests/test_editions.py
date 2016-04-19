@@ -20,11 +20,13 @@ def test_editions(client):
                     {'git_refs': ['master']})
     assert r.status == 201
     b1_url = r.json['self_url']
+    client.patch(b1_url, {'uploaded': True})
 
     r = client.post('/products/lsst_apps/builds/',
                     {'git_refs': ['master']})
     assert r.status == 201
     b2_url = r.json['self_url']
+    client.patch(b2_url, {'uploaded': True})
 
     # Setup an edition
     e1 = {'tracked_refs': ['master'],
