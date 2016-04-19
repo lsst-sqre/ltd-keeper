@@ -18,7 +18,8 @@ log = logging.getLogger(__name__)
 log.addHandler(logging.NullHandler())
 
 
-def create_cname(cname_domain, origin_domain, aws_profile='default'):
+def create_cname(cname_domain, origin_domain,
+                 aws_access_key_id, aws_secret_access_key):
     """Create a CNAME `cname_domain` that points to resources at
     `origin_domain`.
 
@@ -42,9 +43,10 @@ def create_cname(cname_domain, origin_domain, aws_profile='default'):
         The original domain of the resource (e.g., ``'a-domain.org'``).
         This should not be a fully qualified domain, but any trailing dot
         will be stripped as a convenience.
-    aws_profile : str
-        Name of an AWS credential profile in :file:`~/.aws/credentials`
-        that has access to the needed Route 53 hosted zone.
+    aws_access_key_id : str
+        The access key for your AWS account. Also set `aws_secret_access_key`.
+    aws_secret_access_key : str
+        The secret key for your AWS account.
 
     Raises
     ------
@@ -58,13 +60,15 @@ def create_cname(cname_domain, origin_domain, aws_profile='default'):
     if origin_domain.endswith('.'):
         origin_domain = origin_domain.lstrip('.')
 
-    session = boto3.session.Session(profile_name=aws_profile)
+    session = boto3.session.Session(
+        aws_access_key_id=aws_access_key_id,
+        aws_secret_access_key=aws_secret_access_key)
     client = session.client('route53')
     zone_id = _get_zone_id(client, cname_domain)
     _upsert_cname_record(client, zone_id, cname_domain, origin_domain)
 
 
-def delete_cname(cname_domain, aws_profile='default'):
+def delete_cname(cname_domain, aws_access_key_id, aws_secret_access_key):
     """Delete a CNAME for `cname_domain`
 
     **Note:** This function deletes the first matching CNAME records and
@@ -79,9 +83,10 @@ def delete_cname(cname_domain, aws_profile='default'):
 
         Note that a CNAME domain should be a *sub-domain*. This function
         does not configure the A (apex) record (e.g. ``'domain.org'``).
-    aws_profile : str, optional
-        Name of an AWS credential profile in :file:`~/.aws/credentials`
-        that has access to the needed Route 53 hosted zone.
+    aws_access_key_id : str
+        The access key for your AWS account. Also set `aws_secret_access_key`.
+    aws_secret_access_key : str
+        The secret key for your AWS account.
 
     Raises
     ------
@@ -93,7 +98,9 @@ def delete_cname(cname_domain, aws_profile='default'):
     if not cname_domain.endswith('.'):
         cname_domain = cname_domain + '.'
 
-    session = boto3.session.Session(profile_name=aws_profile)
+    session = boto3.session.Session(
+        aws_access_key_id=aws_access_key_id,
+        aws_secret_access_key=aws_secret_access_key)
     client = session.client('route53')
 
     zone_id = _get_zone_id(client, cname_domain)
