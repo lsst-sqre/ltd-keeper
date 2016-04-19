@@ -141,8 +141,10 @@ class Product(db.Model):
     doc_repo = db.Column(db.String(256), nullable=False)
     # Human-readlable product title
     title = db.Column(db.Unicode(256), nullable=False)
-    # Domain name, without protocol or path
-    domain = db.Column(db.String(256), nullable=False)
+    # Root domain name serving docs (e.g., lsst.io)
+    root_domain = db.Column(db.String(256), nullable=False)
+    # Fastly CDN domain name (without doc's domain prepended)
+    root_fastly_domain = db.Column(db.String(256), nullable=False)
     # Name of the S3 bucket hosting builds
     bucket_name = db.Column(db.String(256), nullable=True)
 
@@ -150,6 +152,24 @@ class Product(db.Model):
     # are defined in those classes
     builds = db.relationship('Build', backref='product', lazy='dynamic')
     editions = db.relationship('Edition', backref='product', lazy='dynamic')
+
+    @property
+    def domain(self):
+        """Domain where docs for this product are served from.
+
+        (E.g. ``product.lsst.io`` if ``product`` is the slug and ``lsst.io``
+        is the ``root_domain``.)
+        """
+        return '.'.join((self.slug, self.root_domain))
+
+    @property
+    def fastly_domain(self):
+        """Domain where Fastly serves content from for this product.
+
+        (E.g. ``product.lsst.io.global.ssl.fastly.net`` if the doc domain
+        is ``product.lsst.io``.)
+        """
+        return '.'.join((self.domain, self.root_fastly_domain))
 
     def get_url(self):
         """API URL for this entity."""
@@ -162,7 +182,10 @@ class Product(db.Model):
             'slug': self.slug,
             'doc_repo': self.doc_repo,
             'title': self.title,
+            'root_domain': self.root_domain,
+            'root_fastly_domain': self.root_fastly_domain,
             'domain': self.domain,
+            'fastly_domain': self.fastly_domain,
             'bucket_name': self.bucket_name
         }
 
@@ -172,10 +195,16 @@ class Product(db.Model):
             self.slug = data['slug']
             self.doc_repo = data['doc_repo']
             self.title = data['title']
-            self.domain = data['domain']
+            self.root_domain = data['root_domain']
+            self.root_fastly_domain = data['root_fastly_domain']
             self.bucket_name = data['bucket_name']
         except KeyError as e:
             raise ValidationError('Invalid Product: missing ' + e.args[0])
+
+        # clean any full stops pre-pended on inputted fully qualified domains
+        self.root_domain = self.root_domain.lstrip('.')
+        self.root_fastly_domain = self.root_fastly_domain.lstrip('.')
+
         return self
 
     def patch_data(self, data):

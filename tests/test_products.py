@@ -11,10 +11,11 @@ def test_products(client):
     assert len(r.json['products']) == 0
 
     # Add first product
-    p1 = {'slug': 'lsst_apps',
+    p1 = {'slug': 'pipelines',
           'doc_repo': 'https://github.com/lsst/pipelines_docs.git',
           'title': 'LSST Science Pipelines',
-          'domain': 'pipelines.lsst.io',
+          'root_domain': 'lsst.io',
+          'root_fastly_domain': 'global.ssl.fastly.net',
           'bucket_name': 'bucket-name'}
     r = client.post('/products/', p1)
     assert r.status == 201
@@ -24,7 +25,8 @@ def test_products(client):
     p2 = {'slug': 'qserv',
           'doc_repo': 'https://github.com/lsst/qserv_docs.git',
           'title': 'Qserv',
-          'domain': 'qserv.lsst.io',
+          'root_domain': 'lsst.io',
+          'root_fastly_domain': 'global.ssl.fastly.net',
           'bucket_name': 'bucket-name'}
     r = client.post('/products/', p2)
     assert r.status == 201
@@ -39,10 +41,16 @@ def test_products(client):
     r = client.get(p1_url)
     for k, v in p1.items():
         assert r.json[k] == v
+    # Test domain
+    assert r.json['domain'] == 'pipelines.lsst.io'
+    assert r.json['fastly_domain'] == 'pipelines.lsst.io.global.ssl.fastly.net'
 
     r = client.get(p2_url)
     for k, v in p2.items():
         assert r.json[k] == v
+    # Test domain
+    assert r.json['domain'] == 'qserv.lsst.io'
+    assert r.json['fastly_domain'] == 'qserv.lsst.io.global.ssl.fastly.net'
 
     p2v2 = dict(p2)
     p2v2['title'] = 'Qserve Data Access'

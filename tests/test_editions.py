@@ -6,23 +6,24 @@ from werkzeug.exceptions import NotFound
 
 def test_editions(client):
     # Add a sample product
-    p = {'slug': 'lsst_apps',
+    p = {'slug': 'pipelines',
          'doc_repo': 'https://github.com/lsst/pipelines_docs.git',
          'title': 'LSST Science Pipelines',
-         'domain': 'pipelines.lsst.io',
+         'root_domain': 'lsst.io',
+         'root_fastly_domain': 'global.ssl.fastly.net',
          'bucket_name': 'bucket-name'}
     r = client.post('/products/', p)
     product_url = r.headers['Location']
     assert r.status == 201
 
     # Create builds
-    r = client.post('/products/lsst_apps/builds/',
+    r = client.post('/products/pipelines/builds/',
                     {'git_refs': ['master']})
     assert r.status == 201
     b1_url = r.json['self_url']
     client.patch(b1_url, {'uploaded': True})
 
-    r = client.post('/products/lsst_apps/builds/',
+    r = client.post('/products/pipelines/builds/',
                     {'git_refs': ['master']})
     assert r.status == 201
     b2_url = r.json['self_url']

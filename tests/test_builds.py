@@ -7,18 +7,19 @@ from app.exceptions import ValidationError
 
 def test_builds(client):
     # Add a sample product
-    p = {'slug': 'lsst_apps',
+    p = {'slug': 'pipelines',
          'doc_repo': 'https://github.com/lsst/pipelines_docs.git',
          'title': 'LSST Science Pipelines',
-         'domain': 'pipelines.lsst.io',
+         'root_domain': 'lsst.io',
+         'root_fastly_domain': 'global.ssl.fastly.net',
          'bucket_name': 'bucket-name'}
     r = client.post('/products/', p)
     assert r.status == 201
 
-    prod_url = client.get('/products/lsst_apps').json['self_url']
+    prod_url = client.get('/products/pipelines').json['self_url']
 
     # Initially no builds
-    r = client.get('/products/lsst_apps/builds/')
+    r = client.get('/products/pipelines/builds/')
     assert r.status == 200
     assert len(r.json['builds']) == 0
 
@@ -26,7 +27,7 @@ def test_builds(client):
     b1 = {'slug': 'b1',
           'github_requester': 'jonathansick',
           'git_refs': ['master']}
-    r = client.post('/products/lsst_apps/builds/', b1)
+    r = client.post('/products/pipelines/builds/', b1)
     assert r.status == 201
     assert r.json['product_url'] == prod_url
     assert r.json['slug'] == b1['slug']
@@ -37,10 +38,10 @@ def test_builds(client):
 
     # Re-add build with same slug; should fail
     with pytest.raises(ValidationError):
-        r = client.post('/products/lsst_apps/builds/', b1)
+        r = client.post('/products/pipelines/builds/', b1)
 
     # List builds
-    r = client.get('/products/lsst_apps/builds/')
+    r = client.get('/products/pipelines/builds/')
     assert r.status == 200
     assert len(r.json['builds']) == 1
 
@@ -48,7 +49,7 @@ def test_builds(client):
     r = client.get('/builds/1')
     assert r.status == 200
     assert r.json['bucket_name'] == 'bucket-name'
-    assert r.json['bucket_root_dir'] == 'lsst_apps/builds/b1'
+    assert r.json['bucket_root_dir'] == 'pipelines/builds/b1'
 
     # Register upload
     r = client.patch('/builds/1', {'uploaded': True})
@@ -68,31 +69,31 @@ def test_builds(client):
     assert r.json['date_ended'] is not None
 
     # Build no longer in listing
-    r = client.get('/products/lsst_apps/builds/')
+    r = client.get('/products/pipelines/builds/')
     assert r.status == 200
     assert len(r.json['builds']) == 0
 
     # Add some auto-slugged builds
     b2 = {'git_refs': ['master']}
-    r = client.post('/products/lsst_apps/builds/', b2)
+    r = client.post('/products/pipelines/builds/', b2)
     assert r.status == 201
     assert r.json['slug'] == '1'
 
     b3 = {'git_refs': ['master']}
-    r = client.post('/products/lsst_apps/builds/', b3)
+    r = client.post('/products/pipelines/builds/', b3)
     assert r.status == 201
     assert r.json['slug'] == '2'
 
     # Add a build missing 'git_refs'
     b4 = {'slug': 'bad-build'}
     with pytest.raises(ValidationError):
-        r = client.post('/products/lsst_apps/builds/', b4)
+        r = client.post('/products/pipelines/builds/', b4)
 
     # Add a build with a badly formatted git_refs
     b5 = {'slug': 'another-bad-build',
           'git_refs': 'master'}
     with pytest.raises(ValidationError):
-        r = client.post('/products/lsst_apps/builds/', b5)
+        r = client.post('/products/pipelines/builds/', b5)
 
 
 # Authorizion tests: POST /products/<slug>/builds/ ===========================
