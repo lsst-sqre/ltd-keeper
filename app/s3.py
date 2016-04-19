@@ -50,7 +50,6 @@ def delete_directory(bucket_name, root_path,
 
     key_objects = [{'Key': obj.key}
                    for obj in bucket.objects.filter(Prefix=root_path)]
-    assert len(key_objects) > 0
     if len(key_objects) == 0:
         log.info('No objects deleted from bucket {0}:{1}'.format(
             bucket_name, root_path))

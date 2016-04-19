@@ -9,6 +9,8 @@ from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from flask import url_for, current_app
 
 from . import db
+from . import s3
+from . import fastly
 from .exceptions import ValidationError
 from .utils import split_url, format_utc_datetime, \
     JSONEncodedVARCHAR, MutableList
@@ -328,6 +330,11 @@ class Edition(db.Model):
     # Relationships
     build = db.relationship('Build', uselist=False)  # one-to-one
 
+    @property
+    def bucket_root_dirname(self):
+        """Directory in the bucket where the edition is located."""
+        return '/'.join((self.product.slug, 'v', self.slug))
+
     def get_url(self):
         """API URL for this entity."""
         return url_for('api.get_edition', id=self.id, _external=True)
@@ -391,7 +398,26 @@ class Edition(db.Model):
             self.published_url = data['published_url']
 
     def rebuild(self, build_url):
-        """Modify the build this edition points to."""
+        """Modify the build this edition points to.
+
+        This method accomplishes the following:
+
+        1. Gets surrogate key from existing build used by edition
+        2. Gets and validates new build
+        3. Copys new build into edition's directory in S3 bucket
+        4. Purge Fastly's cache for this edition.
+        """
+        FASTLY_SERVICE_ID = current_app.config['FASTLY_SERVICE_ID']
+        FASTLY_KEY = current_app.config['FASTLY_KEY']
+        AWS_ID = current_app.config['AWS_ID']
+        AWS_SECRET = current_app.config['AWS_SECRET']
+
+        if self.build is not None:
+            prev_build_surrogate_key = self.build.surrogate_key
+        else:
+            prev_build_surrogate_key = None
+
+        # Get new Build ID from the build resource's URL
         build_endpoint, build_args = split_url(build_url)
         if build_endpoint != 'api.get_build' or 'id' not in build_args:
             raise ValidationError('Invalid build_url: ' +
@@ -399,6 +425,27 @@ class Edition(db.Model):
         self.build = Build.query.get(build_args['id'])
         if self.build is None:
             raise ValidationError('Invalid build_url: ' + build_url)
+        if self.build.uploaded is False:
+            raise ValidationError('Build has not been uploaded: ' + build_url)
+        if self.build.date_ended is not None:
+            raise ValidationError('Build was deprecated: ' + build_url)
+
+        if AWS_ID is not None and AWS_SECRET is not None:
+            s3.copy_directory(
+                bucket_name=self.product.bucket_name,
+                src_path=self.build.bucket_root_dirname,
+                dest_path=self.bucket_root_dirname,
+                aws_access_key_id=AWS_ID,
+                aws_secret_access_key=AWS_SECRET)
+
+        if FASTLY_SERVICE_ID is not None and FASTLY_KEY is not None \
+                and prev_build_surrogate_key is not None:
+            fastly_service = fastly.FastlyService(
+                FASTLY_SERVICE_ID,
+                FASTLY_KEY)
+            fastly_service.purge_key(prev_build_surrogate_key)
+
+        # TODO start a job that will warm the Fastly cache with the new edition
 
         self.date_rebuilt = datetime.now()
 
