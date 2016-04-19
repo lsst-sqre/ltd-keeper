@@ -10,6 +10,7 @@ from flask import url_for, current_app
 
 from . import db
 from . import s3
+from . import route53
 from . import fastly
 from .exceptions import ValidationError
 from .utils import split_url, format_utc_datetime, \
@@ -207,6 +208,13 @@ class Product(db.Model):
 
         # Validate slug; raises ValidationError
         validate_slug(self.slug)
+
+        # Setup Fastly CNAME with Route53
+        AWS_ID = current_app.config['AWS_ID']
+        AWS_SECRET = current_app.config['AWS_SECRET']
+        if AWS_ID is not None and AWS_SECRET is not None:
+            route53.create_cname(self.domain, self.fastly_domain,
+                                 AWS_ID, AWS_SECRET)
 
         return self
 
