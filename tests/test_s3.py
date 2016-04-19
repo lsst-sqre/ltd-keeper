@@ -25,7 +25,7 @@ import uuid
 import boto3
 import pytest
 
-from app.s3 import delete_directory
+from app.s3 import delete_directory, copy_directory
 
 
 @pytest.mark.skipif(os.getenv('LTD_KEEPER_TEST_AWS_ID') is None or
@@ -52,15 +52,7 @@ def test_delete_directory(request):
     request.addfinalizer(cleanup)
 
     file_paths = ['a/test1.txt', 'a/b/test2.txt', 'a/b/c/test3.txt']
-    with tempfile.TemporaryDirectory() as temp_dir:
-        for p in file_paths:
-            full_path = os.path.join(temp_dir, p)
-            full_dir = os.path.dirname(full_path)
-            os.makedirs(full_dir)
-            with open(full_path, 'w') as f:
-                f.write('content')
-            obj = bucket.Object(bucket_root + p)
-            obj.upload_file(full_path)
+    _upload_files(file_paths, bucket, bucket_root)
 
     # Delete b/*
     delete_directory(os.getenv('LTD_KEEPER_TEST_BUCKET'),
@@ -82,3 +74,77 @@ def test_delete_directory(request):
             assert bucket_path not in bucket_paths
         else:
             assert bucket_path in bucket_paths
+
+
+@pytest.mark.skipif(os.getenv('LTD_KEEPER_TEST_AWS_ID') is None or
+                    os.getenv('LTD_KEEPER_TEST_AWS_SECRET') is None or
+                    os.getenv('LTD_KEEPER_TEST_BUCKET') is None,
+                    reason='Set LTD_KEEPER_TEST_AWS_ID, '
+                           'LTD_KEEPER_TEST_AWS_SECRET and '
+                           'LTD_KEEPER_TEST_BUCKET')
+def test_copy_directory(request):
+    session = boto3.session.Session(
+        aws_access_key_id=os.getenv('LTD_KEEPER_TEST_AWS_ID'),
+        aws_secret_access_key=os.getenv('LTD_KEEPER_TEST_AWS_SECRET'))
+    s3 = session.resource('s3')
+    bucket = s3.Bucket(os.getenv('LTD_KEEPER_TEST_BUCKET'))
+
+    bucket_root = str(uuid.uuid4()) + '/'
+
+    def cleanup():
+        print("Cleaning up the bucket")
+        delete_directory(os.getenv('LTD_KEEPER_TEST_BUCKET'),
+                         bucket_root,
+                         os.getenv('LTD_KEEPER_TEST_AWS_ID'),
+                         os.getenv('LTD_KEEPER_TEST_AWS_SECRET'))
+    request.addfinalizer(cleanup)
+
+    initial_paths = ['test1.txt', 'test2.txt', 'aa/test3.txt']
+    new_paths = ['test4.txt', 'bb/test5.txt']
+
+    # add old and new file sets
+    _upload_files(initial_paths, bucket, bucket_root + 'a/')
+    _upload_files(new_paths, bucket, bucket_root + 'b/')
+
+    # copy files
+    copy_directory(
+        bucket_name=os.getenv('LTD_KEEPER_TEST_BUCKET'),
+        src_path=bucket_root + 'b/',
+        dest_path=bucket_root + 'a/',
+        aws_access_key_id=os.getenv('LTD_KEEPER_TEST_AWS_ID'),
+        aws_secret_access_key=os.getenv('LTD_KEEPER_TEST_AWS_SECRET'))
+
+    # Test files in the a/ directory are from b/
+    bucket_paths = []
+    for obj in bucket.objects.filter(Prefix=bucket_root + 'a/'):
+        bucket_paths.append(os.path.relpath(obj.key, start=bucket_root + 'a/'))
+    for p in bucket_paths:
+        assert p in new_paths
+
+
+def test_copy_dir_src_in_dest():
+    """Test that copy_directory fails raises an assertion error if source in
+    destination.
+    """
+    with pytest.raises(AssertionError):
+        copy_directory('example', 'dest/src', 'dest', 'id', 'key')
+
+
+def test_copy_dir_dest_in_src():
+    """Test that copy_directory fails raises an assertion error if destination
+    is part of the source.
+    """
+    with pytest.raises(AssertionError):
+        copy_directory('example', 'src', 'src/dest', 'id', 'key')
+
+
+def _upload_files(file_paths, bucket, bucket_root):
+    with tempfile.TemporaryDirectory() as temp_dir:
+        for p in file_paths:
+            full_path = os.path.join(temp_dir, p)
+            full_dir = os.path.dirname(full_path)
+            os.makedirs(full_dir, exist_ok=True)
+            with open(full_path, 'w') as f:
+                f.write('content')
+            obj = bucket.Object(bucket_root + p)
+            obj.upload_file(full_path)
