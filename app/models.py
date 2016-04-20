@@ -455,6 +455,8 @@ class Edition(db.Model):
         if 'build_url' in data:
             self.rebuild(data['build_url'])
 
+        if 'slug' in data:
+            self.update_slug(data['slug'])
 
     def rebuild(self, build_url):
         """Modify the build this edition points to.
@@ -507,6 +509,24 @@ class Edition(db.Model):
         # TODO start a job that will warm the Fastly cache with the new edition
 
         self.date_rebuilt = datetime.now()
+
+    def update_slug(self, new_slug):
+        """Update the edition's slug by migrating files on S3."""
+        old_bucket_root_dir = self.bucket_root_dirname
+
+        self.slug = new_slug
+        new_bucket_root_dir = self.bucket_root_dirname
+
+        AWS_ID = current_app.config['AWS_ID']
+        AWS_SECRET = current_app.config['AWS_SECRET']
+        if AWS_ID is not None and AWS_SECRET is not None \
+                and self.build is not None:
+            s3.copy_directory(self.product.bucket_name,
+                              old_bucket_root_dir, new_bucket_root_dir,
+                              AWS_ID, AWS_SECRET)
+            s3.delete_directory(self.product.bucket_name,
+                                old_bucket_root_dir,
+                                AWS_ID, AWS_SECRET)
 
     def deprecate(self):
         """Deprecate the Edition; sets the `date_ended` field."""
