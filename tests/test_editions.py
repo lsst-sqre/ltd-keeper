@@ -2,6 +2,7 @@
 
 import pytest
 from werkzeug.exceptions import NotFound
+from app.exceptions import ValidationError
 
 
 def test_editions(client):
@@ -75,6 +76,13 @@ def test_editions(client):
     r = client.get(product_url + '/editions/')
     assert r.status == 200
     assert len(r.json['editions']) == 1  # only default edition (main) remains
+
+    # Verify we can't make a second 'main' edition
+    with pytest.raises(ValidationError):
+        r = client.post('/products/pipelines/editions/',
+                        {'slug': 'main',
+                         'tracked_refs': ['master'],
+                         'title': 'Main'})
 
 
 # Authorizion tests: POST /products/<slug>/editions/ =========================
