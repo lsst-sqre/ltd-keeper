@@ -4,7 +4,7 @@ from flask import jsonify, request
 from . import api
 from .. import db
 from ..auth import token_auth, permission_required
-from ..models import Product, Permission
+from ..models import Product, Permission, Edition
 
 
 @api.route('/products/', methods=['GET'])
@@ -114,6 +114,11 @@ def get_product(slug):
 def new_product():
     """Create a new documentation product.
 
+    Every new product also includes a default edition (slug is 'main'). This
+    main edition tracks the master branch by default. Fastly is configured to
+    show this main edition at the product's root URL rather than in the /v/
+    directory.
+
     **Authorization**
 
     User must be authenticated and have ``admin_product`` permissions.
@@ -177,6 +182,14 @@ def new_product():
     try:
         product.import_data(request.json)
         db.session.add(product)
+
+        # Create a default edition for the product
+        edition = Edition(product=product)
+        edition.import_data({'tracked_refs': ['master'],
+                             'slug': 'main',
+                             'title': 'Latest'})
+        db.session.add(edition)
+
         db.session.commit()
     except Exception:
         db.session.rollback()
