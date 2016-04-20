@@ -4,6 +4,7 @@ Copyright 2016 AURA/LSST.
 Copyright 2014 Miguel Grinberg.
 """
 from datetime import datetime
+import urllib.parse
 from werkzeug.security import generate_password_hash, check_password_hash
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from flask import url_for, current_app
@@ -369,8 +370,6 @@ class Edition(db.Model):
     slug = db.Column(db.String(256), nullable=False)
     # Human-readable title for edition
     title = db.Column(db.Unicode(256), nullable=False)
-    # full url where the documentation is published from
-    published_url = db.Column(db.String(256), nullable=False)
     # Date when this edition was initially created
     date_created = db.Column(db.DateTime, default=datetime.now(),
                              nullable=False)
@@ -387,6 +386,15 @@ class Edition(db.Model):
     def bucket_root_dirname(self):
         """Directory in the bucket where the edition is located."""
         return '/'.join((self.product.slug, 'v', self.slug))
+
+    @property
+    def published_url(self):
+        """URL where this edition is published to the end-user."""
+        parts = ('https',
+                 self.product.domain,
+                 '/v/{0}'.format(self.slug),
+                 '', '', '')
+        return urllib.parse.urlunparse(parts)
 
     def get_url(self):
         """API URL for this entity."""
@@ -416,7 +424,6 @@ class Edition(db.Model):
             tracked_refs = data['tracked_refs']
             self.slug = data['slug']
             self.title = data['title']
-            self.published_url = data['published_url']
         except KeyError as e:
             raise ValidationError('Invalid Edition: missing ' + e.args[0])
 
@@ -448,8 +455,6 @@ class Edition(db.Model):
         if 'build_url' in data:
             self.rebuild(data['build_url'])
 
-        if 'published_url' in data:
-            self.published_url = data['published_url']
 
     def rebuild(self, build_url):
         """Modify the build this edition points to.
