@@ -407,10 +407,16 @@ class Edition(db.Model):
     @property
     def published_url(self):
         """URL where this edition is published to the end-user."""
-        parts = ('https',
-                 self.product.domain,
-                 '/v/{0}'.format(self.slug),
-                 '', '', '')
+        if self.slug == 'main':
+            # Special case for main; published at product's root
+            parts = ('https',
+                     self.product.domain,
+                     '', '', '', '')
+        else:
+            parts = ('https',
+                     self.product.domain,
+                     '/v/{0}'.format(self.slug),
+                     '', '', '')
         return urllib.parse.urlunparse(parts)
 
     def get_url(self):
