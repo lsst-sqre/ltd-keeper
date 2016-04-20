@@ -95,6 +95,8 @@ def get_product(slug):
        this LSST the Docs installation is served from. (e.g., ``lsst.io``).
     :>json string root_fastly_domain: Root domain name for Fastly CDN used
        by this LSST the Docs installation.
+    :>json string published_url: Full URL where this product is published to
+        the reader.
     :>json string self_url: URL of this Product resource.
     :>json string slug: URL/path-safe identifier for this product.
     :>json string title: Human-readable product title.

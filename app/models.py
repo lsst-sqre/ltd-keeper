@@ -173,6 +173,12 @@ class Product(db.Model):
         """
         return '.'.join((self.domain, self.root_fastly_domain))
 
+    @property
+    def published_url(self):
+        """URL where this product is published to the end-user."""
+        parts = ('https', self.domain, '', '', '', '')
+        return urllib.parse.urlunparse(parts)
+
     def get_url(self):
         """API URL for this entity."""
         return url_for('api.get_product', slug=self.slug, _external=True)
@@ -188,7 +194,8 @@ class Product(db.Model):
             'root_fastly_domain': self.root_fastly_domain,
             'domain': self.domain,
             'fastly_domain': self.fastly_domain,
-            'bucket_name': self.bucket_name
+            'bucket_name': self.bucket_name,
+            'published_url': self.published_url
         }
 
     def import_data(self, data):
@@ -262,6 +269,15 @@ class Build(db.Model):
         """Directory in the bucket where the build is located."""
         return '/'.join((self.product.slug, 'builds', self.slug))
 
+    @property
+    def published_url(self):
+        """URL where this build is published to the end-user."""
+        parts = ('https',
+                 self.product.domain,
+                 '/builds/{0}'.format(self.slug),
+                 '', '', '')
+        return urllib.parse.urlunparse(parts)
+
     def get_url(self):
         """API URL for this entity."""
         return url_for('api.get_build', id=self.id, _external=True)
@@ -279,6 +295,7 @@ class Build(db.Model):
             'bucket_root_dir': self.bucket_root_dirname,
             'git_refs': self.git_refs,
             'github_requester': self.github_requester,
+            'published_url': self.published_url,
             'surrogate_key': self.surrogate_key
         }
 

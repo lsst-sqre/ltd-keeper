@@ -41,6 +41,7 @@ def test_builds(client):
     assert r.json['date_created'] is not None
     assert r.json['date_ended'] is None
     assert r.json['uploaded'] is False
+    assert r.json['published_url'] == 'https://pipelines.lsst.io/builds/b1'
     assert len(r.json['surrogate_key']) == 32  # should be a uuid4 -> hex
     build_url = r.headers['Location']
 

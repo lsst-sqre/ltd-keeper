@@ -70,6 +70,7 @@ def test_products(client):
     # Test domain
     assert r.json['domain'] == 'pipelines.lsst.io'
     assert r.json['fastly_domain'] == 'pipelines.lsst.io.global.ssl.fastly.net'
+    assert r.json['published_url'] == 'https://pipelines.lsst.io'
 
     r = client.get(p2_url)
     for k, v in p2.items():
@@ -77,6 +78,7 @@ def test_products(client):
     # Test domain
     assert r.json['domain'] == 'qserv.lsst.io'
     assert r.json['fastly_domain'] == 'qserv.lsst.io.global.ssl.fastly.net'
+    assert r.json['published_url'] == 'https://qserv.lsst.io'
 
     p2v2 = dict(p2)
     p2v2['title'] = 'Qserve Data Access'
