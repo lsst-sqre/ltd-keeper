@@ -460,6 +460,9 @@ class Edition(db.Model):
                                   'array of strings')
         self.tracked_refs = tracked_refs
 
+        # Validate the slug
+        self._validate_slug(data['slug'])
+
         # Set initial build pointer
         if 'build_url' in data:
             self.rebuild(data['build_url'])
@@ -540,6 +543,9 @@ class Edition(db.Model):
 
     def update_slug(self, new_slug):
         """Update the edition's slug by migrating files on S3."""
+        # Check that this slug does not already exist
+        self._validate_slug(new_slug)
+
         old_bucket_root_dir = self.bucket_root_dirname
 
         self.slug = new_slug
@@ -555,6 +561,28 @@ class Edition(db.Model):
             s3.delete_directory(self.product.bucket_name,
                                 old_bucket_root_dir,
                                 AWS_ID, AWS_SECRET)
+
+    def _validate_slug(self, slug):
+        """Ensure that the slug is both unique to the product and meets the
+        slug format regex.
+
+        Raises
+        ------
+        ValidationError
+        """
+        # Check against slug regex
+        validate_slug(slug)
+
+        # Check uniqueness
+        existing_count = Edition.query.autoflush(False)\
+            .filter(Edition.product == self.product)\
+            .filter(Edition.slug == slug)\
+            .count()
+        if existing_count > 0:
+            raise ValidationError(
+                'Invalid edition: slug ({0}) already exists'.format(slug))
+
+        return True
 
     def deprecate(self):
         """Deprecate the Edition; sets the `date_ended` field."""
