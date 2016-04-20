@@ -74,7 +74,7 @@ def test_editions(client):
     # Deprecated editions no longer in the editions list
     r = client.get(product_url + '/editions/')
     assert r.status == 200
-    assert len(r.json['editions']) == 0
+    assert len(r.json['editions']) == 1  # only default edition (main) remains
 
 
 # Authorizion tests: POST /products/<slug>/editions/ =========================

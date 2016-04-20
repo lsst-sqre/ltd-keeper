@@ -21,6 +21,15 @@ def test_products(client):
     assert r.status == 201
     p1_url = r.headers['Location']
 
+    # Validate that default edition was made
+    r = client.get('/products/pipelines/editions/')
+    assert r.status == 200
+    default_ed_url = r.json['editions'][0]
+    r = client.get(default_ed_url)
+    assert r.json['slug'] == 'main'
+    assert r.json['title'] == 'Latest'
+    assert r.json['tracked_refs'] == ['master']
+
     # Add second product
     p2 = {'slug': 'qserv',
           'doc_repo': 'https://github.com/lsst/qserv_docs.git',

@@ -419,10 +419,15 @@ class Edition(db.Model):
 
     def export_data(self):
         """Export entity as JSON-compatible dict."""
+        if self.build is not None:
+            build_url = self.build.get_url()
+        else:
+            build_url = None
+
         return {
             'self_url': self.get_url(),
             'product_url': self.product.get_url(),
-            'build_url': self.build.get_url(),
+            'build_url': build_url,
             'tracked_refs': self.tracked_refs,
             'slug': self.slug,
             'title': self.title,
