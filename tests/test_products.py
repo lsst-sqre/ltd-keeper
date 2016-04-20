@@ -29,6 +29,7 @@ def test_products(client):
     assert r.json['slug'] == 'main'
     assert r.json['title'] == 'Latest'
     assert r.json['tracked_refs'] == ['master']
+    assert r.json['published_url'] == 'https://pipelines.lsst.io'
 
     # Add second product
     p2 = {'slug': 'qserv',
