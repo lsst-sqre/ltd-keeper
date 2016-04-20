@@ -14,9 +14,16 @@ def test_builds(client):
          'root_fastly_domain': 'global.ssl.fastly.net',
          'bucket_name': 'bucket-name'}
     r = client.post('/products/', p)
+    product_url = r.headers['Location']
     assert r.status == 201
 
-    prod_url = client.get('/products/pipelines').json['self_url']
+    # Add a sample edition
+    e = {'tracked_refs': ['master'],
+         'slug': 'latest',
+         'title': 'Latest',
+         'published_url': 'pipelines.lsst.io'}
+    r = client.post(product_url + '/editions/', e)
+    edition_url = r.headers['Location']
 
     # Initially no builds
     r = client.get('/products/pipelines/builds/')
@@ -29,12 +36,13 @@ def test_builds(client):
           'git_refs': ['master']}
     r = client.post('/products/pipelines/builds/', b1)
     assert r.status == 201
-    assert r.json['product_url'] == prod_url
+    assert r.json['product_url'] == product_url
     assert r.json['slug'] == b1['slug']
     assert r.json['date_created'] is not None
     assert r.json['date_ended'] is None
     assert r.json['uploaded'] is False
     assert len(r.json['surrogate_key']) == 32  # should be a uuid4 -> hex
+    build_url = r.headers['Location']
 
     # Re-add build with same slug; should fail
     with pytest.raises(ValidationError):
@@ -58,12 +66,16 @@ def test_builds(client):
     r = client.get('/builds/1')
     assert r.json['uploaded'] is True
 
+    # Check that the edition was rebuilt
+    edition_data = client.get(edition_url)
+    assert edition_data.json['build_url'] == build_url
+
     # Deprecate build
     r = client.delete('/builds/1')
     assert r.status == 200
 
     r = client.get('/builds/1')
-    assert r.json['product_url'] == prod_url
+    assert r.json['product_url'] == product_url
     assert r.json['slug'] == b1['slug']
     assert r.json['date_created'] is not None
     assert r.json['date_ended'] is not None
