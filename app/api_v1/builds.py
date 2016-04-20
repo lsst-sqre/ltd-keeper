@@ -332,6 +332,8 @@ def get_build(id):
         who triggered the build (null is not available).
     :>json string slug: slug of build; URL-safe slug.
     :>json string product_url: URL of parent product entity.
+    :>json string published_url: Full URL where this build is published to
+        the reader.
     :>json string self_url: URL of this build entity.
     :>json string surrogate_key: The surrogate key attached to the headers
         of all files on S3 belonging to this build. This allows LTD Keeper
