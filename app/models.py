@@ -326,7 +326,20 @@ class Build(db.Model):
         acknowledge a build upload to the bucket.
         """
         if 'uploaded' in data:
-            self.uploaded = data['uploaded']
+            if data['uploaded'] is True:
+                self.register_uploaded_build()
+
+    def register_uploaded_build(self):
+        """Hook for when a build has been uploaded."""
+        self.uploaded = True
+
+        # Rebuild any edition that tracks this build's git refs
+        editions = Edition.query.autoflush(False)\
+            .filter(Edition.product == self.product)\
+            .filter(Edition.tracked_refs == self.git_refs)\
+            .all()
+        for edition in editions:
+            edition.rebuild(self.get_url())
 
     def deprecate_build(self):
         """Trigger a build deprecation.
@@ -413,7 +426,8 @@ class Edition(db.Model):
         self.tracked_refs = tracked_refs
 
         # Set initial build pointer
-        self.rebuild(data['build_url'])
+        if 'build_url' in data:
+            self.rebuild(data['build_url'])
 
         self.date_created = datetime.now()
 
