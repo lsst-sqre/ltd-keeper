@@ -33,7 +33,6 @@ def test_editions(client):
     e1 = {'tracked_refs': ['master'],
           'slug': 'latest',
           'title': 'Latest',
-          'published_url': 'pipelines.lsst.io',
           'build_url': b1_url}
     r = client.post(product_url + '/editions/', e1)
     e1_url = r.headers['Location']
@@ -43,10 +42,10 @@ def test_editions(client):
     assert r.json['tracked_refs'][0] == e1['tracked_refs'][0]
     assert r.json['slug'] == e1['slug']
     assert r.json['title'] == e1['title']
-    assert r.json['published_url'] == e1['published_url']
     assert r.json['build_url'] == b1_url
     assert r.json['date_created'] is not None
     assert r.json['date_ended'] is None
+    assert r.json['published_url'] == 'https://pipelines.lsst.io/v/latest'
 
     # Re-build the edition
     r = client.patch(e1_url, {'build_url': b2_url})

@@ -34,7 +34,6 @@ def new_edition(slug):
 
        {
            "build_url": "http://localhost:5000/builds/1",
-           "published_url": "pipelines.lsst.io",
            "slug": "latest",
            "title": "Latest",
            "tracked_refs": [
@@ -60,7 +59,6 @@ def new_edition(slug):
     :param slug: Product slug.
 
     :<json string build_url: URL of the build entity this Edition uses.
-    :<json string published_url: URL where this edition is published.
     :<json string slug: URL-safe name for edition.
     :<json string title: Human-readable name for edition.
     :<json array tracked_refs: Git ref(s) that describe the version of the
@@ -241,9 +239,7 @@ def edit_edition(id):
 
     This PATCH method allows you to specify a subset of JSON fields to replace
     existing fields in the Edition resource. Not all fields in an Edition are
-    editable via the API. Specifically, the Edition's ``slug`` and timestamps
-    and relationship to the Product are not editable . See the allowed JSON
-    fields below.
+    editable via the API. See the allowed JSON fields below.
 
     Use :http:delete:`/editions/(int:id)` to deprecate an edition.
 
@@ -302,12 +298,13 @@ def edit_edition(id):
 
     :<json string build_url: URL of the build entity this Edition uses
         (optional). Effectively this 'rebuilds' the edition.
-    :<json string published_url: Full URL where this edition is published
-        (optional). Setting this field will change the CNAME DNS record.
-    :<json string title: Human-readable name for edition.
+    :<json string title: Human-readable name for edition (optional).
+    :<json string slug: URL-safe name for edition (optinal). Changing the slug
+        dynamically updates the ``published_url``.
     :<json array tracked_refs: Git ref(s) that this Edition points to.
         For multi-package documentation builds this is a list of Git refs that
-        are checked out, in order of priority, for each component repository.
+        are checked out, in order of priority, for each component repository
+        (optional).
 
     :>json string build_url: URL of the build entity this Edition uses.
     :>json string date_created: UTC date time when the edition was created.
