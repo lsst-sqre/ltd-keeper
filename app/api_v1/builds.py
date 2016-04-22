@@ -5,8 +5,9 @@ from flask import jsonify, request
 
 from . import api
 from .. import db
-from ..auth import token_auth, permission_required
-from ..models import Product, Build, Permission
+from ..auth import token_auth, permission_required, is_authorized
+from ..models import Product, Build, Edition, Permission
+from ..utils import auto_slugify_edition
 
 
 @api.route('/products/<slug>/builds/', methods=['POST'])
@@ -19,6 +20,11 @@ def new_build(slug):
     should be uploaded. The client is reponsible for uploading the build.
     Once the documentation is uploaded, send
     :http:patch:`/builds/(int:id)` to set the 'uploaded' field to ``True``.
+
+    If the user also has ``admin_edition`` permissions, this method will also
+    create an edition that tracks this build's ``git_refs`` (if they are not
+    already tracked). The slug and title of this edition are automatically
+    derived from the build's ``git_refs``.
 
     **Authorization**
 
@@ -127,6 +133,25 @@ def new_build(slug):
     except Exception:
         db.session.rollback()
         raise
+
+    # As a bonus, create an edition to track this Git ref set
+    edition_count = Edition.query\
+        .filter(Edition.product == product)\
+        .filter(Edition.tracked_refs == build.git_refs)\
+        .count()
+    if edition_count == 0 and is_authorized(Permission.ADMIN_EDITION):
+        try:
+            edition_slug = auto_slugify_edition(build.git_refs)
+            edition = Edition(product=product)
+            edition.import_data(
+                {'tracked_refs': build.git_refs,
+                 'slug': edition_slug,
+                 'title': edition_slug})
+            db.session.add(edition)
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+
     return jsonify(build.export_data()), 201, {'Location': build.get_url()}
 
 
