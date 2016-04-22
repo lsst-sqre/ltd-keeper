@@ -135,6 +135,12 @@ In each block, the first name refers to a key in the secrets file, and the arrow
 ``aws-secret`` → ``LTD_KEEPER_AWS_SECRET``
    Amazon Web Services secret corresponding to ``LTD_KEEPER_AWS_ID``.
 
+``fastly-id`` → ``LTD_KEEPER_FASTLY_ID``
+   Fastly service ID.
+
+``fastly-key`` → ``LTD_KEEPER_FASTLY_KEY``
+   Fastly API key.
+
 Nginx SSL Proxy Configuration Reference
 =======================================
 
