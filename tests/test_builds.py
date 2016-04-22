@@ -108,6 +108,16 @@ def test_builds(client):
     with pytest.raises(ValidationError):
         r = client.post('/products/pipelines/builds/', b5)
 
+    # Add a build and see if an edition was automatically created
+    b6 = {'git_refs': ['tickets/DM-1234']}
+    r = client.post('/products/pipelines/builds/', b6)
+    assert r.status == 201
+    r = client.get('/products/pipelines/editions/')
+    assert len(r.json['editions']) == 3
+    auto_edition_url = r.json['editions'][-1]
+    r = client.get(auto_edition_url)
+    assert r.json['slug'] == 'DM-1234'
+
 
 # Authorizion tests: POST /products/<slug>/builds/ ===========================
 # Only the build-upload auth'd client should get in
