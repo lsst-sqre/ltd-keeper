@@ -15,7 +15,7 @@ from . import route53
 from . import fastly
 from .exceptions import ValidationError
 from .utils import split_url, format_utc_datetime, \
-    JSONEncodedVARCHAR, MutableList, validate_slug
+    JSONEncodedVARCHAR, MutableList, validate_product_slug, validate_path_slug
 
 
 class Permission(object):
@@ -215,7 +215,7 @@ class Product(db.Model):
         self.root_fastly_domain = self.root_fastly_domain.lstrip('.')
 
         # Validate slug; raises ValidationError
-        validate_slug(self.slug)
+        validate_product_slug(self.slug)
 
         # Setup Fastly CNAME with Route53
         AWS_ID = current_app.config['AWS_ID']
@@ -332,6 +332,8 @@ class Build(db.Model):
             while str(trial_slug_n) in slugs:
                 trial_slug_n += 1
             self.slug = str(trial_slug_n)
+
+        validate_path_slug(self.slug)
 
         self.date_created = datetime.now()
 
@@ -571,7 +573,8 @@ class Edition(db.Model):
         ValidationError
         """
         # Check against slug regex
-        validate_slug(slug)
+        validate_path_slug(slug)
+        print('Valid slug')
 
         # Check uniqueness
         existing_count = Edition.query.autoflush(False)\
