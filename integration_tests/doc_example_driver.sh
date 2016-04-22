@@ -39,7 +39,6 @@ http -p hbHB --pretty=format --auth ${KEEPER_TOKEN}: \
     root_domain="lsst.io" \
     root_fastly_domain="global.ssl.fastly.net" \
     slug="qserv" \
-    root_fastly_domain="global.ssl.fastly.net" \
     title="Qserv"
 
 echo "\n\n---\n"
