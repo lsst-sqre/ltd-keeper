@@ -58,7 +58,7 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: keeper-secrets
-                  key: default-user
+                  key: default-password
             - name: LTD_KEEPER_URL
               valueFrom:
                 secretKeyRef:

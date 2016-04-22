@@ -38,6 +38,8 @@ spec:
       env:
         - name: LTD_KEEPER_PROFILE
           value: production
+        - name: LTD_KEEPER_URL_SCHEME
+          value: https
         - name: LTD_KEEPER_SECRET_KEY
           valueFrom:
             secretKeyRef:
@@ -62,7 +64,7 @@ spec:
           valueFrom:
             secretKeyRef:
               name: keeper-secrets
-              key: default-user
+              key: default-password
         - name: LTD_KEEPER_URL
           valueFrom:
             secretKeyRef:
