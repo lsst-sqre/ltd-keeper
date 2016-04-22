@@ -79,7 +79,7 @@ def test_products(client):
         assert r.json[k] == v
     # Test domain
     assert r.json['domain'] == 'pipelines.lsst.io'
-    assert r.json['fastly_domain'] == 'pipelines.lsst.io.global.ssl.fastly.net'
+    assert r.json['fastly_domain'] == 'global.ssl.fastly.net'
     assert r.json['published_url'] == 'https://pipelines.lsst.io'
 
     r = client.get(p2_url)
@@ -87,7 +87,7 @@ def test_products(client):
         assert r.json[k] == v
     # Test domain
     assert r.json['domain'] == 'qserv.lsst.io'
-    assert r.json['fastly_domain'] == 'qserv.lsst.io.global.ssl.fastly.net'
+    assert r.json['fastly_domain'] == 'global.ssl.fastly.net'
     assert r.json['published_url'] == 'https://qserv.lsst.io'
 
     p2v2 = dict(p2)

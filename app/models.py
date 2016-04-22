@@ -167,11 +167,11 @@ class Product(db.Model):
     @property
     def fastly_domain(self):
         """Domain where Fastly serves content from for this product.
-
-        (E.g. ``product.lsst.io.global.ssl.fastly.net`` if the doc domain
-        is ``product.lsst.io``.)
         """
-        return '.'.join((self.domain, self.root_fastly_domain))
+        # Note that in non-ssl contexts fastly wants you to prepend the domain
+        # to fastly's origin domain. However we don't do this with TLS.
+        # return '.'.join((self.domain, self.root_fastly_domain))
+        return self.root_fastly_domain
 
     @property
     def published_url(self):
