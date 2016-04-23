@@ -11,8 +11,8 @@ from ..utils import auto_slugify_edition
 
 
 @api.route('/products/<slug>/builds/', methods=['POST'])
-@permission_required(Permission.UPLOAD_BUILD)
 @token_auth.login_required
+@permission_required(Permission.UPLOAD_BUILD)
 def new_build(slug):
     """Add a new build for a product.
 
@@ -156,8 +156,8 @@ def new_build(slug):
 
 
 @api.route('/builds/<int:id>', methods=['PATCH'])
-@permission_required(Permission.UPLOAD_BUILD)
 @token_auth.login_required
+@permission_required(Permission.UPLOAD_BUILD)
 def patch_build(id):
     """Mark a build as uploaded.
 
@@ -217,8 +217,8 @@ def patch_build(id):
 
 
 @api.route('/builds/<int:id>', methods=['DELETE'])
-@permission_required(Permission.DEPRECATE_BUILD)
 @token_auth.login_required
+@permission_required(Permission.DEPRECATE_BUILD)
 def deprecate_build(id):
     """Mark a build as deprecated.
 

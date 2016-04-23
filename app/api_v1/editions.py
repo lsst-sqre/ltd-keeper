@@ -9,8 +9,8 @@ from ..models import Product, Edition, Permission
 
 
 @api.route('/products/<slug>/editions/', methods=['POST'])
-@permission_required(Permission.ADMIN_EDITION)
 @token_auth.login_required
+@permission_required(Permission.ADMIN_EDITION)
 def new_edition(slug):
     """Create a new Edition for a Product.
 
@@ -84,8 +84,8 @@ def new_edition(slug):
 
 
 @api.route('/editions/<int:id>', methods=['DELETE'])
-@permission_required(Permission.ADMIN_EDITION)
 @token_auth.login_required
+@permission_required(Permission.ADMIN_EDITION)
 def deprecate_edition(id):
     """Deprecate an Edition of a Product.
 
@@ -232,8 +232,8 @@ def get_edition(id):
 
 
 @api.route('/editions/<int:id>', methods=['PATCH'])
-@permission_required(Permission.ADMIN_EDITION)
 @token_auth.login_required
+@permission_required(Permission.ADMIN_EDITION)
 def edit_edition(id):
     """Edit an Edition.
 

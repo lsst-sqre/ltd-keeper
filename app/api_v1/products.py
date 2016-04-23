@@ -109,8 +109,8 @@ def get_product(slug):
 
 
 @api.route('/products/', methods=['POST'])
-@permission_required(Permission.ADMIN_PRODUCT)
 @token_auth.login_required
+@permission_required(Permission.ADMIN_PRODUCT)
 def new_product():
     """Create a new documentation product.
 
@@ -198,8 +198,8 @@ def new_product():
 
 
 @api.route('/products/<slug>', methods=['PATCH'])
-@permission_required(Permission.ADMIN_PRODUCT)
 @token_auth.login_required
+@permission_required(Permission.ADMIN_PRODUCT)
 def edit_product(slug):
     """Update a product.
 
