@@ -2,16 +2,20 @@
 
 """Run the ltd-keeper app in development or production mode.
 
-This will also bootstrap the database if an existing DB is not available.
+If this is a new deployment, run
+
+   ./run.py init
 
 To run in development mode::
 
-    ./run.py runserver
+   ./run.py runserver
 
-Otherwise::
+In production::
 
-    export LTD_KEEPER_PROFILE=production
-    python run.py runserver
+   export LTD_KEEPER_PROFILE=production
+   ./run.py run.py runserver
+
+(Though in the Kubernetes deploy this should be run in uwsgi instead)
 
 will run LTD Keeper with production configurations.
 
@@ -49,11 +53,6 @@ def init():
     - `LTD_KEEPER_BOOTSTRAP_USER`
     - `LTD_KEEPER_BOOTSTRAP_PASSWORD`
     """
-    _app_db_init()
-
-
-def _app_db_init():
-    """Initialize the DB and add a bootstrap user."""
     with keeper_app.app_context():
         # bootstrap database
         db.create_all()
@@ -65,12 +64,6 @@ def _app_db_init():
             u.set_password(keeper_app.config['DEFAULT_PASSWORD'])
             db.session.add(u)
             db.session.commit()
-
-
-# In development mode always try to initialize the DB for easy testing
-# Production should use a container that runs the init command.
-if environment == 'development':
-    _app_db_init()
 
 
 if __name__ == '__main__':
