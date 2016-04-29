@@ -4,6 +4,7 @@ Copyright 2016 AURA/LSST.
 Copyright 2014 Miguel Grinberg.
 """
 from datetime import datetime
+import uuid
 import urllib.parse
 from werkzeug.security import generate_password_hash, check_password_hash
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
@@ -397,6 +398,10 @@ class Edition(db.Model):
                              nullable=False)
     # set only when the Edition is deprecated (ready for deletion)
     date_ended = db.Column(db.DateTime, nullable=True)
+    # The surrogate-key header for Fastly (quick purges); 32-char hex
+    # TODO eventuall make this nullable=False when production DB edition
+    # all have this column
+    surrogate_key = db.Column(db.String(32))
 
     # Relationships
     build = db.relationship('Build', uselist=False)  # one-to-one
@@ -442,7 +447,8 @@ class Edition(db.Model):
             'published_url': self.published_url,
             'date_created': format_utc_datetime(self.date_created),
             'date_rebuilt': format_utc_datetime(self.date_rebuilt),
-            'date_ended': format_utc_datetime(self.date_ended)
+            'date_ended': format_utc_datetime(self.date_ended),
+            'surrogate_key': self.surrogate_key
         }
 
     def import_data(self, data):
@@ -464,6 +470,9 @@ class Edition(db.Model):
 
         # Validate the slug
         self._validate_slug(data['slug'])
+
+        if self.surrogate_key is None:
+            self.surrogate_key = uuid.uuid4().hex
 
         # Set initial build pointer
         if 'build_url' in data:
@@ -506,10 +515,9 @@ class Edition(db.Model):
         AWS_ID = current_app.config['AWS_ID']
         AWS_SECRET = current_app.config['AWS_SECRET']
 
-        if self.build is not None:
-            prev_build_surrogate_key = self.build.surrogate_key
-        else:
-            prev_build_surrogate_key = None
+        # Create a surrogate-key for the edition if it doesn't have one
+        if self.surrogate_key is None:
+            self.surrogate_key = uuid.uuid4().hex
 
         # Get new Build ID from the build resource's URL
         build_endpoint, build_args = split_url(build_url)
@@ -530,14 +538,14 @@ class Edition(db.Model):
                 src_path=self.build.bucket_root_dirname,
                 dest_path=self.bucket_root_dirname,
                 aws_access_key_id=AWS_ID,
-                aws_secret_access_key=AWS_SECRET)
+                aws_secret_access_key=AWS_SECRET,
+                surrogate_key=self.surrogate_key)
 
-        if FASTLY_SERVICE_ID is not None and FASTLY_KEY is not None \
-                and prev_build_surrogate_key is not None:
+        if FASTLY_SERVICE_ID is not None and FASTLY_KEY is not None:
             fastly_service = fastly.FastlyService(
                 FASTLY_SERVICE_ID,
                 FASTLY_KEY)
-            fastly_service.purge_key(prev_build_surrogate_key)
+            fastly_service.purge_key(self.surrogate_key)
 
         # TODO start a job that will warm the Fastly cache with the new edition
 
@@ -559,7 +567,8 @@ class Edition(db.Model):
                 and self.build is not None:
             s3.copy_directory(self.product.bucket_name,
                               old_bucket_root_dir, new_bucket_root_dir,
-                              AWS_ID, AWS_SECRET)
+                              AWS_ID, AWS_SECRET,
+                              surrogate_key=self.surrogate_key)
             s3.delete_directory(self.product.bucket_name,
                                 old_bucket_root_dir,
                                 AWS_ID, AWS_SECRET)
