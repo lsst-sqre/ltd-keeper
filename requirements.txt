@@ -3,6 +3,7 @@ uWSGI==2.0.12
 Flask-SQLAlchemy==2.1
 Flask-HTTPAuth==2.2.1
 Flask-Script==2.0.5
+Flask-Migrate==1.8.0
 python-dateutil==2.4.2
 boto3==1.2.3
 requests==2.9.1
