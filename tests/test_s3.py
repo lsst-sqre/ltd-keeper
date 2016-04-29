@@ -52,7 +52,8 @@ def test_delete_directory(request):
     request.addfinalizer(cleanup)
 
     file_paths = ['a/test1.txt', 'a/b/test2.txt', 'a/b/c/test3.txt']
-    _upload_files(file_paths, bucket, bucket_root)
+    _upload_files(file_paths, bucket, bucket_root,
+                  'sample-key', 'max-age=3600', 'text/plain')
 
     # Delete b/*
     delete_directory(os.getenv('LTD_KEEPER_TEST_BUCKET'),
@@ -103,8 +104,10 @@ def test_copy_directory(request):
     new_paths = ['test4.txt', 'bb/test5.txt']
 
     # add old and new file sets
-    _upload_files(initial_paths, bucket, bucket_root + 'a/')
-    _upload_files(new_paths, bucket, bucket_root + 'b/')
+    _upload_files(initial_paths, bucket, bucket_root + 'a/',
+                  'sample-key', 'max-age=3600', 'text/plain')
+    _upload_files(new_paths, bucket, bucket_root + 'b/',
+                  'sample-key', 'max-age=3600', 'text/plain')
 
     # copy files
     copy_directory(
@@ -112,14 +115,20 @@ def test_copy_directory(request):
         src_path=bucket_root + 'b/',
         dest_path=bucket_root + 'a/',
         aws_access_key_id=os.getenv('LTD_KEEPER_TEST_AWS_ID'),
-        aws_secret_access_key=os.getenv('LTD_KEEPER_TEST_AWS_SECRET'))
+        aws_secret_access_key=os.getenv('LTD_KEEPER_TEST_AWS_SECRET'),
+        surrogate_key='new-key')
 
     # Test files in the a/ directory are from b/
-    bucket_paths = []
     for obj in bucket.objects.filter(Prefix=bucket_root + 'a/'):
-        bucket_paths.append(os.path.relpath(obj.key, start=bucket_root + 'a/'))
-    for p in bucket_paths:
-        assert p in new_paths
+        bucket_path = os.path.relpath(obj.key, start=bucket_root + 'a/')
+        assert bucket_path in new_paths
+        # ensure correct metadata
+        head = s3.meta.client.head_object(
+            Bucket=os.getenv('LTD_KEEPER_TEST_BUCKET'),
+            Key=obj.key)
+        assert head['CacheControl'] == 'max-age=3600'
+        assert head['ContentType'] == 'text/plain'
+        assert head['Metadata']['surrogate-key'] == 'new-key'
 
 
 def test_copy_dir_src_in_dest():
@@ -138,7 +147,8 @@ def test_copy_dir_dest_in_src():
         copy_directory('example', 'src', 'src/dest', 'id', 'key')
 
 
-def _upload_files(file_paths, bucket, bucket_root):
+def _upload_files(file_paths, bucket, bucket_root,
+                  surrogate_key, cache_control, content_type):
     with tempfile.TemporaryDirectory() as temp_dir:
         for p in file_paths:
             full_path = os.path.join(temp_dir, p)
@@ -146,5 +156,10 @@ def _upload_files(file_paths, bucket, bucket_root):
             os.makedirs(full_dir, exist_ok=True)
             with open(full_path, 'w') as f:
                 f.write('content')
+
+            extra_args = {
+                'Metadata': {'surrogate-key': surrogate_key},
+                'ContentType': content_type,
+                'CacheControl': cache_control}
             obj = bucket.Object(bucket_root + p)
-            obj.upload_file(full_path)
+            obj.upload_file(full_path, ExtraArgs=extra_args)
