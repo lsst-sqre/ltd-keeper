@@ -75,9 +75,6 @@ def init():
     - `LTD_KEEPER_BOOTSTRAP_PASSWORD`
     """
     with keeper_app.app_context():
-        # bootstrap database
-        db.create_all()
-
         # bootstrap a user
         if User.query.get(1) is None:
             u = User(username=keeper_app.config['DEFAULT_USER'],

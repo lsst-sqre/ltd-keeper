@@ -41,26 +41,11 @@ Run LTD Keeper in development mode via:
 
 .. code-block:: bash
 
+   ./run.py db upgrade
+   ./run.py init
    ./run.py runserver
 
-In development mode a database is automatically initialized.
+The ``init`` subcommand creates an initializes a development database with a default user.
 The default user has username ``user`` and password ``pass``.
 
-..
-  Running in Production
-  =====================
-  
-  TODO
-
-..
-  Configuration
-  =============
-  
-  Amazon Web Services
-  -------------------
-  
-  LTD Keeper uses Amazon Web Services (AWS) for object storage (S3) and DNS configuration (Route 53).
-  `boto3 <http://boto3.readthedocs.org/en/latest/>`_.
-  
-  Credentials for your AWS account should be stored in a :file:`~/.aws/credentials` file.
-  See http://boto3.readthedocs.org/en/latest/guide/quickstart.html#configuration for more information about configuring Boto3.
+Once the development DB is prepared you can skip the ``db upgrade`` and ``init`` commands with later instantiations of ``runserver``.
