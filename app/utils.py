@@ -4,6 +4,7 @@ Copyright 2016 AURA/LSST.
 Copyright 2014 Miguel Grinberg.
 """
 
+import re
 from dateutil import parser as datetime_parser
 from dateutil.tz import tzutc
 import json
@@ -15,6 +16,15 @@ from flask.globals import _app_ctx_stack, _request_ctx_stack
 from werkzeug.urls import url_parse
 from werkzeug.exceptions import NotFound
 from .exceptions import ValidationError
+
+# Regular expression to validate url-safe slugs for products
+PRODUCT_SLUG_PATTERN = re.compile('^[a-z]+[-a-z0-9]*[a-z0-9]+$')
+
+# Regular expression to validate url-safe slugs for editions/builds
+PATH_SLUG_PATTERN = re.compile('^[a-zA-Z0-9-]+$')
+
+# Regular expression for DM ticket branches (to auto-build slugs)
+TICKET_BRANCH_PATTERN = re.compile('^tickets/(DM-[0-9]+)$')
 
 
 def split_url(url, method='GET'):
@@ -47,6 +57,39 @@ def split_url(url, method='GET'):
     except NotFound:
         raise ValidationError('Invalid URL: ' + url)
     return result
+
+
+def validate_product_slug(slug):
+    """Validate a URL-safe slug for products."""
+    m = PRODUCT_SLUG_PATTERN.match(slug)
+    if m is None or m.string != slug:
+        raise ValidationError('Invalid slug: ' + slug)
+    return True
+
+
+def validate_path_slug(slug):
+    """Validate a URL-safe slug for builds/editions. This validation
+    is slightly more lax than validate_product_slug because build/edition
+    slugs are only used in the paths, not as parts of domains."""
+    m = PATH_SLUG_PATTERN.match(slug)
+    if m is None or m.string != slug:
+        raise ValidationError('Invalid slug: ' + slug)
+    return True
+
+
+def auto_slugify_edition(git_refs):
+    """Given a list of Git refs, build a reasonable URL-safe slug."""
+    slug = '-'.join(git_refs)
+
+    # Customization for making slugs from DM ticket branches
+    # Ideally we'd add a more formal API for adding similar behaviours
+    m = TICKET_BRANCH_PATTERN.match(slug)
+    if m is not None:
+        return m.group(1)
+
+    slug = slug.replace('/', '-')
+    slug = slug.replace('.', '-')
+    return slug
 
 
 def format_utc_datetime(dt):

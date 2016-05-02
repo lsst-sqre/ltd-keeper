@@ -4,14 +4,19 @@ Copyright 2016 AURA/LSST.
 Copyright 2014 Miguel Grinberg.
 """
 from datetime import datetime
+import uuid
+import urllib.parse
 from werkzeug.security import generate_password_hash, check_password_hash
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from flask import url_for, current_app
 
 from . import db
+from . import s3
+from . import route53
+from . import fastly
 from .exceptions import ValidationError
 from .utils import split_url, format_utc_datetime, \
-    JSONEncodedVARCHAR, MutableList
+    JSONEncodedVARCHAR, MutableList, validate_product_slug, validate_path_slug
 
 
 class Permission(object):
@@ -74,7 +79,7 @@ class User(db.Model):
 
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(64), index=True)
+    username = db.Column(db.String(64), index=True, unique=True)
     password_hash = db.Column(db.String(128))
     permissions = db.Column(db.Integer)
 
@@ -139,8 +144,10 @@ class Product(db.Model):
     doc_repo = db.Column(db.String(256), nullable=False)
     # Human-readlable product title
     title = db.Column(db.Unicode(256), nullable=False)
-    # Domain name, without protocol or path
-    domain = db.Column(db.String(256), nullable=False)
+    # Root domain name serving docs (e.g., lsst.io)
+    root_domain = db.Column(db.String(256), nullable=False)
+    # Fastly CDN domain name (without doc's domain prepended)
+    root_fastly_domain = db.Column(db.String(256), nullable=False)
     # Name of the S3 bucket hosting builds
     bucket_name = db.Column(db.String(256), nullable=True)
 
@@ -148,6 +155,30 @@ class Product(db.Model):
     # are defined in those classes
     builds = db.relationship('Build', backref='product', lazy='dynamic')
     editions = db.relationship('Edition', backref='product', lazy='dynamic')
+
+    @property
+    def domain(self):
+        """Domain where docs for this product are served from.
+
+        (E.g. ``product.lsst.io`` if ``product`` is the slug and ``lsst.io``
+        is the ``root_domain``.)
+        """
+        return '.'.join((self.slug, self.root_domain))
+
+    @property
+    def fastly_domain(self):
+        """Domain where Fastly serves content from for this product.
+        """
+        # Note that in non-ssl contexts fastly wants you to prepend the domain
+        # to fastly's origin domain. However we don't do this with TLS.
+        # return '.'.join((self.domain, self.root_fastly_domain))
+        return self.root_fastly_domain
+
+    @property
+    def published_url(self):
+        """URL where this product is published to the end-user."""
+        parts = ('https', self.domain, '', '', '', '')
+        return urllib.parse.urlunparse(parts)
 
     def get_url(self):
         """API URL for this entity."""
@@ -160,8 +191,12 @@ class Product(db.Model):
             'slug': self.slug,
             'doc_repo': self.doc_repo,
             'title': self.title,
+            'root_domain': self.root_domain,
+            'root_fastly_domain': self.root_fastly_domain,
             'domain': self.domain,
-            'bucket_name': self.bucket_name
+            'fastly_domain': self.fastly_domain,
+            'bucket_name': self.bucket_name,
+            'published_url': self.published_url
         }
 
     def import_data(self, data):
@@ -170,10 +205,26 @@ class Product(db.Model):
             self.slug = data['slug']
             self.doc_repo = data['doc_repo']
             self.title = data['title']
-            self.domain = data['domain']
+            self.root_domain = data['root_domain']
+            self.root_fastly_domain = data['root_fastly_domain']
             self.bucket_name = data['bucket_name']
         except KeyError as e:
             raise ValidationError('Invalid Product: missing ' + e.args[0])
+
+        # clean any full stops pre-pended on inputted fully qualified domains
+        self.root_domain = self.root_domain.lstrip('.')
+        self.root_fastly_domain = self.root_fastly_domain.lstrip('.')
+
+        # Validate slug; raises ValidationError
+        validate_product_slug(self.slug)
+
+        # Setup Fastly CNAME with Route53
+        AWS_ID = current_app.config['AWS_ID']
+        AWS_SECRET = current_app.config['AWS_SECRET']
+        if AWS_ID is not None and AWS_SECRET is not None:
+            route53.create_cname(self.domain, self.fastly_domain,
+                                 AWS_ID, AWS_SECRET)
+
         return self
 
     def patch_data(self, data):
@@ -208,6 +259,8 @@ class Build(db.Model):
     github_requester = db.Column(db.String(256), nullable=True)
     # Flag to indicate the doc has been uploaded to S3.
     uploaded = db.Column(db.Boolean, default=False)
+    # The surrogate-key header for Fastly (quick purges); 32-char hex
+    surrogate_key = db.Column(db.String(32), nullable=False)
 
     # Relationships
     # product - from Product class
@@ -216,6 +269,15 @@ class Build(db.Model):
     def bucket_root_dirname(self):
         """Directory in the bucket where the build is located."""
         return '/'.join((self.product.slug, 'builds', self.slug))
+
+    @property
+    def published_url(self):
+        """URL where this build is published to the end-user."""
+        parts = ('https',
+                 self.product.domain,
+                 '/builds/{0}'.format(self.slug),
+                 '', '', '')
+        return urllib.parse.urlunparse(parts)
 
     def get_url(self):
         """API URL for this entity."""
@@ -233,7 +295,9 @@ class Build(db.Model):
             'bucket_name': self.product.bucket_name,
             'bucket_root_dir': self.bucket_root_dirname,
             'git_refs': self.git_refs,
-            'github_requester': self.github_requester
+            'github_requester': self.github_requester,
+            'published_url': self.published_url,
+            'surrogate_key': self.surrogate_key
         }
 
     def import_data(self, data):
@@ -270,6 +334,8 @@ class Build(db.Model):
                 trial_slug_n += 1
             self.slug = str(trial_slug_n)
 
+        validate_path_slug(self.slug)
+
         self.date_created = datetime.now()
 
         return self
@@ -281,7 +347,20 @@ class Build(db.Model):
         acknowledge a build upload to the bucket.
         """
         if 'uploaded' in data:
-            self.uploaded = data['uploaded']
+            if data['uploaded'] is True:
+                self.register_uploaded_build()
+
+    def register_uploaded_build(self):
+        """Hook for when a build has been uploaded."""
+        self.uploaded = True
+
+        # Rebuild any edition that tracks this build's git refs
+        editions = Edition.query.autoflush(False)\
+            .filter(Edition.product == self.product)\
+            .filter(Edition.tracked_refs == self.git_refs)\
+            .all()
+        for edition in editions:
+            edition.rebuild(self.get_url())
 
     def deprecate_build(self):
         """Trigger a build deprecation.
@@ -311,8 +390,6 @@ class Edition(db.Model):
     slug = db.Column(db.String(256), nullable=False)
     # Human-readable title for edition
     title = db.Column(db.Unicode(256), nullable=False)
-    # full url where the documentation is published from
-    published_url = db.Column(db.String(256), nullable=False)
     # Date when this edition was initially created
     date_created = db.Column(db.DateTime, default=datetime.now(),
                              nullable=False)
@@ -321,9 +398,33 @@ class Edition(db.Model):
                              nullable=False)
     # set only when the Edition is deprecated (ready for deletion)
     date_ended = db.Column(db.DateTime, nullable=True)
+    # The surrogate-key header for Fastly (quick purges); 32-char hex
+    # TODO eventuall make this nullable=False when production DB edition
+    # all have this column
+    surrogate_key = db.Column(db.String(32))
 
     # Relationships
     build = db.relationship('Build', uselist=False)  # one-to-one
+
+    @property
+    def bucket_root_dirname(self):
+        """Directory in the bucket where the edition is located."""
+        return '/'.join((self.product.slug, 'v', self.slug))
+
+    @property
+    def published_url(self):
+        """URL where this edition is published to the end-user."""
+        if self.slug == 'main':
+            # Special case for main; published at product's root
+            parts = ('https',
+                     self.product.domain,
+                     '', '', '', '')
+        else:
+            parts = ('https',
+                     self.product.domain,
+                     '/v/{0}'.format(self.slug),
+                     '', '', '')
+        return urllib.parse.urlunparse(parts)
 
     def get_url(self):
         """API URL for this entity."""
@@ -331,17 +432,23 @@ class Edition(db.Model):
 
     def export_data(self):
         """Export entity as JSON-compatible dict."""
+        if self.build is not None:
+            build_url = self.build.get_url()
+        else:
+            build_url = None
+
         return {
             'self_url': self.get_url(),
             'product_url': self.product.get_url(),
-            'build_url': self.build.get_url(),
+            'build_url': build_url,
             'tracked_refs': self.tracked_refs,
             'slug': self.slug,
             'title': self.title,
             'published_url': self.published_url,
             'date_created': format_utc_datetime(self.date_created),
             'date_rebuilt': format_utc_datetime(self.date_rebuilt),
-            'date_ended': format_utc_datetime(self.date_ended)
+            'date_ended': format_utc_datetime(self.date_ended),
+            'surrogate_key': self.surrogate_key
         }
 
     def import_data(self, data):
@@ -353,7 +460,6 @@ class Edition(db.Model):
             tracked_refs = data['tracked_refs']
             self.slug = data['slug']
             self.title = data['title']
-            self.published_url = data['published_url']
         except KeyError as e:
             raise ValidationError('Invalid Edition: missing ' + e.args[0])
 
@@ -362,8 +468,15 @@ class Edition(db.Model):
                                   'array of strings')
         self.tracked_refs = tracked_refs
 
+        # Validate the slug
+        self._validate_slug(data['slug'])
+
+        if self.surrogate_key is None:
+            self.surrogate_key = uuid.uuid4().hex
+
         # Set initial build pointer
-        self.rebuild(data['build_url'])
+        if 'build_url' in data:
+            self.rebuild(data['build_url'])
 
         self.date_created = datetime.now()
 
@@ -384,11 +497,29 @@ class Edition(db.Model):
         if 'build_url' in data:
             self.rebuild(data['build_url'])
 
-        if 'published_url' in data:
-            self.published_url = data['published_url']
+        if 'slug' in data:
+            self.update_slug(data['slug'])
 
     def rebuild(self, build_url):
-        """Modify the build this edition points to."""
+        """Modify the build this edition points to.
+
+        This method accomplishes the following:
+
+        1. Gets surrogate key from existing build used by edition
+        2. Gets and validates new build
+        3. Copys new build into edition's directory in S3 bucket
+        4. Purge Fastly's cache for this edition.
+        """
+        FASTLY_SERVICE_ID = current_app.config['FASTLY_SERVICE_ID']
+        FASTLY_KEY = current_app.config['FASTLY_KEY']
+        AWS_ID = current_app.config['AWS_ID']
+        AWS_SECRET = current_app.config['AWS_SECRET']
+
+        # Create a surrogate-key for the edition if it doesn't have one
+        if self.surrogate_key is None:
+            self.surrogate_key = uuid.uuid4().hex
+
+        # Get new Build ID from the build resource's URL
         build_endpoint, build_args = split_url(build_url)
         if build_endpoint != 'api.get_build' or 'id' not in build_args:
             raise ValidationError('Invalid build_url: ' +
@@ -396,8 +527,74 @@ class Edition(db.Model):
         self.build = Build.query.get(build_args['id'])
         if self.build is None:
             raise ValidationError('Invalid build_url: ' + build_url)
+        if self.build.uploaded is False:
+            raise ValidationError('Build has not been uploaded: ' + build_url)
+        if self.build.date_ended is not None:
+            raise ValidationError('Build was deprecated: ' + build_url)
+
+        if AWS_ID is not None and AWS_SECRET is not None:
+            s3.copy_directory(
+                bucket_name=self.product.bucket_name,
+                src_path=self.build.bucket_root_dirname,
+                dest_path=self.bucket_root_dirname,
+                aws_access_key_id=AWS_ID,
+                aws_secret_access_key=AWS_SECRET,
+                surrogate_key=self.surrogate_key)
+
+        if FASTLY_SERVICE_ID is not None and FASTLY_KEY is not None:
+            fastly_service = fastly.FastlyService(
+                FASTLY_SERVICE_ID,
+                FASTLY_KEY)
+            fastly_service.purge_key(self.surrogate_key)
+
+        # TODO start a job that will warm the Fastly cache with the new edition
 
         self.date_rebuilt = datetime.now()
+
+    def update_slug(self, new_slug):
+        """Update the edition's slug by migrating files on S3."""
+        # Check that this slug does not already exist
+        self._validate_slug(new_slug)
+
+        old_bucket_root_dir = self.bucket_root_dirname
+
+        self.slug = new_slug
+        new_bucket_root_dir = self.bucket_root_dirname
+
+        AWS_ID = current_app.config['AWS_ID']
+        AWS_SECRET = current_app.config['AWS_SECRET']
+        if AWS_ID is not None and AWS_SECRET is not None \
+                and self.build is not None:
+            s3.copy_directory(self.product.bucket_name,
+                              old_bucket_root_dir, new_bucket_root_dir,
+                              AWS_ID, AWS_SECRET,
+                              surrogate_key=self.surrogate_key)
+            s3.delete_directory(self.product.bucket_name,
+                                old_bucket_root_dir,
+                                AWS_ID, AWS_SECRET)
+
+    def _validate_slug(self, slug):
+        """Ensure that the slug is both unique to the product and meets the
+        slug format regex.
+
+        Raises
+        ------
+        ValidationError
+        """
+        # Check against slug regex
+        validate_path_slug(slug)
+        print('Valid slug')
+
+        # Check uniqueness
+        existing_count = Edition.query.autoflush(False)\
+            .filter(Edition.product == self.product)\
+            .filter(Edition.slug == slug)\
+            .count()
+        if existing_count > 0:
+            raise ValidationError(
+                'Invalid edition: slug ({0}) already exists'.format(slug))
+
+        return True
 
     def deprecate(self):
         """Deprecate the Edition; sets the `date_ended` field."""

@@ -4,7 +4,7 @@ from flask import jsonify, request
 from . import api
 from .. import db
 from ..auth import token_auth, permission_required
-from ..models import Product, Permission
+from ..models import Product, Permission, Edition
 
 
 @api.route('/products/', methods=['GET'])
@@ -51,35 +51,52 @@ def get_product(slug):
 
     .. code-block:: http
 
-       GET /products/lsst_apps HTTP/1.1
+       GET /products/pipelines HTTP/1.1
+       Accept: */*
+       Accept-Encoding: gzip, deflate
+       Authorization: Basic ZXlKaGJHY2lPaUpJVXpJMU5pSXNJbVY0Y0NJNk1UUTJNVEV3...
+       Connection: keep-alive
+       Host: localhost:5000
+       User-Agent: HTTPie/0.9.3
 
     **Example response**
 
     .. code-block:: http
 
        HTTP/1.0 200 OK
-       Content-Length: 246
+       Content-Length: 385
        Content-Type: application/json
-       Date: Tue, 01 Mar 2016 17:21:26 GMT
+       Date: Tue, 19 Apr 2016 21:17:52 GMT
        Server: Werkzeug/0.11.3 Python/3.5.0
 
        {
            "bucket_name": "an-s3-bucket",
            "doc_repo": "https://github.com/lsst/pipelines_docs.git",
            "domain": "pipelines.lsst.io",
-           "self_url": "http://localhost:5000/products/lsst_apps",
-           "slug": "lsst_apps",
+           "fastly_domain": "pipelines.lsst.io.global.ssl.fastly.net",
+           "root_domain": "lsst.io",
+           "root_fastly_domain": "global.ssl.fastly.net",
+           "self_url": "http://localhost:5000/products/pipelines",
+           "slug": "pipelines",
            "title": "LSST Science Pipelines"
        }
-
 
     :param slug: Identifier for this product.
 
     :>json string bucket_name: Name of the S3 bucket hosting builds.
     :>json string doc_repo: URL of the Git documentation repo (i.e., on
        GitHub).
-    :>json string domain: Root domain name where the documentation for this
-       product is served from.
+    :>json string domain: Full domain where this product's documentation
+       is served from this LSST the Docs installation is served from.
+       (e.g., ``pipelines.lsst.io``).
+    :>json string fastly_domain: Full domain where Fastly serves content
+       for this product. Note that ``domain`` is CNAME'd to ``fastly_domain``.
+    :>json string root_domain: Root domain name where documentation for
+       this LSST the Docs installation is served from. (e.g., ``lsst.io``).
+    :>json string root_fastly_domain: Root domain name for Fastly CDN used
+       by this LSST the Docs installation.
+    :>json string published_url: Full URL where this product is published to
+        the reader.
     :>json string self_url: URL of this Product resource.
     :>json string slug: URL/path-safe identifier for this product.
     :>json string title: Human-readable product title.
@@ -92,10 +109,15 @@ def get_product(slug):
 
 
 @api.route('/products/', methods=['POST'])
-@permission_required(Permission.ADMIN_PRODUCT)
 @token_auth.login_required
+@permission_required(Permission.ADMIN_PRODUCT)
 def new_product():
     """Create a new documentation product.
+
+    Every new product also includes a default edition (slug is 'main'). This
+    main edition tracks the master branch by default. Fastly is configured to
+    show this main edition at the product's root URL rather than in the /v/
+    directory.
 
     **Authorization**
 
@@ -108,19 +130,20 @@ def new_product():
        POST /products/ HTTP/1.1
        Accept: application/json
        Accept-Encoding: gzip, deflate
-       Authorization: Basic ZXlKcFlYUWlPakUwTlRZM056SXpORGdzSW1WNGNDSTZNVFEx...
+       Authorization: Basic ZXlKaGJHY2lPaUpJVXpJMU5pSXNJbVY0Y0NJNk1UUTJNVEV3...
        Connection: keep-alive
-       Content-Length: 150
+       Content-Length: 218
        Content-Type: application/json
        Host: localhost:5000
        User-Agent: HTTPie/0.9.3
 
        {
            "bucket_name": "an-s3-bucket",
-           "doc_repo": "https://github.com/lsst/qserv.git",
-           "domain": "qserv.lsst.io",
-           "slug": "qserv_distrib",
-           "title": "Qserv"
+           "doc_repo": "https://github.com/lsst/pipelines_docs.git",
+           "root_domain": "lsst.io",
+           "root_fastly_domain": "global.ssl.fastly.net",
+           "slug": "pipelines",
+           "title": "LSST Science Pipelines"
        }
 
     **Example response**
@@ -130,8 +153,8 @@ def new_product():
        HTTP/1.0 201 CREATED
        Content-Length: 2
        Content-Type: application/json
-       Date: Tue, 01 Mar 2016 17:21:26 GMT
-       Location: http://localhost:5000/products/qserv_distrib
+       Date: Tue, 19 Apr 2016 21:17:52 GMT
+       Location: http://localhost:5000/products/pipelines
        Server: Werkzeug/0.11.3 Python/3.5.0
 
        {}
@@ -142,10 +165,13 @@ def new_product():
     :<json string bucket_name: Name of the S3 bucket hosting builds.
     :<json string doc_repo: URL of the Git documentation repo (i.e., on
        GitHub).
-    :<json string domain: Root domain name where the documentation for this
-       product is served from.
+    :<json string root_domain: Root domain name where documentation for
+       this LSST the Docs installation is served from. (e.g., ``lsst.io``).
+    :<json string root_fastly_domain: Root domain name for Fastly CDN used
+       by this LSST the Docs installation.
     :<json string self_url: URL of this Product resource.
-    :<json string slug: URL/path-safe identifier for this product.
+    :<json string slug: URL/path-safe identifier for this product. The slug
+       is validated against the regular expression ``^[a-z]([-]*[a-z0-9])*$``.
     :<json string title: Human-readable product title.
 
     :resheader Location: URL of the created product.
@@ -156,6 +182,14 @@ def new_product():
     try:
         product.import_data(request.json)
         db.session.add(product)
+
+        # Create a default edition for the product
+        edition = Edition(product=product)
+        edition.import_data({'tracked_refs': ['master'],
+                             'slug': 'main',
+                             'title': 'Latest'})
+        db.session.add(edition)
+
         db.session.commit()
     except Exception:
         db.session.rollback()
@@ -164,14 +198,14 @@ def new_product():
 
 
 @api.route('/products/<slug>', methods=['PATCH'])
-@permission_required(Permission.ADMIN_PRODUCT)
 @token_auth.login_required
+@permission_required(Permission.ADMIN_PRODUCT)
 def edit_product(slug):
     """Update a product.
 
-    Not all fields can be updated: in particular ``'slug'``, ``'domain'``, and
-    ``'bucket-name'``. Support for updating these Product attributes may be
-    added later.
+    Note that not all fields can be updated with this method (currently).
+    See below for updateable fields. Contact the operator to update the slug,
+    bucket name, or Fastly domain.
 
     **Authorization**
 
@@ -181,10 +215,10 @@ def edit_product(slug):
 
     .. code-block:: http
 
-       PATCH /products/qserv_distrib HTTP/1.1
+       PATCH /products/qserv HTTP/1.1
        Accept: application/json
        Accept-Encoding: gzip, deflate
-       Authorization: Basic ZXlKcFlYUWlPakUwTlRZM056SXpORGdzSW1WNGNDSTZNVFEx...
+       Authorization: Basic ZXlKaGJHY2lPaUpJVXpJMU5pSXNJbVY0Y0NJNk1UUTJNVEV3...
        Connection: keep-alive
        Content-Length: 30
        Content-Type: application/json
@@ -194,6 +228,19 @@ def edit_product(slug):
        {
            "title": "Qserv Data Access"
        }
+
+    **Example response**
+
+    .. code-block:: http
+
+       HTTP/1.0 200 OK
+       Content-Length: 2
+       Content-Type: application/json
+       Date: Tue, 19 Apr 2016 21:17:53 GMT
+       Location: http://localhost:5000/products/qserv
+       Server: Werkzeug/0.11.3 Python/3.5.0
+
+       {}
 
     :reqheader Authorization: Include the token in a username field with a
         blank password; ``<token>:``.

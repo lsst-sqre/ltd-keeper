@@ -1,16 +1,18 @@
 """API v1 routes for builds."""
 
+import uuid
 from flask import jsonify, request
 
 from . import api
 from .. import db
-from ..auth import token_auth, permission_required
-from ..models import Product, Build, Permission
+from ..auth import token_auth, permission_required, is_authorized
+from ..models import Product, Build, Edition, Permission
+from ..utils import auto_slugify_edition
 
 
 @api.route('/products/<slug>/builds/', methods=['POST'])
-@permission_required(Permission.UPLOAD_BUILD)
 @token_auth.login_required
+@permission_required(Permission.UPLOAD_BUILD)
 def new_build(slug):
     """Add a new build for a product.
 
@@ -18,6 +20,11 @@ def new_build(slug):
     should be uploaded. The client is reponsible for uploading the build.
     Once the documentation is uploaded, send
     :http:patch:`/builds/(int:id)` to set the 'uploaded' field to ``True``.
+
+    If the user also has ``admin_edition`` permissions, this method will also
+    create an edition that tracks this build's ``git_refs`` (if they are not
+    already tracked). The slug and title of this edition are automatically
+    derived from the build's ``git_refs``.
 
     **Authorization**
 
@@ -68,6 +75,7 @@ def new_build(slug):
            "product_url": "http://localhost:5000/products/lsst_apps",
            "self_url": "http://localhost:5000/builds/1",
            "slug": "b1",
+           "surrogate_key": "d290d35e579141e889e954a0b1f8b611",
            "uploaded": false
        }
 
@@ -101,6 +109,11 @@ def new_build(slug):
     :>json string self_url: URL of this build entity.
     :>json string slug: Slug of build; URL-safe slug. Will be unique to the
         Product.
+    :>json string surrogate_key: The surrogate key attached to the headers
+        of all files on S3 belonging to this build. This allows LTD Keeper
+        to notify Fastly when an Edition is being re-pointed to a new build.
+        The client is responsible for uploading files with this value as
+        the ``x-amz-meta-surrogate-key`` value.
     :>json bool uploaded: True if the built documentation has been uploaded
         to the S3 bucket. Use :http:patch:`/builds/(int:id)` to
         set this to `True`.
@@ -111,7 +124,8 @@ def new_build(slug):
     :statuscode 404: Product not found.
     """
     product = Product.query.filter_by(slug=slug).first_or_404()
-    build = Build(product=product)
+    surrogate_key = uuid.uuid4().hex
+    build = Build(product=product, surrogate_key=surrogate_key)
     try:
         build.import_data(request.json)
         db.session.add(build)
@@ -119,12 +133,31 @@ def new_build(slug):
     except Exception:
         db.session.rollback()
         raise
+
+    # As a bonus, create an edition to track this Git ref set
+    edition_count = Edition.query\
+        .filter(Edition.product == product)\
+        .filter(Edition.tracked_refs == build.git_refs)\
+        .count()
+    if edition_count == 0 and is_authorized(Permission.ADMIN_EDITION):
+        try:
+            edition_slug = auto_slugify_edition(build.git_refs)
+            edition = Edition(product=product)
+            edition.import_data(
+                {'tracked_refs': build.git_refs,
+                 'slug': edition_slug,
+                 'title': edition_slug})
+            db.session.add(edition)
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+
     return jsonify(build.export_data()), 201, {'Location': build.get_url()}
 
 
 @api.route('/builds/<int:id>', methods=['PATCH'])
-@permission_required(Permission.UPLOAD_BUILD)
 @token_auth.login_required
+@permission_required(Permission.UPLOAD_BUILD)
 def patch_build(id):
     """Mark a build as uploaded.
 
@@ -184,8 +217,8 @@ def patch_build(id):
 
 
 @api.route('/builds/<int:id>', methods=['DELETE'])
-@permission_required(Permission.DEPRECATE_BUILD)
 @token_auth.login_required
+@permission_required(Permission.DEPRECATE_BUILD)
 def deprecate_build(id):
     """Mark a build as deprecated.
 
@@ -266,7 +299,9 @@ def get_product_builds(slug):
     :statuscode 404: Product not found.
     """
     build_urls = [build.get_url() for build in
-                  Build.query.filter(Product.slug == slug)
+                  Build.query.join(Product,
+                                   Product.id == Build.product_id)
+                  .filter(Product.slug == slug)
                   .filter(Build.date_ended == None).all()]  # NOQA
     return jsonify({'builds': build_urls})
 
@@ -303,6 +338,7 @@ def get_build(id):
            "product_url": "http://localhost:5000/products/lsst_apps",
            "self_url": "http://localhost:5000/builds/1",
            "slug": "b1",
+           "surrogate_key": "d290d35e579141e889e954a0b1f8b611",
            "uploaded": true
        }
 
@@ -323,7 +359,14 @@ def get_build(id):
         who triggered the build (null is not available).
     :>json string slug: slug of build; URL-safe slug.
     :>json string product_url: URL of parent product entity.
+    :>json string published_url: Full URL where this build is published to
+        the reader.
     :>json string self_url: URL of this build entity.
+    :>json string surrogate_key: The surrogate key attached to the headers
+        of all files on S3 belonging to this build. This allows LTD Keeper
+        to notify Fastly when an Edition is being re-pointed to a new build.
+        The client is responsible for uploading files with this value as
+        the ``x-amz-meta-surrogate-key`` value.
     :>json bool uploaded: True if the built documentation has been uploaded
         to the S3 bucket. Use :http:patch:`/builds/(int:id)` to
         set this to `True`.

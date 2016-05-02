@@ -2,9 +2,17 @@ sudo: false
 language: python
 python:
   - '3.5'
-  - '3.5-dev'
+  - 3.5-dev
 install:
   - pip install -r requirements.txt
+  - pip install coveralls
 script:
-  - 'py.test --flake8 --cov=app'
-  - cd docs && make html
+  - py.test --flake8 --cov=app
+  - cd docs && make html && cd ..
+after_success:
+  - coveralls
+env:
+  global:
+    - LTD_KEEPER_TEST_AWS_ID=AKIAJQTXPK2NYX2KHS7Q
+    # travis encrypt "LTD_KEEPER_TEST_AWS_SECRET=.. LTD_KEEPER_TEST_BUCKET=..." --add env.global
+    - secure: PSQOOZHuhu3FpNNhRfZLJJN4juKeodqLcCwEiUlPqLar0uMWtmYivqMZCZCacVWtMxslhr5xuxiHQGzLGZHqFuM4KXjtbYoOc91FEVoQZdSxkRIym/udTMOxFmN/MyJh0U8lDCzBdUq5NOSIuWpIo3TRcWwPcSRs2K/oRoJOjiCxlopIqQOLhzNdfn+DJGQwI54SYVAf73AtmAXPS6WW024U+pb3lmw/oLwXmKGWuve2zK+DoRyJ8c7+IEKp34g50v8iwxIW5v/2Hg2TVG6GVTlsrM65/sGqSLla3xzFwt4a0f7E4VirYMmTomzGy8Pvytk3RYuILk7MYsy6nLXnIxtnL4g4Aapy6QlB/d4niRQAIZkHmYR9hkXTe0k63ZYwrODLVMQ459yR+/8+JgbxefAqquLnO2vsBUkOfUYREf8biQupf7aNxpK+Fu4VI21gsUflV0jEyak+7AFKRbrREua9XjG3KG4zPSe4ug4VVK/TCOzWQ8EBB8B+59ZzWcotHJt5KwNUZ5voHe0h0DoF+DmPkuhnQBJiACLyq2jjuzACJpmV9iVBcKyo+157TOJWxsxzOscD7r2fWyc0xJGv2NscCoFjK6+w1aH+J1YVqOE82xeLK31ULwFc5xs975Q5kCdbY+RT7LA8sRSx2BP38SyF5289gfy3KF0fy/zWYWA=

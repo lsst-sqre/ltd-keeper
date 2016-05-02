@@ -38,6 +38,8 @@ spec:
       env:
         - name: LTD_KEEPER_PROFILE
           value: production
+        - name: LTD_KEEPER_URL_SCHEME
+          value: https
         - name: LTD_KEEPER_SECRET_KEY
           valueFrom:
             secretKeyRef:
@@ -53,6 +55,16 @@ spec:
             secretKeyRef:
               name: keeper-secrets
               key: aws-secret
+        - name: LTD_KEEPER_FASTLY_ID
+          valueFrom:
+            secretKeyRef:
+              name: keeper-secrets
+              key: fastly-id
+        - name: LTD_KEEPER_FASTLY_KEY
+          valueFrom:
+            secretKeyRef:
+              name: keeper-secrets
+              key: fastly-key
         - name: LTD_KEEPER_BOOTSTRAP_USER
           valueFrom:
             secretKeyRef:
@@ -62,7 +74,7 @@ spec:
           valueFrom:
             secretKeyRef:
               name: keeper-secrets
-              key: default-user
+              key: default-password
         - name: LTD_KEEPER_URL
           valueFrom:
             secretKeyRef:

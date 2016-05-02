@@ -1,7 +1,7 @@
 # Replication control to run nginx-ssl-proxy
 #
 # From https://github.com/GoogleCloudPlatform/kube-jenkins-imager/blob/master/ssl_proxy.yaml
-# Apache license; see /third_party_licenses/kube_jenkins_imager_license.txt
+# See license/kube_jenkins_imager_license.txt
 
 kind: ReplicationController
 apiVersion: v1

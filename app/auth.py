@@ -78,7 +78,9 @@ def permission_required(permission):
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
-            if g.get('user', None) is None:
+            if current_app.config.get('IGNORE_AUTH') is True:
+                return f(*args, **kwargs)
+            elif g.get('user', None) is None:
                 # user not authenticated
                 response = jsonify({'status': 401, 'error': 'unauthenticated',
                                     'message': 'please authenticate'})
@@ -95,3 +97,14 @@ def permission_required(permission):
                 return f(*args, **kwargs)
         return decorated_function
     return decorator
+
+
+def is_authorized(permission):
+    """Function is test whether a user has permission or not."""
+    if current_app.config.get('IGNORE_AUTH') is True:
+        return True
+    elif g.get('user', None) is None:
+        # user not authenticated
+        return False
+    else:
+        return g.user.has_permission(permission)
