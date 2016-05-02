@@ -3,4 +3,5 @@
 **/*.pyd
 **/*.pyo
 **/__pycache__
-*/*.sqlite
+/__pycache__
+*.sqlite
