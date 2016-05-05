@@ -11,24 +11,62 @@ def test_products(client):
     assert len(r.json['products']) == 0
 
     # Add first product
-    p1 = {'slug': 'lsst_apps',
+    p1 = {'slug': 'pipelines',
           'doc_repo': 'https://github.com/lsst/pipelines_docs.git',
           'title': 'LSST Science Pipelines',
-          'domain': 'pipelines.lsst.io',
+          'root_domain': 'lsst.io',
+          'root_fastly_domain': 'global.ssl.fastly.net',
           'bucket_name': 'bucket-name'}
     r = client.post('/products/', p1)
     assert r.status == 201
     p1_url = r.headers['Location']
 
+    # Validate that default edition was made
+    r = client.get('/products/pipelines/editions/')
+    assert r.status == 200
+    default_ed_url = r.json['editions'][0]
+    r = client.get(default_ed_url)
+    assert r.json['slug'] == 'main'
+    assert r.json['title'] == 'Latest'
+    assert r.json['tracked_refs'] == ['master']
+    assert r.json['published_url'] == 'https://pipelines.lsst.io'
+
     # Add second product
     p2 = {'slug': 'qserv',
           'doc_repo': 'https://github.com/lsst/qserv_docs.git',
           'title': 'Qserv',
-          'domain': 'qserv.lsst.io',
+          'root_domain': 'lsst.io',
+          'root_fastly_domain': 'global.ssl.fastly.net',
           'bucket_name': 'bucket-name'}
     r = client.post('/products/', p2)
     assert r.status == 201
     p2_url = r.headers['Location']
+
+    # Add product with slug that will fail validation
+    with pytest.raises(ValidationError):
+        client.post('/products/',
+                    {'slug': '0qserv',
+                     'doc_repo': 'https://github.com/lsst/qserv_docs.git',
+                     'title': 'Qserv',
+                     'root_domain': 'lsst.io',
+                     'root_fastly_domain': 'global.ssl.fastly.net',
+                     'bucket_name': 'bucket-name'})
+    with pytest.raises(ValidationError):
+        client.post('/products/',
+                    {'slug': 'qserv_distrib',
+                     'doc_repo': 'https://github.com/lsst/qserv_docs.git',
+                     'title': 'Qserv',
+                     'root_domain': 'lsst.io',
+                     'root_fastly_domain': 'global.ssl.fastly.net',
+                     'bucket_name': 'bucket-name'})
+    with pytest.raises(ValidationError):
+        client.post('/products/',
+                    {'slug': 'qserv.distrib',
+                     'doc_repo': 'https://github.com/lsst/qserv_docs.git',
+                     'title': 'Qserv',
+                     'root_domain': 'lsst.io',
+                     'root_fastly_domain': 'global.ssl.fastly.net',
+                     'bucket_name': 'bucket-name'})
 
     # Test listing of products
     r = client.get('/products/')
@@ -39,10 +77,18 @@ def test_products(client):
     r = client.get(p1_url)
     for k, v in p1.items():
         assert r.json[k] == v
+    # Test domain
+    assert r.json['domain'] == 'pipelines.lsst.io'
+    assert r.json['fastly_domain'] == 'global.ssl.fastly.net'
+    assert r.json['published_url'] == 'https://pipelines.lsst.io'
 
     r = client.get(p2_url)
     for k, v in p2.items():
         assert r.json[k] == v
+    # Test domain
+    assert r.json['domain'] == 'qserv.lsst.io'
+    assert r.json['fastly_domain'] == 'global.ssl.fastly.net'
+    assert r.json['published_url'] == 'https://qserv.lsst.io'
 
     p2v2 = dict(p2)
     p2v2['title'] = 'Qserve Data Access'

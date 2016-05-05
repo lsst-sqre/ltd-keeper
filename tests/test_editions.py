@@ -2,35 +2,38 @@
 
 import pytest
 from werkzeug.exceptions import NotFound
+from app.exceptions import ValidationError
 
 
 def test_editions(client):
     # Add a sample product
-    p = {'slug': 'lsst_apps',
+    p = {'slug': 'pipelines',
          'doc_repo': 'https://github.com/lsst/pipelines_docs.git',
          'title': 'LSST Science Pipelines',
-         'domain': 'pipelines.lsst.io',
+         'root_domain': 'lsst.io',
+         'root_fastly_domain': 'global.ssl.fastly.net',
          'bucket_name': 'bucket-name'}
     r = client.post('/products/', p)
     product_url = r.headers['Location']
     assert r.status == 201
 
     # Create builds
-    r = client.post('/products/lsst_apps/builds/',
+    r = client.post('/products/pipelines/builds/',
                     {'git_refs': ['master']})
     assert r.status == 201
     b1_url = r.json['self_url']
+    client.patch(b1_url, {'uploaded': True})
 
-    r = client.post('/products/lsst_apps/builds/',
+    r = client.post('/products/pipelines/builds/',
                     {'git_refs': ['master']})
     assert r.status == 201
     b2_url = r.json['self_url']
+    client.patch(b2_url, {'uploaded': True})
 
     # Setup an edition
     e1 = {'tracked_refs': ['master'],
           'slug': 'latest',
           'title': 'Latest',
-          'published_url': 'pipelines.lsst.io',
           'build_url': b1_url}
     r = client.post(product_url + '/editions/', e1)
     e1_url = r.headers['Location']
@@ -40,10 +43,10 @@ def test_editions(client):
     assert r.json['tracked_refs'][0] == e1['tracked_refs'][0]
     assert r.json['slug'] == e1['slug']
     assert r.json['title'] == e1['title']
-    assert r.json['published_url'] == e1['published_url']
     assert r.json['build_url'] == b1_url
     assert r.json['date_created'] is not None
     assert r.json['date_ended'] is None
+    assert r.json['published_url'] == 'https://pipelines.lsst.io/v/latest'
 
     # Re-build the edition
     r = client.patch(e1_url, {'build_url': b2_url})
@@ -72,7 +75,14 @@ def test_editions(client):
     # Deprecated editions no longer in the editions list
     r = client.get(product_url + '/editions/')
     assert r.status == 200
-    assert len(r.json['editions']) == 0
+    assert len(r.json['editions']) == 1  # only default edition (main) remains
+
+    # Verify we can't make a second 'main' edition
+    with pytest.raises(ValidationError):
+        r = client.post('/products/pipelines/editions/',
+                        {'slug': 'main',
+                         'tracked_refs': ['master'],
+                         'title': 'Main'})
 
 
 # Authorizion tests: POST /products/<slug>/editions/ =========================

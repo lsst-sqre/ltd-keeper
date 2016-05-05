@@ -9,8 +9,8 @@ from ..models import Product, Edition, Permission
 
 
 @api.route('/products/<slug>/editions/', methods=['POST'])
-@permission_required(Permission.ADMIN_EDITION)
 @token_auth.login_required
+@permission_required(Permission.ADMIN_EDITION)
 def new_edition(slug):
     """Create a new Edition for a Product.
 
@@ -34,7 +34,6 @@ def new_edition(slug):
 
        {
            "build_url": "http://localhost:5000/builds/1",
-           "published_url": "pipelines.lsst.io",
            "slug": "latest",
            "title": "Latest",
            "tracked_refs": [
@@ -60,7 +59,6 @@ def new_edition(slug):
     :param slug: Product slug.
 
     :<json string build_url: URL of the build entity this Edition uses.
-    :<json string published_url: URL where this edition is published.
     :<json string slug: URL-safe name for edition.
     :<json string title: Human-readable name for edition.
     :<json array tracked_refs: Git ref(s) that describe the version of the
@@ -86,8 +84,8 @@ def new_edition(slug):
 
 
 @api.route('/editions/<int:id>', methods=['DELETE'])
-@permission_required(Permission.ADMIN_EDITION)
 @token_auth.login_required
+@permission_required(Permission.ADMIN_EDITION)
 def deprecate_edition(id):
     """Deprecate an Edition of a Product.
 
@@ -170,7 +168,9 @@ def get_product_editions(slug):
     :statuscode 404: Product not found.
     """
     edition_urls = [edition.get_url() for edition in
-                    Edition.query.filter(Product.slug == slug)
+                    Edition.query.join(Product,
+                                       Product.id == Edition.product_id)
+                    .filter(Product.slug == slug)
                     .filter(Edition.date_ended == None).all()]  # NOQA
     return jsonify({'editions': edition_urls})
 
@@ -234,16 +234,14 @@ def get_edition(id):
 
 
 @api.route('/editions/<int:id>', methods=['PATCH'])
-@permission_required(Permission.ADMIN_EDITION)
 @token_auth.login_required
+@permission_required(Permission.ADMIN_EDITION)
 def edit_edition(id):
     """Edit an Edition.
 
     This PATCH method allows you to specify a subset of JSON fields to replace
     existing fields in the Edition resource. Not all fields in an Edition are
-    editable via the API. Specifically, the Edition's ``slug`` and timestamps
-    and relationship to the Product are not editable . See the allowed JSON
-    fields below.
+    editable via the API. See the allowed JSON fields below.
 
     Use :http:delete:`/editions/(int:id)` to deprecate an edition.
 
@@ -302,12 +300,13 @@ def edit_edition(id):
 
     :<json string build_url: URL of the build entity this Edition uses
         (optional). Effectively this 'rebuilds' the edition.
-    :<json string published_url: Full URL where this edition is published
-        (optional). Setting this field will change the CNAME DNS record.
-    :<json string title: Human-readable name for edition.
+    :<json string title: Human-readable name for edition (optional).
+    :<json string slug: URL-safe name for edition (optinal). Changing the slug
+        dynamically updates the ``published_url``.
     :<json array tracked_refs: Git ref(s) that this Edition points to.
         For multi-package documentation builds this is a list of Git refs that
-        are checked out, in order of priority, for each component repository.
+        are checked out, in order of priority, for each component repository
+        (optional).
 
     :>json string build_url: URL of the build entity this Edition uses.
     :>json string date_created: UTC date time when the edition was created.

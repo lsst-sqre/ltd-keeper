@@ -25,5 +25,5 @@ To publish a revised Keeper Docker image, run these commands from the LTD Keeper
 
 .. code-block:: bash
 
-   docker build -t lsstsqre/ltd-keeper:latest
+   docker build -t lsstsqre/ltd-keeper:latest .
    docker push lsstsqre/ltd-keeper:latest
