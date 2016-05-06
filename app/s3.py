@@ -71,9 +71,13 @@ def delete_directory(bucket_name, root_path,
 
 
 def copy_directory(bucket_name, src_path, dest_path,
-                   aws_access_key_id, aws_secret_access_key):
+                   aws_access_key_id, aws_secret_access_key,
+                   surrogate_key=None):
     """Copy objects from one directory in a bucket to another directory in
     the same bucket.
+
+    Object metadata is preserved while copying. However, if a new surrogate
+    key is provided it will replace the original one.
 
     Parameters
     ----------
@@ -86,9 +90,17 @@ def copy_directory(bucket_name, src_path, dest_path,
         Destination directory in the S3 bucket. The `dest_path` should ideally
         end in a trailing `'/'`. E.g. `'dir/dir2/'`. The destination path
         cannot contain the source path.
-    aws_profile : str, optional
-        Name of an AWS credential profile in :file:`~/.aws/credentials`
-        that has access to the needed Route 53 hosted zone.
+    aws_access_key_id : str
+        The access key for your AWS account. Also set `aws_secret_access_key`.
+    aws_secret_access_key : str
+        The secret key for your AWS account.
+    surrogate_key : str, optional
+        The surrogate key to insert in the header of all objects in the
+        ``x-amz-meta-surrogate-key`` field. This key is used to purge
+        builds from the Fastly CDN when Editions change.
+        If `None` then no header will be set.
+        If the object already has a ``x-amz-meta-surrogate-key`` header then
+        it will be replaced.
 
     Raises
     ------
@@ -119,9 +131,23 @@ def copy_directory(bucket_name, src_path, dest_path,
     for src_obj in bucket.objects.filter(Prefix=src_path):
         src_rel_path = os.path.relpath(src_obj.key, start=src_path)
         dest_key_path = os.path.join(dest_path, src_rel_path)
+
+        # the src_obj (ObjectSummary) doesn't include headers afaik
+        head = s3.meta.client.head_object(Bucket=bucket_name,
+                                          Key=src_obj.key)
+        metadata = head['Metadata']
+        content_type = head['ContentType']
+        cache_control = head['CacheControl']
+
+        if surrogate_key is not None:
+            metadata['surrogate-key'] = surrogate_key
+
         s3.meta.client.copy_object(
             Bucket=bucket_name,
             Key=dest_key_path,
             CopySource={'Bucket': bucket_name, 'Key': src_obj.key},
-            MetadataDirective='COPY',
-            ACL='public-read')
+            MetadataDirective='REPLACE',
+            Metadata=metadata,
+            ACL='public-read',
+            CacheControl=cache_control,
+            ContentType=content_type)

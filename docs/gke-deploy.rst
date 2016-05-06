@@ -89,6 +89,7 @@ From the uwsgi container's prompt,
 
 .. code-block:: bash
 
+   ./run.py db upgrade
    ./run.py init
    chown -R uwsgi:uwsgi_grp /var/lib/sqlite
 
