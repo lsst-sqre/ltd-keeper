@@ -116,7 +116,9 @@ def test_copy_directory(request):
         dest_path=bucket_root + 'a/',
         aws_access_key_id=os.getenv('LTD_KEEPER_TEST_AWS_ID'),
         aws_secret_access_key=os.getenv('LTD_KEEPER_TEST_AWS_SECRET'),
-        surrogate_key='new-key')
+        surrogate_key='new-key',
+        surrogate_control='max-age=31536000',
+        cache_control='no-cache')
 
     # Test files in the a/ directory are from b/
     for obj in bucket.objects.filter(Prefix=bucket_root + 'a/'):
@@ -126,9 +128,10 @@ def test_copy_directory(request):
         head = s3.meta.client.head_object(
             Bucket=os.getenv('LTD_KEEPER_TEST_BUCKET'),
             Key=obj.key)
-        assert head['CacheControl'] == 'max-age=3600'
+        assert head['CacheControl'] == 'no-cache'
         assert head['ContentType'] == 'text/plain'
         assert head['Metadata']['surrogate-key'] == 'new-key'
+        assert head['Metadata']['surrogate-control'] == 'max-age=31536000'
 
 
 def test_copy_dir_src_in_dest():
