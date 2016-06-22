@@ -88,6 +88,7 @@ def auto_slugify_edition(git_refs):
         return m.group(1)
 
     slug = slug.replace('/', '-')
+    slug = slug.replace('_', '-')
     slug = slug.replace('.', '-')
     return slug
 

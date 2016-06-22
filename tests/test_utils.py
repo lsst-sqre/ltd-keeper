@@ -8,6 +8,7 @@ from app.utils import (auto_slugify_edition, validate_path_slug,
     'git_refs,expected',
     [(['tickets/DM-1234'], 'DM-1234'),
      (['master'], 'master'),
+     (['u/rowen/r12_patch1'], 'u-rowen-r12-patch1'),
      (['tickets/DM-1234', 'tickets/DM-5678'],
       'tickets-DM-1234-tickets-DM-5678')])
 def test_auto_slugify_edition(git_refs, expected):
