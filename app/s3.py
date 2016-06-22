@@ -72,12 +72,16 @@ def delete_directory(bucket_name, root_path,
 
 def copy_directory(bucket_name, src_path, dest_path,
                    aws_access_key_id, aws_secret_access_key,
-                   surrogate_key=None):
+                   surrogate_key=None, cache_control=None,
+                   surrogate_control=None):
     """Copy objects from one directory in a bucket to another directory in
     the same bucket.
 
-    Object metadata is preserved while copying. However, if a new surrogate
-    key is provided it will replace the original one.
+    Object metadata is preserved while copying, with the following exceptions:
+
+    - If a new surrogate key is provided it will replace the original one.
+    - If cache_control and surrogate_control values are provided they
+      will replace the old one.
 
     Parameters
     ----------
@@ -101,6 +105,16 @@ def copy_directory(bucket_name, src_path, dest_path,
         If `None` then no header will be set.
         If the object already has a ``x-amz-meta-surrogate-key`` header then
         it will be replaced.
+    cache_control : str, optional
+        This sets (and overrides) the ``Cache-Control`` header on the copied
+        files. The ``Cache-Control`` header specifically dictates how content
+        is cached by the browser (if ``surrogate_control`` is also set).
+    surrogate_control : str, optional
+        This sets (and overrides) the ``x-amz-meta-surrogate-control`` header
+        on the copied files. The ``Surrogate-Control``
+        or ``x-amz-meta-surrogate-control`` header is used in priority by
+        Fastly to givern it's caching. This caching policy is *not* passed
+        to the browser.
 
     Raises
     ------
@@ -137,7 +151,13 @@ def copy_directory(bucket_name, src_path, dest_path,
                                           Key=src_obj.key)
         metadata = head['Metadata']
         content_type = head['ContentType']
-        cache_control = head['CacheControl']
+
+        # try to use original Cache-Control header if new one is not set
+        if cache_control is None and 'CacheControl' in head:
+            cache_control = head['CacheControl']
+
+        if surrogate_control is not None:
+            metadata['surrogate-control'] = surrogate_control
 
         if surrogate_key is not None:
             metadata['surrogate-key'] = surrogate_key

@@ -539,7 +539,11 @@ class Edition(db.Model):
                 dest_path=self.bucket_root_dirname,
                 aws_access_key_id=AWS_ID,
                 aws_secret_access_key=AWS_SECRET,
-                surrogate_key=self.surrogate_key)
+                surrogate_key=self.surrogate_key,
+                # Force Fastly to cache the edition for 1 year
+                surrogate_control='max-age=31536000',
+                # Force browsers to revalidate their local cache using ETags.
+                cache_control='no-cache')
 
         if FASTLY_SERVICE_ID is not None and FASTLY_KEY is not None:
             fastly_service = fastly.FastlyService(
