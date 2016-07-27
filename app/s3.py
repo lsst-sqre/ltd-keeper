@@ -26,8 +26,7 @@ def delete_directory(bucket_name, root_path,
     bucket_name : str
         Name of an S3 bucket.
     root_path : str
-        Directory in the S3 bucket that will be deleted. The `root_path`
-        should ideally end in a trailing `'/'`. E.g. `'dir/dir2/'`.
+        Directory in the S3 bucket that will be deleted.
     aws_access_key_id : str
         The access key for your AWS account. Also set `aws_secret_access_key`.
     aws_secret_access_key : str
@@ -46,7 +45,7 @@ def delete_directory(bucket_name, root_path,
 
     # Normalize directory path for searching patch prefixes of objects
     if not root_path.endswith('/'):
-        root_path += '/'
+        root_path.rstrip('/')
 
     key_objects = [{'Key': obj.key}
                    for obj in bucket.objects.filter(Prefix=root_path)]
