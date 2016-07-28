@@ -26,8 +26,7 @@ def delete_directory(bucket_name, root_path,
     bucket_name : str
         Name of an S3 bucket.
     root_path : str
-        Directory in the S3 bucket that will be deleted. The `root_path`
-        should ideally end in a trailing `'/'`. E.g. `'dir/dir2/'`.
+        Directory in the S3 bucket that will be deleted.
     aws_access_key_id : str
         The access key for your AWS account. Also set `aws_secret_access_key`.
     aws_secret_access_key : str
@@ -46,7 +45,7 @@ def delete_directory(bucket_name, root_path,
 
     # Normalize directory path for searching patch prefixes of objects
     if not root_path.endswith('/'):
-        root_path += '/'
+        root_path.rstrip('/')
 
     key_objects = [{'Key': obj.key}
                    for obj in bucket.objects.filter(Prefix=root_path)]
@@ -73,7 +72,8 @@ def delete_directory(bucket_name, root_path,
 def copy_directory(bucket_name, src_path, dest_path,
                    aws_access_key_id, aws_secret_access_key,
                    surrogate_key=None, cache_control=None,
-                   surrogate_control=None):
+                   surrogate_control=None,
+                   create_directory_redirect_object=True):
     """Copy objects from one directory in a bucket to another directory in
     the same bucket.
 
@@ -115,6 +115,13 @@ def copy_directory(bucket_name, src_path, dest_path,
         or ``x-amz-meta-surrogate-control`` header is used in priority by
         Fastly to givern it's caching. This caching policy is *not* passed
         to the browser.
+    create_directory_redirect_object : bool, optional
+        Create a directory redirect object for the root directory. The
+        directory redirect object is an empty S3 object named after the
+        directory (without a trailing slash) that contains a
+        ``x-amz-meta-dir-redirect=true`` HTTP header. LSST the Docs' Fastly
+        VCL is configured to redirect requests for a directory path to the
+        directory's ``index.html`` (known as *courtesy redirects*).
 
     Raises
     ------
@@ -171,3 +178,12 @@ def copy_directory(bucket_name, src_path, dest_path,
             ACL='public-read',
             CacheControl=cache_control,
             ContentType=content_type)
+
+    if create_directory_redirect_object:
+        dest_dirname = dest_path.rstrip('/')
+        obj = bucket.Object(dest_dirname)
+        metadata = {'dir-redirect': 'true'}
+        obj.put(Body='',
+                ACL='public-read',
+                Metadata=metadata,
+                CacheControl=cache_control)

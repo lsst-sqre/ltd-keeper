@@ -133,6 +133,11 @@ def test_copy_directory(request):
         assert head['Metadata']['surrogate-key'] == 'new-key'
         assert head['Metadata']['surrogate-control'] == 'max-age=31536000'
 
+    # Test that a directory object exists
+    bucket_paths = [obj.key
+                    for obj in bucket.objects.filter(Prefix=bucket_root + 'a')]
+    assert os.path.join(bucket_root, 'a') in bucket_paths
+
 
 def test_copy_dir_src_in_dest():
     """Test that copy_directory fails raises an assertion error if source in

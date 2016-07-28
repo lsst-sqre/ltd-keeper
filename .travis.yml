@@ -14,7 +14,8 @@ install:
   - pip install -r requirements.txt
   - pip install ltd-mason==0.2.0rc0
 script:
-  - 'py.test --flake8 --cov=app'
+  - 'py.test --cov=app'
+  # - 'py.test --flake8 --cov=app'  # flake8 currently broken
   # NOTE: don't use nit-picky mode with httpdomain. Lots of false positives.
   - 'sphinx-build -b html -a -W -d docs/_build/doctree docs docs/_build/html'
 after_success:
