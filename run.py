@@ -84,5 +84,31 @@ def init():
             db.session.commit()
 
 
+@manager.command
+def copydb():
+    """Copy data from a source database to the currently-configured DB.
+
+    Use this command to migrate between databases (even across SQL
+    implementations, such as from sqlite to MySQL).
+
+    Full run example, including setting up schema in new database::
+
+       export SOURCE_DB_URL=...
+       ./run.py db upgrade
+       ./run.py copydb
+
+    The LTD_KEEPER_DB_URL should refer to the new database. The connection
+    URI to the *source* database should be specified in the SOURCE_DB_URL
+    environment variable.
+    """
+    from app.dbcopy import Crossover
+    source_uri = os.getenv('SOURCE_DB_URL')
+    target_uri = os.getenv('LTD_KEEPER_DB_URL')
+    assert source_uri is not None
+    assert target_uri is not None
+    crossover = Crossover(source_uri, target_uri, bulk=10000)
+    crossover.copy_data_in_transaction()
+
+
 if __name__ == '__main__':
     manager.run()
