@@ -19,16 +19,24 @@ spec:
             - name: nginx-keeper
               containerPort: 8080
 
+        - name: cloudsql-proxy
+          image: b.gcr.io/cloudsql-docker/gce-proxy:1.05
+          volumeMounts:
+          - name: cloudsql
+            mountPath: /cloudsql
+          - name: cloudsql-secret-volume
+            mountPath: /secret/
+          - name: cloudsql-ssl-certs
+            mountPath: /etc/ssl/certs
+          # FIXME set project and instance name
+          command: ["/cloud_sql_proxy", "-dir=/cloudsql", "-credential_file=/secret/file.json", "-instances=$MYPROJECT:MYINSTANCE"]
+
         - name: uwsgi
           imagePullPolicy: "Always"
           image: "lsstsqre/ltd-keeper:latest"
           ports:
             - containerPort: 3031
               name: keeper
-          volumeMounts:
-            # sqlite-persistent-storage's definition below
-            - name: sqlite-persistent-storage
-              mountPath: /var/lib/sqlite
           env:
             - name: LTD_KEEPER_PROFILE
               value: production
@@ -80,9 +88,11 @@ spec:
                   name: keeper-secrets
                   key: db-url
       volumes:
-        - name: sqlite-persistent-storage
-          gcePersistentDisk:
-            # This disk must already exist via 
-            # gcloud compute disks create --size 1GB keeper-disk
-            pdName: keeper-disk
-            fsType: ext4
+        - name: cloudsql-secret-volume
+          secret:
+            secretName: cloudsql-creds
+        - name: cloudsql-ssl-certs
+          hostPath:
+            path: /etc/ssl/certs
+        - name: cloudsql
+          emptyDir:
