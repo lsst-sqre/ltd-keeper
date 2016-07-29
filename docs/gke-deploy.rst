@@ -22,6 +22,7 @@ Deploy the secrets with:
 
    kubectl create -f keeper-secrets.yaml
    kubectl create -f ssl-proxy-secrets.yaml
+   kubectl create -f cloudsql-secrets.yaml
 
 You can see they have been deployed with:
 
@@ -91,13 +92,11 @@ From the uwsgi container's prompt,
 
    ./run.py db upgrade
    ./run.py init
-   chown -R uwsgi:uwsgi_grp /var/lib/sqlite
 
 This will:
 
-1. Create the database in :file:`/var/lib/sqlite` (set in the ``keeper-secrets.yaml`` file).
-2. Grant ownership to the ``uwsgi`` over the database.
-   Normally we run the uwsgi container with a uwsgi, not root, user.
+1. Create tables in a blank database
+2. Seed an administrative user account (based on ``default-user`` and ``default-password`` fields in the ``keeper-secrets`` resource.
 
 ``exit`` from the keeper-mgmt prompt and take down the maintenance pod:
 

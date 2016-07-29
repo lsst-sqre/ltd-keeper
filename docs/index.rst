@@ -35,6 +35,7 @@ For more information about LSST the Docs, see `SQR-006: Documentation Deployment
 
    gke-arch
    gke-setup
+   gke-cloudsql
    gke-config
    gke-deploy
    gke-update
