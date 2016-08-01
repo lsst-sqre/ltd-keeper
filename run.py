@@ -50,7 +50,7 @@ environment = os.getenv('LTD_KEEPER_PROFILE', 'development')
 keeper_app = create_app(profile=environment)
 manager = Manager(keeper_app)
 
-migrate = Migrate(keeper_app, db)
+migrate = Migrate(keeper_app, db, compare_type=True)
 manager.add_command('db', MigrateCommand)
 
 
