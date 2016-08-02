@@ -5,7 +5,7 @@ Configure Google Cloud SQL
 When running LTD Keeper from the Google Container Engine, it makes sense to use Google's Cloud SQL hosted database service.
 Separating Keeper's state from the application grants us operational flexibility to scale and upgrade the application through Kubernetes.
 
-Google Cloud SQL manages the MySQL server, along with backups and fail-over, allowing pods and the LTD Keeper application itself to be idempotent and therefore scalable.
+Google Cloud SQL manages the MySQL server, along with backups and fail-over, allowing pods and the LTD Keeper application itself to be stateless and therefore scalable.
 
 LTD Keeper uses a 2nd generation high-availability Cloud SQL instance, which can be created by following Google's documentation at https://cloud.google.com/sql/docs/create-instance.
 

@@ -95,10 +95,10 @@ From the uwsgi container's prompt,
 
 This will:
 
-1. Create tables in a blank database
-2. Seed an administrative user account (based on ``default-user`` and ``default-password`` fields in the ``keeper-secrets`` resource.
+1. Create tables in a blank database.
+2. Seed an administrative user account (based on ``default-user`` and ``default-password`` fields in the ``keeper-secrets`` resource).
 
-``exit`` from the keeper-mgmt prompt and take down the maintenance pod:
+``exit`` from the ``keeper-mgmt`` shell and then take down the maintenance pod:
 
 .. code-block:: bash
 
