@@ -50,7 +50,9 @@ environment = os.getenv('LTD_KEEPER_PROFILE', 'development')
 keeper_app = create_app(profile=environment)
 manager = Manager(keeper_app)
 
-migrate = Migrate(keeper_app, db, compare_type=True)
+migrate = Migrate(keeper_app, db,
+                  compare_type=True,  # for autogenerate
+                  render_as_batch=True)  # for sqlite; safe for other servers
 manager.add_command('db', MigrateCommand)
 
 
