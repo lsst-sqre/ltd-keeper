@@ -63,15 +63,38 @@ def make_shell_context():
 
 
 @manager.command
+def createdb():
+    """Deploy the current schema in a new database.
+
+    This database is 'stamped' as having the current alembic schema version.
+
+    Normally, in a new installtion, run::
+
+        ./run.py createdb
+        ./run.py init
+
+    to both create the tables and an initial user.
+
+    To migrate database servers, see the copydb sub-command.
+    """
+    import app
+    app.db.create_all()
+
+    # stamp tables with latest schema version
+    from alembic.config import Config
+    from alembic import command
+    alembic_cfg = Config("migrations/alembic.ini")
+    command.stamp(alembic_cfg, "head")
+
+
+@manager.command
 def init():
     """Initialize the application DB.
 
     ::
         run.py init
 
-    This creates the table schema in a new DB (not overwriting an exisiting
-    one) and also bootstraps an administrative user given the environment
-    variables
+    Bootstraps an administrative user given the environment variables:
 
     - `LTD_KEEPER_BOOTSTRAP_USER`
     - `LTD_KEEPER_BOOTSTRAP_PASSWORD`
@@ -96,7 +119,7 @@ def copydb():
     Full run example, including setting up schema in new database::
 
        export SOURCE_DB_URL=...
-       ./run.py db upgrade
+       ./run.py createdb
        ./run.py copydb
 
     The LTD_KEEPER_DB_URL should refer to the new database. The connection

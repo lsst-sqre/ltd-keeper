@@ -90,7 +90,7 @@ From the uwsgi container's prompt,
 
 .. code-block:: bash
 
-   ./run.py db upgrade
+   ./run.py createdb
    ./run.py init
 
 This will:
