@@ -26,7 +26,7 @@ Procedure
 
 2. Deploy the maintenance pod.
 
-   First update :file:`keeper-mgmt-pod.yaml`` with the new uWSGI container's ``image`` name.
+   First update :file:`keeper-mgmt-pod.yaml` with the new uWSGI container's ``image`` name.
    Look for the lines:
 
    .. code-block:: yaml
@@ -34,11 +34,11 @@ Procedure
       - name: uwsgi
         image: "lsstsqre/ltd-keeper:latest"  # update this
 
-    Then deploy the pod:
+   Then deploy the pod:
 
-    .. code-block:: yaml
+   .. code-block:: yaml
 
-       kubectl create -f keeper-mgmt-pod.yaml
+      kubectl create -f keeper-mgmt-pod.yaml
 
 3. Log into the maintenance pod and apply the migration:
 

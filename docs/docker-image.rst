@@ -25,5 +25,11 @@ To publish a revised Keeper Docker image, run these commands from the LTD Keeper
 
 .. code-block:: bash
 
-   docker build -t lsstsqre/ltd-keeper:latest .
-   docker push lsstsqre/ltd-keeper:latest
+   git tag -s YYYYMMDD-N
+   docker build -t lsstsqre/ltd-keeper:YYYYMMDD-N .
+   docker push lsstsqre/ltd-keeper:YYYYMMDD-N
+
+Replace ``YYYYMMDD-N`` with the current date and incrementing number.
+Tagging images this way makes it obvious how to roll-back a deployment.
+
+For full 'releases' we may use conventional 'semvar' tags, but have not done so yet.

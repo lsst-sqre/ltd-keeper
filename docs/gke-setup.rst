@@ -2,8 +2,8 @@
 Setting up a Google Container Engine Cluster
 ############################################
 
-To deploy LTD Keeper we recommend using Docker Containers orchestrated by Kubernetes.
-Although Kubernetes can be hosted on any public or private cloud, Google Container Engine provides a convenient platform to run Kubernetes.
+To deploy LTD Keeper we recommend using Docker Containers orchestrated by `Kubernetes <http://kubernetes.io>`_.
+Although Kubernetes can be hosted on any public or private cloud, `Google Container Engine <https://cloud.google.com/container-engine/>`_ provides a convenient platform to run Kubernetes.
 This page will describe how to install the Google command line apps, configure them, and create a cluster.
 
 .. _gke-create-gcp-project:
@@ -34,11 +34,11 @@ Create the Cluster
 
 Now that ``gcloud`` is configured to use the correct Project, in the right zone, we can create a cluster of Google Compute Engine nodes.
 
-Note that Kubernetes clusters need to be homogeneous; you cannot match different machine types.[#]_
+Note that Kubernetes clusters need to be homogeneous; you cannot match different machine types.\ [#machine-types]_
 `Google has a page listing the specs and pricing of instance types. <https://cloud.google.com/compute/docs/machine-types>`_.
 Once a cluster is created you can easily expand it by adding nodes (or decrease the number of nodes).
 
-.. _[#]: https://medium.com/@betz.mark/comparing-amazon-elastic-container-service-and-google-kubernetes-1c63fbf19ccd#.sc5mywy0s
+.. [#machine-types] https://medium.com/@betz.mark/comparing-amazon-elastic-container-service-and-google-kubernetes-1c63fbf19ccd#.sc5mywy0s
 
 For development, a single node cluster with the ``g1-small`` machine type is sufficient.
 For example:
@@ -53,9 +53,6 @@ Then make this ``lsst-the-docs`` cluster the default and obtain the credentials:
 
 .. code-block:: bash
 
-   gcloud container clusters create lsst-the-docs \
-       --num-nodes 1 \
-       --machine-type g1-small
    gcloud config set container/cluster lsst-the-docs
    gcloud container clusters get-credentials lsst-the-docs
 
@@ -67,26 +64,6 @@ For example:
    gcloud container clusters resize lsst-the-docs --size=2
 
 Often it's necessary to rescale the cluster when pods can't be scheduled because the existing nodes are fully utilized.
-
-Create Persistent Storage for Keeper
-====================================
-
-At the moment Keeper uses SQLite as its database.
-This DB needs to persist between pods, 
-To ensure that this DB is persistent between pods, we can host it on a Google Compute Engine persistent disk:
-
-.. code-block:: bash
-
-   gcloud compute disks create --size 1GB keeper-disk
-
-This disk will be referenced by name, ``keeper-disk`` in the pod definition files.
-
-.. note::
-
-   Having such a small (less than 200 GB) disk degraded I/O performance on GCE.
-   See https://developers.google.com/compute/docs/disks#pdperformance.
-
-   This section will be deprecated when LTD Keeper is deployed with a networked SQL database.
 
 .. _gke-config-checklist:
 
@@ -111,3 +88,5 @@ You can review your ``gcloud`` default configurations with:
 .. code-block:: bash
 
    gcloud config list
+
+Next, :doc:`configure a Cloud SQL instance <gke-cloudsql>`.

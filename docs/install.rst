@@ -20,7 +20,7 @@ Install the pre-requisites with :command:`pip`:
    cd ltd-keeper
    pip install -r requirements.txt
 
-LTD Keeper also uses `SQLite <http://www.sqlite.org>`_.
+LTD Keeper also uses `SQLite <http://www.sqlite.org>`_ in development and testing modes (any SQL server can be used in production).
 
 
 Running Tests: py.test
@@ -41,11 +41,11 @@ Run LTD Keeper in development mode via:
 
 .. code-block:: bash
 
-   ./run.py db upgrade
+   ./run.py createdb
    ./run.py init
    ./run.py runserver
 
-The ``init`` subcommand creates an initializes a development database with a default user.
-The default user has username ``user`` and password ``pass``.
+The ``createdb`` subcommand creates tables in a development database, and the ``init`` command seeds a default user.
+This default user has username ``user`` and password ``pass``.
 
-Once the development DB is prepared you can skip the ``db upgrade`` and ``init`` commands with later instantiations of ``runserver``.
+Once the development DB is prepared you can skip the ``createdb`` and ``init`` commands with later instantiations of ``runserver``.

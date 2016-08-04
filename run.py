@@ -50,7 +50,9 @@ environment = os.getenv('LTD_KEEPER_PROFILE', 'development')
 keeper_app = create_app(profile=environment)
 manager = Manager(keeper_app)
 
-migrate = Migrate(keeper_app, db)
+migrate = Migrate(keeper_app, db,
+                  compare_type=True,  # for autogenerate
+                  render_as_batch=True)  # for sqlite; safe for other servers
 manager.add_command('db', MigrateCommand)
 
 
@@ -61,15 +63,38 @@ def make_shell_context():
 
 
 @manager.command
+def createdb():
+    """Deploy the current schema in a new database.
+
+    This database is 'stamped' as having the current alembic schema version.
+
+    Normally, in a new installtion, run::
+
+        ./run.py createdb
+        ./run.py init
+
+    to both create the tables and an initial user.
+
+    To migrate database servers, see the copydb sub-command.
+    """
+    import app
+    app.db.create_all()
+
+    # stamp tables with latest schema version
+    from alembic.config import Config
+    from alembic import command
+    alembic_cfg = Config("migrations/alembic.ini")
+    command.stamp(alembic_cfg, "head")
+
+
+@manager.command
 def init():
     """Initialize the application DB.
 
     ::
         run.py init
 
-    This creates the table schema in a new DB (not overwriting an exisiting
-    one) and also bootstraps an administrative user given the environment
-    variables
+    Bootstraps an administrative user given the environment variables:
 
     - `LTD_KEEPER_BOOTSTRAP_USER`
     - `LTD_KEEPER_BOOTSTRAP_PASSWORD`
@@ -82,6 +107,32 @@ def init():
             u.set_password(keeper_app.config['DEFAULT_PASSWORD'])
             db.session.add(u)
             db.session.commit()
+
+
+@manager.command
+def copydb():
+    """Copy data from a source database to the currently-configured DB.
+
+    Use this command to migrate between databases (even across SQL
+    implementations, such as from sqlite to MySQL).
+
+    Full run example, including setting up schema in new database::
+
+       export SOURCE_DB_URL=...
+       ./run.py createdb
+       ./run.py copydb
+
+    The LTD_KEEPER_DB_URL should refer to the new database. The connection
+    URI to the *source* database should be specified in the SOURCE_DB_URL
+    environment variable.
+    """
+    from app.dbcopy import Crossover
+    source_uri = os.getenv('SOURCE_DB_URL')
+    target_uri = os.getenv('LTD_KEEPER_DB_URL')
+    assert source_uri is not None
+    assert target_uri is not None
+    crossover = Crossover(source_uri, target_uri, bulk=10000)
+    crossover.copy_data_in_transaction()
 
 
 if __name__ == '__main__':

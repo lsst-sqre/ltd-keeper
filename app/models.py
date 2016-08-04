@@ -79,7 +79,7 @@ class User(db.Model):
 
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(64), index=True, unique=True)
+    username = db.Column(db.Unicode(255), index=True, unique=True)
     password_hash = db.Column(db.String(128))
     permissions = db.Column(db.Integer)
 
@@ -139,17 +139,17 @@ class Product(db.Model):
     __tablename__ = 'products'
     id = db.Column(db.Integer, primary_key=True)
     # URL/path-safe identifier for this product
-    slug = db.Column(db.Unicode(256), nullable=False, unique=True)
+    slug = db.Column(db.Unicode(255), nullable=False, unique=True)
     # URL of the Git documentation repo (i.e., on GitHub)
-    doc_repo = db.Column(db.String(256), nullable=False)
+    doc_repo = db.Column(db.Unicode(255), nullable=False)
     # Human-readlable product title
-    title = db.Column(db.Unicode(256), nullable=False)
+    title = db.Column(db.Unicode(255), nullable=False)
     # Root domain name serving docs (e.g., lsst.io)
-    root_domain = db.Column(db.String(256), nullable=False)
+    root_domain = db.Column(db.Unicode(255), nullable=False)
     # Fastly CDN domain name (without doc's domain prepended)
-    root_fastly_domain = db.Column(db.String(256), nullable=False)
+    root_fastly_domain = db.Column(db.Unicode(255), nullable=False)
     # Name of the S3 bucket hosting builds
-    bucket_name = db.Column(db.String(256), nullable=True)
+    bucket_name = db.Column(db.Unicode(255), nullable=True)
 
     # One-to-many relationships to builds and editions
     # are defined in those classes
@@ -247,7 +247,7 @@ class Build(db.Model):
     product_id = db.Column(db.Integer, db.ForeignKey('products.id'),
                            index=True)
     # name of build; URL-safe slug used as directory in build bucket
-    slug = db.Column(db.String(256), nullable=False)
+    slug = db.Column(db.Unicode(255), nullable=False)
     # auto-assigned date build was created
     date_created = db.Column(db.DateTime, default=datetime.now(),
                              nullable=False)
@@ -256,7 +256,7 @@ class Build(db.Model):
     # json-persisted list of Git refs that determine the version of Product
     git_refs = db.Column(MutableList.as_mutable(JSONEncodedVARCHAR(2048)))
     # github handle of person requesting the build (optional)
-    github_requester = db.Column(db.String(256), nullable=True)
+    github_requester = db.Column(db.Unicode(255), nullable=True)
     # Flag to indicate the doc has been uploaded to S3.
     uploaded = db.Column(db.Boolean, default=False)
     # The surrogate-key header for Fastly (quick purges); 32-char hex
@@ -387,7 +387,7 @@ class Edition(db.Model):
     # What product Git refs this Edition tracks and publishes
     tracked_refs = db.Column(MutableList.as_mutable(JSONEncodedVARCHAR(2048)))
     # url-safe slug for edition
-    slug = db.Column(db.String(256), nullable=False)
+    slug = db.Column(db.Unicode(255), nullable=False)
     # Human-readable title for edition
     title = db.Column(db.Unicode(256), nullable=False)
     # Date when this edition was initially created

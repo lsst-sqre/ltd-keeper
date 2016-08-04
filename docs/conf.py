@@ -19,7 +19,6 @@ extensions = [
     'sphinx.ext.coverage',
     'sphinx.ext.ifconfig',
     'sphinx.ext.viewcode',
-    'numpydoc',
     'sphinxcontrib.httpdomain',
     'sphinxcontrib.autohttp.flask',
 ]
