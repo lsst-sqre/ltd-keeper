@@ -24,7 +24,7 @@ PRODUCT_SLUG_PATTERN = re.compile('^[a-z]+[-a-z0-9]*[a-z0-9]+$')
 PATH_SLUG_PATTERN = re.compile('^[a-zA-Z0-9-]+$')
 
 # Regular expression for DM ticket branches (to auto-build slugs)
-TICKET_BRANCH_PATTERN = re.compile('^tickets/(DM-[0-9]+)$')
+TICKET_BRANCH_PATTERN = re.compile('^tickets/([A-Z]+-[0-9]+)$')
 
 
 def split_url(url, method='GET'):
