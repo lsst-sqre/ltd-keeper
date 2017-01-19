@@ -42,6 +42,8 @@ spec:
               value: production
             - name: LTD_KEEPER_URL_SCHEME
               value: https
+            - name: LTD_DASHER_URL
+              value: "http://dasher:3031"  # URL with cluster DNS to LTD Dasher - https://github.com/lsst-sqre/ltd-dasher
             - name: LTD_KEEPER_SECRET_KEY
               valueFrom:
                 secretKeyRef:
