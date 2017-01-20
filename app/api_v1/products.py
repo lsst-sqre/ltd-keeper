@@ -1,10 +1,11 @@
 """API v1 routes for products."""
 
-from flask import jsonify, request
+from flask import jsonify, request, current_app
 from . import api
 from .. import db
 from ..auth import token_auth, permission_required
 from ..models import Product, Permission, Edition
+from ..dasher import build_dashboard_safely
 
 
 @api.route('/products/', methods=['GET'])
@@ -194,6 +195,9 @@ def new_product():
     except Exception:
         db.session.rollback()
         raise
+
+    build_dashboard_safely(current_app, request, product)
+
     return jsonify({}), 201, {'Location': product.get_url()}
 
 
@@ -263,4 +267,7 @@ def edit_product(slug):
     except Exception:
         db.session.rollback()
         raise
+
+    build_dashboard_safely(current_app, request, product)
+
     return jsonify({}), 200, {'Location': product.get_url()}

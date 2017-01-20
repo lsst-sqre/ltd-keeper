@@ -359,6 +359,7 @@ class Build(db.Model):
             .filter(Edition.product == self.product)\
             .filter(Edition.tracked_refs == self.git_refs)\
             .all()
+
         for edition in editions:
             edition.rebuild(self.get_url())
 

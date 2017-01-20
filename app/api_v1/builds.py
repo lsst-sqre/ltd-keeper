@@ -1,13 +1,14 @@
 """API v1 routes for builds."""
 
 import uuid
-from flask import jsonify, request
+from flask import jsonify, request, current_app
 
 from . import api
 from .. import db
 from ..auth import token_auth, permission_required, is_authorized
 from ..models import Product, Build, Edition, Permission
 from ..utils import auto_slugify_edition
+from ..dasher import build_dashboard_safely
 
 
 @api.route('/products/<slug>/builds/', methods=['POST'])
@@ -213,6 +214,7 @@ def patch_build(id):
     build = Build.query.get_or_404(id)
     build.patch_data(request.json)
     db.session.commit()
+    build_dashboard_safely(current_app, request, build.product)
     return jsonify({}), 200, {'Location': build.get_url()}
 
 

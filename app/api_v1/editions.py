@@ -1,11 +1,12 @@
 """API v1 routes for Editions."""
 
-from flask import jsonify, request
+from flask import jsonify, request, current_app
 
 from . import api
 from .. import db
 from ..auth import token_auth, permission_required
 from ..models import Product, Edition, Permission
+from ..dasher import build_dashboard_safely
 
 
 @api.route('/products/<slug>/editions/', methods=['POST'])
@@ -80,6 +81,7 @@ def new_edition(slug):
     except Exception:
         db.session.rollback()
         raise
+    build_dashboard_safely(current_app, request, product)
     return jsonify({}), 201, {'Location': edition.get_url()}
 
 
@@ -131,6 +133,7 @@ def deprecate_edition(id):
     edition = Edition.query.get_or_404(id)
     edition.deprecate()
     db.session.commit()
+    build_dashboard_safely(current_app, request, edition.product)
     return jsonify({}), 200
 
 
@@ -342,4 +345,5 @@ def edit_edition(id):
     except Exception:
         db.session.rollback()
         raise
+    build_dashboard_safely(current_app, request, edition.product)
     return jsonify(edition.export_data())
