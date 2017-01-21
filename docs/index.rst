@@ -17,6 +17,7 @@ For more information about LSST the Docs, see `SQR-006: Documentation Deployment
    products
    builds
    editions
+   dashboards
 
 .. toctree::
    :caption: Development

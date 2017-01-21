@@ -286,6 +286,10 @@ def rebuild_product_dashboard(slug):
     User must be authenticated and have ``admin_product`` permissions.
 
     :statuscode 202: Dashboard rebuild trigger sent.
+
+    **See also**
+
+    - :http:post:`/dashboards`
     """
     product = Product.query.filter_by(slug=slug).first_or_404()
     build_dashboards(product.get_url(),
