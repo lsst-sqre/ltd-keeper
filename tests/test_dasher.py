@@ -1,6 +1,7 @@
 """Tests for dasher module (LTD Dasher dashboard builds)."""
 
 import json
+import logging
 import responses
 import pytest
 
@@ -20,7 +21,7 @@ def test_build_dashboards():
     responses.add(responses.POST, endpoint_url, status=202)
 
     # Run client function
-    build_dashboards(product_urls, dasher_url)
+    build_dashboards(product_urls, dasher_url, logging.getLogger(__name__))
 
     assert len(responses.calls) == 1
     assert responses.calls[0].request.url == endpoint_url
@@ -42,7 +43,7 @@ def test_skipped_build_dashboards():
     dasher_url = None
 
     # Run client function
-    build_dashboards(product_urls, dasher_url)
+    build_dashboards(product_urls, dasher_url, logging.getLogger(__name__))
 
     assert len(responses.calls) == 0
 
@@ -60,7 +61,7 @@ def test_failed_build_dashboards():
 
     # Run client function
     with pytest.raises(DasherError):
-        build_dashboards(product_urls, dasher_url)
+        build_dashboards(product_urls, dasher_url, logging.getLogger(__name__))
 
     assert len(responses.calls) == 1
     assert responses.calls[0].request.url == endpoint_url
