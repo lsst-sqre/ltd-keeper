@@ -32,6 +32,7 @@ def build_dashboards(product_urls, dasher_url, logger):
 
     if dasher_url is None:
         # skip if not configured
+        print('LTD_DASHER_URL not set, skipping')
         logger.warning('LTD_DASHER_URL not set, skipping')
         return
 

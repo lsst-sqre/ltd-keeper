@@ -5,7 +5,7 @@ from . import api
 from .. import db
 from ..auth import token_auth, permission_required
 from ..models import Product, Permission, Edition
-from ..dasher import build_dashboard_safely
+from ..dasher import build_dashboard_safely, build_dashboards
 
 
 @api.route('/products/', methods=['GET'])
@@ -271,3 +271,24 @@ def edit_product(slug):
     build_dashboard_safely(current_app, request, product)
 
     return jsonify({}), 200, {'Location': product.get_url()}
+
+
+@api.route('/products/<slug>/dashboard', methods=['POST'])
+@token_auth.login_required
+@permission_required(Permission.ADMIN_PRODUCT)
+def rebuild_product_dashboard(slug):
+    """Rebuild the LTD Dasher dashboard manually for a single product.
+
+    Note that the dashboard is built asynchronously.
+
+    **Authorization**
+
+    User must be authenticated and have ``admin_product`` permissions.
+
+    :statuscode 202: Dashboard rebuild trigger sent.
+    """
+    product = Product.query.filter_by(slug=slug).first_or_404()
+    build_dashboards(product.get_url(),
+                     current_app.config[''],
+                     current_app.logger)
+    return jsonify({}), 202, {}

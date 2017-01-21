@@ -164,3 +164,27 @@ def test_patch_product_auth_builduploader_client(upload_build_client):
 def test_patch_product_auth_builddeprecator_client(upload_build_client):
     r = upload_build_client.patch('/products/test', {'foo': 'bar'})
     assert r.status == 403
+
+
+# Authorizion tests: POST /products/<slug>/dashboard =========================
+# Only the full admin client and the product-authorized client should get in
+
+
+def test_post_dashboard_auth_anon(anon_client):
+    r = anon_client.post('/products/test/dashboard', {})
+    assert r.status == 401
+
+
+def test_post_dashboard_auth_product_client(product_client):
+    with pytest.raises(NotFound):
+        product_client.post('/products/test/dashboard', {})
+
+
+def test_post_dashboard_auth_edition_client(edition_client):
+    r = edition_client.post('/products/test/dashboard', {})
+    assert r.status == 403
+
+
+def test_post_dashboard_auth_builduploader_client(upload_build_client):
+    r = upload_build_client.post('/products/test/dashboard', {})
+    assert r.status == 403
