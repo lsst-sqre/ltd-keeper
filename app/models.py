@@ -150,6 +150,10 @@ class Product(db.Model):
     root_fastly_domain = db.Column(db.Unicode(255), nullable=False)
     # Name of the S3 bucket hosting builds
     bucket_name = db.Column(db.Unicode(255), nullable=True)
+    # surrogate_key for Fastly quick purges of dashboards
+    # FIXME nullable initially, projects will dynamically create keys as needed
+    # Editions and Builds have independent surrogate keys.
+    surrogate_key = db.Column(db.String(32))
 
     # One-to-many relationships to builds and editions
     # are defined in those classes
@@ -196,7 +200,8 @@ class Product(db.Model):
             'domain': self.domain,
             'fastly_domain': self.fastly_domain,
             'bucket_name': self.bucket_name,
-            'published_url': self.published_url
+            'published_url': self.published_url,
+            'surrogate_key': self.surrogate_key
         }
 
     def import_data(self, data):
@@ -217,6 +222,10 @@ class Product(db.Model):
 
         # Validate slug; raises ValidationError
         validate_product_slug(self.slug)
+
+        # Create a surrogate key on demand
+        if self.surrogate_key is None:
+            self.surrogate_key = uuid.uuid4().hex
 
         # Setup Fastly CNAME with Route53
         AWS_ID = current_app.config['AWS_ID']
@@ -400,8 +409,6 @@ class Edition(db.Model):
     # set only when the Edition is deprecated (ready for deletion)
     date_ended = db.Column(db.DateTime, nullable=True)
     # The surrogate-key header for Fastly (quick purges); 32-char hex
-    # TODO eventuall make this nullable=False when production DB edition
-    # all have this column
     surrogate_key = db.Column(db.String(32))
 
     # Relationships

@@ -135,5 +135,23 @@ def copydb():
     crossover.copy_data_in_transaction()
 
 
+@manager.command
+def initkeys():
+    """Temporary command to add surrogate keys to Products."""
+    import uuid
+    with keeper_app.app_context():
+        for product in models.Product.query.all():
+            if product.surrogate_key is None:
+                print('Adding surrogate key to {0}'.format(product.slug))
+                product.surrogate_key = uuid.uuid4().hex
+                try:
+                    db.session.add(product)
+                    db.session.commit()
+                except Exception:
+                    db.session.rollback()
+                    print('Failed to make surrogate key for {0}'.format(
+                        product.slug))
+
+
 if __name__ == '__main__':
     manager.run()

@@ -79,6 +79,7 @@ def get_product(slug):
            "root_fastly_domain": "global.ssl.fastly.net",
            "self_url": "http://localhost:5000/products/pipelines",
            "slug": "pipelines",
+           "surrogate_key": "2a5f38f27e3c46258fd9b0e69afe54fd",
            "title": "LSST Science Pipelines"
        }
 
@@ -100,6 +101,9 @@ def get_product(slug):
         the reader.
     :>json string self_url: URL of this Product resource.
     :>json string slug: URL/path-safe identifier for this product.
+    :>json string surrogate_key: Surrogate key that should be used in the
+        ``x-amz-meta-surrogate-control`` header of any product-level
+        dashboards to control Fastly caching.
     :>json string title: Human-readable product title.
 
     :statuscode 200: No error.
@@ -144,6 +148,7 @@ def new_product():
            "root_domain": "lsst.io",
            "root_fastly_domain": "global.ssl.fastly.net",
            "slug": "pipelines",
+           "surrogate_key": "2a5f38f27e3c46258fd9b0e69afe54fd",
            "title": "LSST Science Pipelines"
        }
 

@@ -81,6 +81,8 @@ def test_products(client):
     assert r.json['domain'] == 'pipelines.lsst.io'
     assert r.json['fastly_domain'] == 'global.ssl.fastly.net'
     assert r.json['published_url'] == 'https://pipelines.lsst.io'
+    # Test surrogate key
+    assert len(r.json['surrogate_key']) == 32
 
     r = client.get(p2_url)
     for k, v in p2.items():
@@ -89,6 +91,8 @@ def test_products(client):
     assert r.json['domain'] == 'qserv.lsst.io'
     assert r.json['fastly_domain'] == 'global.ssl.fastly.net'
     assert r.json['published_url'] == 'https://qserv.lsst.io'
+    # Test surrogate key
+    assert len(r.json['surrogate_key']) == 32
 
     p2v2 = dict(p2)
     p2v2['title'] = 'Qserve Data Access'
