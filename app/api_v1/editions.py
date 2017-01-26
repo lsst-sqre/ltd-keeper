@@ -204,6 +204,7 @@ def get_edition(id):
            "published_url": "pipelines.lsst.io",
            "self_url": "http://localhost:5000/editions/1",
            "slug": "latest",
+           "surrogate_key": "2a5f38f27e3c46258fd9b0e69afe54fd",
            "title": "Development master",
            "tracked_refs": [
                "master"
@@ -222,6 +223,9 @@ def get_edition(id):
     :>json string published_url: Full URL where this edition is published.
     :>json string self_url: URL of this Edition entity.
     :>json string slug: URL-safe name for edition.
+    :>json string surrogate_key: Surrogate key that should be used in the
+        ``x-amz-meta-surrogate-control`` header of any the edition's S3
+        objects to control Fastly caching.
     :>json string title: Human-readable name for edition.
     :>json string tracked_refs: Git ref that this Edition points to. For multi-
         repository builds, this can be a comma-separated list of refs to use,
@@ -288,6 +292,7 @@ def edit_edition(id):
            "published_url": "pipelines.lsst.io",
            "self_url": "http://localhost:5000/editions/1",
            "slug": "latest",
+           "surrogate_key": "2a5f38f27e3c46258fd9b0e69afe54fd",
            "title": "Development master",
            "tracked_refs": [
                "master"
@@ -318,6 +323,9 @@ def edit_edition(id):
     :>json string published_url: Full URL where this edition is published.
     :>json string self_url: URL of this Edition entity.
     :>json string slug: URL-safe name for edition.
+    :>json string surrogate_key: Surrogate key that should be used in the
+        ``x-amz-meta-surrogate-control`` header of any the edition's S3
+        objects to control Fastly caching.
     :>json string title: Human-readable name for edition.
     :>json string tracked_refs: Git ref that this Edition points to. For multi-
         repository builds, this can be a comma-separated list of refs to use,
