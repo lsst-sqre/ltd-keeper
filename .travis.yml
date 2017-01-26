@@ -1,11 +1,10 @@
 sudo: false
 language: python
 python:
-  - '3.5'
-  - '3.5-dev'
+  - '3.6'
 matrix:
   allow_failures:
-    - python: "3.5-dev"
+    - python: "3.6"
   include:
     # This is the ltd-mason documentation deployment build
     - python: "3.5"
