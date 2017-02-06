@@ -38,6 +38,10 @@ You can also enable automated backups from the instance's page on the Google Clo
 Create a Service Account
 ========================
 
+.. note::
+
+   This step may not longer be necessary with Cloud SDK authentication and automatic service discovery.
+
 To authenticate to the Cloud SQL instance, we need to create a Google Cloud Service Account.
 
 Create a new Service Account from the IAM & Admin section of the Google Cloud console.
@@ -47,8 +51,10 @@ This JSON file will be used directly with the Cloud SQL proxy and also to build 
 
 See `Google's documentation for complete steps on creating a Service Account <https://cloud.google.com/sql/docs/sql-proxy#create-service-account>`__.
 
-Install the Cloud SQL Proxy
-===========================
+.. _gke-cloudsql-proxy:
+
+Install and Run the Cloud SQL Proxy
+===================================
 
 LTD operators should install the `Cloud SQL Proxy <https://cloud.google.com/sql/docs/sql-proxy>`_ locally to access and administer the Cloud SQL instance.
 
@@ -63,18 +69,30 @@ Create a convenient directory where a unix socket can be created:
 .. code-block:: bash
 
    mkdir cloudsql
+   sudo chmod 777
+
 
 And run the proxy:
 
 .. code-block:: bash
 
-   $GOPATH/bin/cloud_sql_proxy -dir=cloudsql -instances=PROJECT:REGION:ltd-sql-1 --credential_file=service_account.json
+   $GOPATH/bin/cloud_sql_proxy -dir=cloudsql
 
-Replace ``PROJECT`` and ``REGION`` with the Google Cloud project's name and default region (specified previously in :doc:`gke-setup`).
+.. note::
 
-``service_account.json`` is the path to the service account JSON credentials file that was downloaded previously.
+   Alternatively, a Service Account credential can be used:
+
+   .. code-block:: bash
+   
+      $GOPATH/bin/cloud_sql_proxy -dir=cloudsql -instances=PROJECT:REGION:ltd-sql-1 --credential_file=service_account.json
+   
+   Replace ``PROJECT`` and ``REGION`` with the Google Cloud project's name and default region (specified previously in :doc:`gke-setup`).
+
+   ``service_account.json`` is the path to the service account JSON credentials file that was downloaded previously.
 
 See the `github.com/GoogleCloudPlatform/cloudsql-proxy <https://github.com/GoogleCloudPlatform/cloudsql-proxy>`_ repository for further details.
+
+.. _gke-cloudsql-connect:
 
 Connect to the Cloud SQL Instance and Create a keeper Database
 ==============================================================
