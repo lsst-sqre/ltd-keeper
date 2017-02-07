@@ -34,6 +34,9 @@ The migration can be tested locally if you have a development DB running a previ
    ./run.py db upgrade
    ./run.py runserver
 
+With a :doc:`staging deployment <gke-staging-deployment-playbook>`, it is also possible to :doc:`test migrations <gke-migrations>` against a copy of the production database.
+This is now recommended practice.
+
 Coding for Migrations
 =====================
 
