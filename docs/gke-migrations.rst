@@ -20,7 +20,7 @@ Procedure
 
    .. code-block:: bash
 
-      kubectl delete keeper-deployment
+      kubectl delete deployment keeper-deployment
 
    Watch for the pods to be deleted with ``kubectl get pods``.
 
