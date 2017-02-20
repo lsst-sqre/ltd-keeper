@@ -1,10 +1,11 @@
 """API v1 routes for products."""
 
-from flask import jsonify, request
+from flask import jsonify, request, current_app
 from . import api
 from .. import db
 from ..auth import token_auth, permission_required
 from ..models import Product, Permission, Edition
+from ..dasher import build_dashboard_safely, build_dashboards
 
 
 @api.route('/products/', methods=['GET'])
@@ -78,6 +79,7 @@ def get_product(slug):
            "root_fastly_domain": "global.ssl.fastly.net",
            "self_url": "http://localhost:5000/products/pipelines",
            "slug": "pipelines",
+           "surrogate_key": "2a5f38f27e3c46258fd9b0e69afe54fd",
            "title": "LSST Science Pipelines"
        }
 
@@ -99,6 +101,9 @@ def get_product(slug):
         the reader.
     :>json string self_url: URL of this Product resource.
     :>json string slug: URL/path-safe identifier for this product.
+    :>json string surrogate_key: Surrogate key that should be used in the
+        ``x-amz-meta-surrogate-control`` header of any product-level
+        dashboards to control Fastly caching.
     :>json string title: Human-readable product title.
 
     :statuscode 200: No error.
@@ -143,6 +148,7 @@ def new_product():
            "root_domain": "lsst.io",
            "root_fastly_domain": "global.ssl.fastly.net",
            "slug": "pipelines",
+           "surrogate_key": "2a5f38f27e3c46258fd9b0e69afe54fd",
            "title": "LSST Science Pipelines"
        }
 
@@ -194,6 +200,9 @@ def new_product():
     except Exception:
         db.session.rollback()
         raise
+
+    build_dashboard_safely(current_app, request, product)
+
     return jsonify({}), 201, {'Location': product.get_url()}
 
 
@@ -263,4 +272,32 @@ def edit_product(slug):
     except Exception:
         db.session.rollback()
         raise
+
+    build_dashboard_safely(current_app, request, product)
+
     return jsonify({}), 200, {'Location': product.get_url()}
+
+
+@api.route('/products/<slug>/dashboard', methods=['POST'])
+@token_auth.login_required
+@permission_required(Permission.ADMIN_PRODUCT)
+def rebuild_product_dashboard(slug):
+    """Rebuild the LTD Dasher dashboard manually for a single product.
+
+    Note that the dashboard is built asynchronously.
+
+    **Authorization**
+
+    User must be authenticated and have ``admin_product`` permissions.
+
+    :statuscode 202: Dashboard rebuild trigger sent.
+
+    **See also**
+
+    - :http:post:`/dashboards`
+    """
+    product = Product.query.filter_by(slug=slug).first_or_404()
+    build_dashboards([product.get_url()],
+                     current_app.config['LTD_DASHER_URL'],
+                     current_app.logger)
+    return jsonify({}), 202, {}

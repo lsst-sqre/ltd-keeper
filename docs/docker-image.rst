@@ -15,7 +15,6 @@ Relevant images are:
 
 - ``lsstsqre/ltd-keeper:latest`` --- Created by the Dockerfile in this `github.com/lsst-sqre/ltd-keeper <https://github.com/lsst-sqre/ltd-keeper>`_ repository. This deploys LTD Keeper as a uWSGI application.
 - ``lsstsqre/nginx-python:compose`` --- An Nginx Proxy for LTD Keeper containers to be used in a Docker Compose environment (see :doc:`compose`). The related Dockerfile can be found in `github.com/lsst-sqre/nginx-python-docker <https://github.com/lsst-sqre/nginx-python-docker>`_.
-- ``lsstsqre/nginx-python:k8s`` --- An Nginx Proxy for LTD Keeper containers to be used in a Kubernetes environment (see :doc:`gke-deploy`). The related Dockerfile can be found in `github.com/lsst-sqre/nginx-python-docker <https://github.com/lsst-sqre/nginx-python-docker>`_.
 
 
 Building and Publishing the Keeper Docker Image

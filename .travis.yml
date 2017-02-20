@@ -1,21 +1,19 @@
 sudo: false
 language: python
 python:
-  - '3.5'
-  - '3.5-dev'
+  - '3.6'
 matrix:
   allow_failures:
-    - python: "3.5-dev"
+    - python: "3.6"
   include:
     # This is the ltd-mason documentation deployment build
     - python: "3.5"
       env: LTD_MASON_BUILD=true
 install:
   - pip install -r requirements.txt
-  - pip install ltd-mason==0.2.0rc0
+  - pip install ltd-mason==0.2.2
 script:
-  - 'py.test --cov=app'
-  # - 'py.test --flake8 --cov=app'  # flake8 currently broken
+  - 'py.test --flake8 --cov=app'
   # NOTE: don't use nit-picky mode with httpdomain. Lots of false positives.
   - 'sphinx-build -b html -a -W -d docs/_build/doctree docs docs/_build/html'
 after_success:

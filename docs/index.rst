@@ -17,6 +17,7 @@ For more information about LSST the Docs, see `SQR-006: Documentation Deployment
    products
    builds
    editions
+   dashboards
 
 .. toctree::
    :caption: Development
@@ -40,4 +41,5 @@ For more information about LSST the Docs, see `SQR-006: Documentation Deployment
    gke-deploy
    gke-update
    gke-migrations
+   gke-staging-deployment-playbook
    gke-troubleshooting

@@ -1,11 +1,12 @@
 """API v1 routes for Editions."""
 
-from flask import jsonify, request
+from flask import jsonify, request, current_app
 
 from . import api
 from .. import db
 from ..auth import token_auth, permission_required
 from ..models import Product, Edition, Permission
+from ..dasher import build_dashboard_safely
 
 
 @api.route('/products/<slug>/editions/', methods=['POST'])
@@ -80,6 +81,7 @@ def new_edition(slug):
     except Exception:
         db.session.rollback()
         raise
+    build_dashboard_safely(current_app, request, product)
     return jsonify({}), 201, {'Location': edition.get_url()}
 
 
@@ -131,6 +133,7 @@ def deprecate_edition(id):
     edition = Edition.query.get_or_404(id)
     edition.deprecate()
     db.session.commit()
+    build_dashboard_safely(current_app, request, edition.product)
     return jsonify({}), 200
 
 
@@ -204,6 +207,7 @@ def get_edition(id):
            "published_url": "pipelines.lsst.io",
            "self_url": "http://localhost:5000/editions/1",
            "slug": "latest",
+           "surrogate_key": "2a5f38f27e3c46258fd9b0e69afe54fd",
            "title": "Development master",
            "tracked_refs": [
                "master"
@@ -222,6 +226,9 @@ def get_edition(id):
     :>json string published_url: Full URL where this edition is published.
     :>json string self_url: URL of this Edition entity.
     :>json string slug: URL-safe name for edition.
+    :>json string surrogate_key: Surrogate key that should be used in the
+        ``x-amz-meta-surrogate-control`` header of any the edition's S3
+        objects to control Fastly caching.
     :>json string title: Human-readable name for edition.
     :>json string tracked_refs: Git ref that this Edition points to. For multi-
         repository builds, this can be a comma-separated list of refs to use,
@@ -288,6 +295,7 @@ def edit_edition(id):
            "published_url": "pipelines.lsst.io",
            "self_url": "http://localhost:5000/editions/1",
            "slug": "latest",
+           "surrogate_key": "2a5f38f27e3c46258fd9b0e69afe54fd",
            "title": "Development master",
            "tracked_refs": [
                "master"
@@ -318,6 +326,9 @@ def edit_edition(id):
     :>json string published_url: Full URL where this edition is published.
     :>json string self_url: URL of this Edition entity.
     :>json string slug: URL-safe name for edition.
+    :>json string surrogate_key: Surrogate key that should be used in the
+        ``x-amz-meta-surrogate-control`` header of any the edition's S3
+        objects to control Fastly caching.
     :>json string title: Human-readable name for edition.
     :>json string tracked_refs: Git ref that this Edition points to. For multi-
         repository builds, this can be a comma-separated list of refs to use,
@@ -334,4 +345,5 @@ def edit_edition(id):
     except Exception:
         db.session.rollback()
         raise
+    build_dashboard_safely(current_app, request, edition.product)
     return jsonify(edition.export_data())

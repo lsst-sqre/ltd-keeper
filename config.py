@@ -19,6 +19,7 @@ class Config(object):
     AWS_SECRET = os.environ.get('LTD_KEEPER_AWS_SECRET')
     FASTLY_KEY = os.environ.get('LTD_KEEPER_FASTLY_KEY')
     FASTLY_SERVICE_ID = os.environ.get('LTD_KEEPER_FASTLY_ID')
+    LTD_DASHER_URL = os.getenv('LTD_DASHER_URL', None)
 
     # Suppresses a warning until Flask-SQLAlchemy 3
     # See http://stackoverflow.com/a/33790196

@@ -13,7 +13,7 @@ def test_purge_key():
     surrogate_key = uuid.uuid4().hex
 
     url = 'https://api.fastly.com/service/{0}/purge/{1}'.format(
-            service_id, surrogate_key)
+        service_id, surrogate_key)
 
     # Mock the API call and response
     responses.add(responses.POST, url, status=200)
@@ -34,7 +34,7 @@ def test_purge_key_fail():
     surrogate_key = uuid.uuid4().hex
 
     url = 'https://api.fastly.com/service/{0}/purge/{1}'.format(
-            service_id, surrogate_key)
+        service_id, surrogate_key)
 
     # Mock the API call and response
     responses.add(responses.POST, url, status=404)

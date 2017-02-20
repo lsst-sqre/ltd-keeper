@@ -20,7 +20,7 @@ Procedure
 
    .. code-block:: bash
 
-      kubectl delete keeper-deployment
+      kubectl delete deployment keeper-deployment
 
    Watch for the pods to be deleted with ``kubectl get pods``.
 
@@ -71,3 +71,42 @@ Procedure
    .. code-block:: bash
 
       kubectl create -f keeper-deployment
+
+.. _gke-migrations-troubleshooting:
+
+Troubleshooting
+===============
+
+Unexpected branched state
+-------------------------
+
+It's possible for Alembic to get into an unexpected branching state, producing an error message during a ``run.py db upgrade`` like::
+
+   alembic.util.exc.CommandError: Requested revision 1ba709663f26 overlaps with other requested revisions 0c0c70d73d4b
+
+The ``run.py db heads`` and ``run.py db branches`` and ``run.py db current`` commands will show a normal, linear version history.
+A true validation is to inspect the ``alembic_version`` table in the database.
+
+Following :ref:`gke-cloudsql-connect`, log into the database and show the ``alembic_version`` table:
+
+.. code-block:: sql
+
+   use keeper;
+   select * from alembic_version;
+
+If more than one version row is present, then the table can be easily reset.
+First, drop the ``alembic_version`` table:
+
+.. code-block:: sql
+
+   drop table alembic_version;
+
+Then in the management pod, stamp the database version:
+
+.. code-block:: bash
+
+   ./run.py db stamp $VERSION
+
+where ``$VERSION`` is the ID of the known current migration.
+This creates a new ``alembic_version`` table with a single row specifying the current version.
+Now the database upgrade can be retried.
