@@ -297,7 +297,7 @@ def rebuild_product_dashboard(slug):
     - :http:post:`/dashboards`
     """
     product = Product.query.filter_by(slug=slug).first_or_404()
-    build_dashboards(product.get_url(),
-                     current_app.config[''],
+    build_dashboards([product.get_url()],
+                     current_app.config['LTD_DASHER_URL'],
                      current_app.logger)
     return jsonify({}), 202, {}
