@@ -273,6 +273,31 @@ class Build(db.Model):
     # Relationships
     # product - from Product class
 
+    @classmethod
+    def from_url(cls, build_url):
+        """Get a Build given its API URL.
+
+        Parameters
+        ----------
+        build_url : `str`
+            API URL of the build. This is the same as `Build.get_url`.
+
+        Returns
+        -------
+        build : `Build`
+            The Build instance corresponding to the URL.
+        """
+        # Get new Build ID from the build resource's URL
+        build_endpoint, build_args = split_url(build_url)
+        if build_endpoint != 'api.get_build' or 'id' not in build_args:
+            raise ValidationError('Invalid build_url: ' +
+                                  'build_url')
+        build = cls.query.get(build_args['id'])
+        if build is None:
+            raise ValidationError('Invalid build_url: ' + build_url)
+
+        return build
+
     @property
     def bucket_root_dirname(self):
         """Directory in the bucket where the build is located."""
@@ -558,9 +583,19 @@ class Edition(db.Model):
         if 'slug' in data:
             self.update_slug(data['slug'])
 
-    def rebuild(self, build_url):
+    def rebuild(self, build_url=None, build=None):
         """Modify the build this edition points to.
 
+        Parameters
+        ----------
+        build_url : `str`, optional
+            API URL of the build resource. Optional if ``build`` is provided
+            instead.
+        build : `Build`, optional
+            `Build` object. Optional if ``build_url`` is provided instead.
+
+        Notes
+        -----
         This method accomplishes the following:
 
         1. Gets surrogate key from existing build used by edition
@@ -577,14 +612,12 @@ class Edition(db.Model):
         if self.surrogate_key is None:
             self.surrogate_key = uuid.uuid4().hex
 
-        # Get new Build ID from the build resource's URL
-        build_endpoint, build_args = split_url(build_url)
-        if build_endpoint != 'api.get_build' or 'id' not in build_args:
-            raise ValidationError('Invalid build_url: ' +
-                                  'build_url')
-        self.build = Build.query.get(build_args['id'])
-        if self.build is None:
-            raise ValidationError('Invalid build_url: ' + build_url)
+        # Get and validate the build
+        if build is not None:
+            self.build = build
+        else:
+            self.build = Build.from_url(build_url)
+
         if self.build.uploaded is False:
             raise ValidationError('Build has not been uploaded: ' + build_url)
         if self.build.date_ended is not None:
