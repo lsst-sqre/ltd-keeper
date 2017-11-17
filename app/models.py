@@ -379,6 +379,43 @@ class Build(db.Model):
         self.date_ended = datetime.now()
 
 
+class EditionMode(object):
+    """Definitions for `Edition.mode`.
+
+    These modes determine how an edition should be updated with new builds.
+    """
+
+    GIT_REFS = 1
+    """Default tracking mode where an edition tracks an array of Git refs.
+
+    This is the default mode if Edition.mode is None.
+    """
+
+    LSST_DOC = 2
+    """LSST document-specific tracking mode where an edition publishes the
+    most recent vN.M tag.
+    """
+
+    @staticmethod
+    def validate(mode):
+        """Validate a mode identifier.
+
+        Parameters
+        ----------
+        mode : `int`
+            Mode identifier.
+
+        Returns
+        -------
+        valid : `bool`
+            `True` if the ``mode`` is recognized.
+        """
+        if mode in (EditionMode.GIT_REFS, EditionMode.LSST_DOC):
+            return True
+        else:
+            return False
+
+
 class Edition(db.Model):
     """DB model for Editions. Editions are fixed-location publications of the
     docs. Editions are updated by new builds; though not all builds are used
@@ -393,6 +430,10 @@ class Edition(db.Model):
     # Build currently used by this Edition
     build_id = db.Column(db.Integer, db.ForeignKey('builds.id'),
                          index=True)
+    # Algorithm for updating this edition with a new build.
+    # Integer values are defined in EditionMode.
+    # Null is the default mode: EditionMode.GIT_REFS.
+    mode = db.Column(db.Integer, nullable=True)
     # What product Git refs this Edition tracks and publishes
     tracked_refs = db.Column(MutableList.as_mutable(JSONEncodedVARCHAR(2048)))
     # url-safe slug for edition
@@ -448,6 +489,7 @@ class Edition(db.Model):
             'self_url': self.get_url(),
             'product_url': self.product.get_url(),
             'build_url': build_url,
+            'mode': self.mode,
             'tracked_refs': self.tracked_refs,
             'slug': self.slug,
             'title': self.title,
@@ -475,6 +517,12 @@ class Edition(db.Model):
                                   'array of strings')
         self.tracked_refs = tracked_refs
 
+        if 'mode' in data:
+            self.set_mode(data['mode'])
+        else:
+            # Set default
+            self.mode = EditionMode.GIT_REFS
+
         # Validate the slug
         self._validate_slug(data['slug'])
 
@@ -497,6 +545,9 @@ class Edition(db.Model):
                 raise ValidationError('Invalid Edition: tracked_refs must '
                                       'be an array of strings')
             self.tracked_refs = data['tracked_refs']
+
+        if 'mode' in data:
+            self.set_mode(data['mode'])
 
         if 'title' in data:
             self.title = data['title']
@@ -561,6 +612,26 @@ class Edition(db.Model):
         # TODO start a job that will warm the Fastly cache with the new edition
 
         self.date_rebuilt = datetime.now()
+
+    def set_mode(self, mode):
+        """Set the ``mode`` attribute.
+
+        Parameters
+        ----------
+        mode : `int`
+            Mode identifier. Validated to be one in `EditionMode`.
+
+        Raises
+        ------
+        ValidationError
+            Raised if `mode` is unknown.
+        """
+        if not EditionMode.validate(mode):
+            raise ValidationError(
+                'Invalid Edition: mode {!r} unknown.'.format(mode))
+        self.mode = mode
+
+        # TODO set tracked_refs to None if mode is LSST_DOC.
 
     def update_slug(self, new_slug):
         """Update the edition's slug by migrating files on S3."""
