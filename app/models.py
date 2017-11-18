@@ -388,14 +388,13 @@ class Build(db.Model):
         """Hook for when a build has been uploaded."""
         self.uploaded = True
 
-        # Rebuild any edition that tracks this build's git refs
         editions = Edition.query.autoflush(False)\
             .filter(Edition.product == self.product)\
-            .filter(Edition.tracked_refs == self.git_refs)\
             .all()
 
         for edition in editions:
-            edition.rebuild(self.get_url())
+            if edition.should_rebuild(build=self):
+                edition.rebuild(build=self)
 
     def deprecate_build(self):
         """Trigger a build deprecation.
