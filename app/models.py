@@ -17,6 +17,7 @@ from . import fastly
 from .exceptions import ValidationError
 from .utils import split_url, format_utc_datetime, \
     JSONEncodedVARCHAR, MutableList, validate_product_slug, validate_path_slug
+from .gitrefutils import LsstDocVersionTag
 
 
 class Permission(object):
@@ -582,6 +583,80 @@ class Edition(db.Model):
 
         if 'slug' in data:
             self.update_slug(data['slug'])
+
+    def should_rebuild(self, build_url=None, build=None):
+        """Determine whether the edition should be rebuilt to show a certain
+        build given the tracking mode.
+
+        Parameters
+        ----------
+        build_url : `str`, optional
+            API URL of the build resource. Optional if ``build`` is provided
+            instead.
+        build : `Build`, optional
+            `Build` object. Optional if ``build_url`` is provided instead.
+
+        Returns
+        -------
+        decision : `bool`
+            `True` if the edition should be rebuilt using this Build, or
+            `False` otherwise.
+        """
+        if build is not None:
+            candidate_build = build
+        else:
+            candidate_build = Build.from_url(build_url)
+
+        # Prefilter
+        if candidate_build.product != self.product:
+            return False
+        if candidate_build.uploaded is False:
+            return False
+
+        if self.mode == EditionMode.GIT_REFS or self.mode is None:
+            # Default tracking mode that follows an array of Git refs.
+            if (candidate_build.product == self.product) \
+                    and (candidate_build.git_refs == self.tracked_refs):
+                return True
+
+        elif self.mode == EditionMode.LSST_DOC:
+            # LSST document tracking mode.
+
+            # If the edition is unpublished or showing `master`, and the
+            # build is tracking `master`, then allow this rebuild.
+            # This is used in the period before a semantic version is
+            # available.
+            if candidate_build.git_refs[0] == 'master':
+                if self.build_id is None or \
+                        self.build.git_refs[0] == 'master':
+                    return True
+
+            # Does the build have the vN.M tag?
+            try:
+                candidate_version = LsstDocVersionTag(
+                    candidate_build.git_refs[0])
+            except ValueError:
+                return False
+
+            # Does the edition's current build have a LSST document version
+            # as its Git ref?
+            try:
+                current_version = LsstDocVersionTag(
+                    self.build.git_refs[0])
+            except ValueError:
+                # Not currently tracking a version, so automatically accept
+                # the candidate.
+                return True
+
+            # Is the candidate version newer than the existing version?
+            if candidate_version >= current_version:
+                # Accept >= in case a replacement of the same version is
+                # somehow required.
+                return True
+
+        else:
+            # Mode is unknown
+            return False
 
     def rebuild(self, build_url=None, build=None):
         """Modify the build this edition points to.
