@@ -4,7 +4,7 @@ from flask import jsonify, request, current_app
 from . import api
 from .. import db
 from ..auth import token_auth, permission_required
-from ..models import Product, Permission, Edition
+from ..models import Product, Permission, Edition, EditionMode
 from ..dasher import build_dashboard_safely, build_dashboards
 
 
@@ -171,6 +171,9 @@ def new_product():
     :<json string bucket_name: Name of the S3 bucket hosting builds.
     :<json string doc_repo: URL of the Git documentation repo (i.e., on
        GitHub).
+    :<json int main_mode: Tracking mode for the main (default) edition.
+       ``1``: track the ``master`` Git ref. ``2``: track LSST document version
+       tags.
     :<json string root_domain: Root domain name where documentation for
        this LSST the Docs installation is served from. (e.g., ``lsst.io``).
     :<json string root_fastly_domain: Root domain name for Fastly CDN used
@@ -186,14 +189,22 @@ def new_product():
     """
     product = Product()
     try:
-        product.import_data(request.json)
+        request_json = request.json
+        product.import_data(request_json)
         db.session.add(product)
 
         # Create a default edition for the product
+        edition_data = {'tracked_refs': ['master'],
+                        'slug': 'main',
+                        'title': 'Latest'}
+        if 'main_mode' in request_json:
+            edition_data['mode'] = request_json['main_mode']
+        else:
+            # Default tracking mode
+            edition_data['mode'] = EditionMode.GIT_REFS
+
         edition = Edition(product=product)
-        edition.import_data({'tracked_refs': ['master'],
-                             'slug': 'main',
-                             'title': 'Latest'})
+        edition.import_data(edition_data)
         db.session.add(edition)
 
         db.session.commit()
