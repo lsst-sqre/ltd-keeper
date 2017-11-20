@@ -2,14 +2,14 @@
 Products - `/products`
 ######################
 
-The ``/products/`` API allows you to list products, create new products, and update products (including adding new builds and editions).
+The ``/products/`` API allows you to list Products, create new Products, and update Products (including adding new :doc:`Builds <builds>` and :doc:`Editions <editions>`).
 
 In LTD Keeper, a Product is the root entity associated with a documentation project.
 Generally, a single Sphinx documentation repository maps to a Product.
 LTD Keeper can host documentation for several products.
 
-The actual documentation associated with a Product is manifested by **builds**.
-In turn, builds are the source of **editions**, which are published versions of the Product's documentation.
+The actual documentation associated with a Product is manifested by :doc:`Builds <builds>`.
+In turn, :doc:`Builds <builds>` are the source of :doc:`Editions <editions>`, which are published versions of the Product's documentation.
 
 Method summary
 ==============
@@ -36,9 +36,9 @@ Method summary
 
 *See also:*
 
-- :doc:`/builds/ <builds>` for editing or deleting a build.
+- :doc:`/builds/ <builds>`
 
-- :doc:`/editions/ <editions>` for editing or deleting an edition.
+- :doc:`/editions/ <editions>`
 
 Reference
 =========

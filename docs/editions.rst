@@ -2,26 +2,28 @@
 Editions - `/editions/`
 #######################
 
-An Edition is a publication of a Product's documentation.
+An Edition is a publication of a :doc:`Product <products>`\ ’s documentation.
 Editions allow products to have multiple versions of documentation published at once, from separate URLs.
-For example, the 'latest' documentation might be published to ``docs.project.org``, but documentation for the tagged 'v1' might be published to ``v1.docs.project.org``.
+For example, the 'latest' documentation might be published to ``docs.project.org``, but documentation for the tagged 'v1' release might be published to ``docs.project.org/v/v1``.
 
-Editions are merely pointers to a Build; an Edition is updated by pointing to a newer build (see :http:patch:`/editions/(int:id)`).
+Editions are merely pointers to a :doc:`Build <builds>`; an Edition is updated by pointing to a newer :doc:`Build <builds>` (see :http:patch:`/editions/(int:id)`).
 
 Methods
 =======
 
-- :http:get:`/editions/(int:id)` --- show a single edition.
+- :http:get:`/editions/(int:id)` --- show a single Edition.
 
-- :http:patch:`/editions/(int:id)` --- update an edition.
+- :http:patch:`/editions/(int:id)` --- update an Edition.
 
-- :http:delete:`/editions/(int:id)` --- deprecate an edition.
-
-
+- :http:delete:`/editions/(int:id)` --- deprecate an Edition.
 
 *See also:*
 
-- :doc:`/products/ <products>` for creating a new edition associated with a product.
+- :http:post:`/products/(slug)/editions/` --- create a new Edition for a Product.
+
+- :http:get:`/products/(slug)/editions/` --- list all Edition for a Product.
+
+- :http:get:`/products/(slug)/editions/` --- list all Edition for a Product.
 
 Reference
 =========
