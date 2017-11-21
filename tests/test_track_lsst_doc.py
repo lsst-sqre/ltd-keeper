@@ -1,4 +1,4 @@
-"""Test an Edition that tracks LSST document releases (EditionMode.LSST_DOC).
+"""Test an Edition that tracks LSST document releases (``lsst_doc).
 """
 
 
@@ -18,7 +18,7 @@ def test_lsst_doc_edition(client):
     p1_data = {
         'slug': 'ldm-151',
         'doc_repo': 'https://github.com/lsst/LDM-151',
-        'main_mode': 2,
+        'main_mode': 'lsst_doc',
         'title': 'Applications Design',
         'root_domain': 'lsst.io',
         'root_fastly_domain': 'global.ssl.fastly.net',

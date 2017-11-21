@@ -1,5 +1,5 @@
 """Tests for PATCHing an edition to change the tracking mode from
-GIT_REF to LSST_DOC.
+``git_refs`` to ``lsst_doc``.
 """
 
 
@@ -17,7 +17,7 @@ def test_pach_lsst_doc_edition(client):
     p1_data = {
         'slug': 'ldm-151',
         'doc_repo': 'https://github.com/lsst/LDM-151',
-        'main_mode': 1,  # default
+        'main_mode': 'git_refs',  # default
         'title': 'Applications Design',
         'root_domain': 'lsst.io',
         'root_fastly_domain': 'global.ssl.fastly.net',
@@ -58,7 +58,7 @@ def test_pach_lsst_doc_edition(client):
 
     # PATCH the tracking mode of the edition
     edition_patch_data = {
-        'mode': 2
+        'mode': 'lsst_doc'
     }
     r = client.patch(edition_url, edition_patch_data)
     assert r.status == 200

@@ -28,9 +28,7 @@ Method summary
 
 - :http:post:`/products/(slug)/editions/` --- create a new edition for a product.
 
-- :http:get:`/products/(slug)/editions/` --- list all edition for a product.
-
-- :http:get:`/products/(slug)/editions/` --- list all edition for a product.
+- :http:get:`/products/(slug)/editions/` --- list all editions for a product.
 
 - :http:post:`/products/(slug)/dashboard` --- manually rebuild the dashboards for a product.
 
