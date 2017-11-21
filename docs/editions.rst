@@ -12,43 +12,43 @@ Tracking modes
 ==============
 
 Editions track :doc:`Builds <builds>`.
-This means that when a new :doc:`Build <builds>` is uploaded, any edition for that :doc:`Product <products>` that tracks that *kind* of build will be updated.
-An Edition's tracking mode is given with the ``mode`` field of :http:get:`/editions/(int:id)`, and can either be set initially (:http:post:`/products/(slug)/editions/`) or updated on an existing Edition (:http:patch:`/editions/(int:id)`).
+This means that when a new :doc:`Build <builds>` is uploaded, any Edition for that :doc:`Product <products>` that tracks that *kind* of Build will be updated.
+An Edition's tracking mode is given with the ``mode`` field, and can either be set initially (:http:post:`/products/(slug)/editions/`) or updated on an existing Edition (:http:patch:`/editions/(int:id)`).
 There are two tracking modes, currently:
 
-======== =============
-``mode`` Description
-======== =============
-1        Git ref
-2        LSST document
-======== =============
+============ =================================
+mode field   Tracking behavior
+============ =================================
+``git_refs`` Git branches and tags
+``lsst_doc`` Latest LSST document version tags
+============ =================================
 
-Git reference mode (default)
-----------------------------
+Git reference mode (``git_refs``, default)
+------------------------------------------
 
 This mode tracks Builds with a specific Git ref (branch name or tag).
 
-To use this mode, the ``mode`` field of the Edition must have a value of ``1``.
-Then ``tracked_refs`` field is an array of Git ref strings that determine the value of ``git_refs`` a :doc:`Build <builds>` needs to be published as the Edition.
+Enable this mode by setting the Edition's ``mode`` field to ``git_refs``.
+Then set the ``tracked_refs`` field with array of Git ref strings that determine the value of ``git_refs`` a :doc:`Build <builds>` needs to be published as the Edition.
 
 As an example, an Edition has these fields:
 
 .. code-block:: json
 
    {
-     "mode": 1,
+     "mode": "git_refs",
      "tracked_refs": ["master"]
    }
 
 Then a :doc:`Build <builds>` with ``{"git_refs": ["master"]}`` will be published by the Edition.
 
-LSST document mode
-------------------
+LSST document mode (``lsst_doc``)
+---------------------------------
 
 This mode makes the Edition track the :doc:`Build <builds>` with the most recent LSST document semantic version tag.
 LSST document semantic version tags are formatted as ``v<Major>.<Minor>``.
 
-The Edition's mode field must have a value of ``2`` to use this mode.
+Enable this mode by setting the Edition's ``mode`` field to ``lsst_doc``.
 
 Note that until the first :doc:`Build <builds>` with a semantic version tag is published, an Edition with this mode will track the ``master`` Git ref.
 
@@ -65,9 +65,7 @@ Methods
 
 - :http:post:`/products/(slug)/editions/` --- create a new Edition for a Product.
 
-- :http:get:`/products/(slug)/editions/` --- list all Edition for a Product.
-
-- :http:get:`/products/(slug)/editions/` --- list all Edition for a Product.
+- :http:get:`/products/(slug)/editions/` --- list all Editions for a Product.
 
 Reference
 =========

@@ -410,35 +410,77 @@ class EditionMode(object):
     These modes determine how an edition should be updated with new builds.
     """
 
-    GIT_REFS = 1
-    """Default tracking mode where an edition tracks an array of Git refs.
+    _modes = {
+        'git_refs': {
+            'id': 1,
+            'doc': ('Default tracking mode where an edition tracks an array '
+                    'of Git refs. This is the default mode if Edition.mode '
+                    'is None.')
+        },
+        'lsst_doc': {
+            'id': 2,
+            'doc': ('LSST document-specific tracking mode where an edition '
+                    'publishes the most recent vN.M tag.')
+        }
+    }
 
-    This is the default mode if Edition.mode is None.
-    """
-
-    LSST_DOC = 2
-    """LSST document-specific tracking mode where an edition publishes the
-    most recent vN.M tag.
-    """
+    _reverse_map = {mode['id']: mode_name
+                    for mode_name, mode in _modes.items()}
 
     @staticmethod
-    def validate(mode):
-        """Validate a mode identifier.
+    def name_to_id(mode):
+        """Convert a mode name (string used by the web API) to a mode ID
+        (integer) used by the DB.
 
         Parameters
         ----------
-        mode : `int`
-            Mode identifier.
+        mode : `str`
+            Mode name.
 
         Returns
         -------
-        valid : `bool`
-            `True` if the ``mode`` is recognized.
+        mode_id : `int`
+            Mode ID.
+
+        Raises
+        ------
+        ValidationError
+            Raised if ``mode`` is unknown.
         """
-        if mode in (EditionMode.GIT_REFS, EditionMode.LSST_DOC):
-            return True
-        else:
-            return False
+        try:
+            mode_id = EditionMode._modes[mode]['id']
+        except KeyError:
+            message = 'Edition mode {!r} unknown. Valid values are {!r}'
+            raise ValidationError(message.format(mode, EditionMode.keys()))
+        return mode_id
+
+    @staticmethod
+    def id_to_name(mode_id):
+        """Convert a mode ID (integer used by the DB) to a name used by the
+        web API.
+
+        Parameters
+        ----------
+        mode_id : `int`
+            Mode ID.
+
+        Returns
+        -------
+        mode : `str`
+            Mode name.
+
+        Raises
+        ------
+        ValidationError
+            Raised if ``mode`` is unknown.
+        """
+        try:
+            mode = EditionMode._reverse_map[mode_id]
+        except KeyError:
+            message = 'Edition mode ID {!r} unknown. Valid values are {!r}'
+            raise ValidationError(
+                message.format(mode_id, EditionMode._reverse_map.keys()))
+        return mode
 
 
 class Edition(db.Model):
@@ -514,7 +556,7 @@ class Edition(db.Model):
             'self_url': self.get_url(),
             'product_url': self.product.get_url(),
             'build_url': build_url,
-            'mode': self.mode,
+            'mode': EditionMode.id_to_name(self.mode),
             'tracked_refs': self.tracked_refs,
             'slug': self.slug,
             'title': self.title,
@@ -546,7 +588,7 @@ class Edition(db.Model):
             self.set_mode(data['mode'])
         else:
             # Set default
-            self.mode = EditionMode.GIT_REFS
+            self.set_mode('git_refs')
 
         # Validate the slug
         self._validate_slug(data['slug'])
@@ -612,13 +654,14 @@ class Edition(db.Model):
         if candidate_build.uploaded is False:
             return False
 
-        if self.mode == EditionMode.GIT_REFS or self.mode is None:
+        if self.mode == EditionMode.name_to_id('git_refs') \
+                or self.mode is None:
             # Default tracking mode that follows an array of Git refs.
             if (candidate_build.product == self.product) \
                     and (candidate_build.git_refs == self.tracked_refs):
                 return True
 
-        elif self.mode == EditionMode.LSST_DOC:
+        elif self.mode == EditionMode.name_to_id('lsst_doc'):
             # LSST document tracking mode.
 
             # If the edition is unpublished or showing `master`, and the
@@ -733,10 +776,7 @@ class Edition(db.Model):
         ValidationError
             Raised if `mode` is unknown.
         """
-        if not EditionMode.validate(mode):
-            raise ValidationError(
-                'Invalid Edition: mode {!r} unknown.'.format(mode))
-        self.mode = mode
+        self.mode = EditionMode.name_to_id(mode)
 
         # TODO set tracked_refs to None if mode is LSST_DOC.
 
