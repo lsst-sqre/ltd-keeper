@@ -16,7 +16,7 @@ spec:
           image: "lsstsqre/nginx-python:k8s"
           ports:
             # from keeper-service
-            - name: nginx-keeper
+            - name: keeper-nginx
               containerPort: 8080
 
         - name: cloudsql-proxy
