@@ -15,10 +15,10 @@ Enable the Cloud SQL API
 First, the Cloud SQL API may need to be explicitly enabled.
 This can be done from the Google Cloud console's API section.
 
-Create a High-Availabilty SQL Instance
+Create a high-availabilty SQL instance
 ======================================
 
-Create a master instance named ``ltd-sql`` using the :command:`gcloud` tool:
+Create a master instance named ``ltd-sql-1`` using the :command:`gcloud` tool:
 
 .. code-block:: bash
 

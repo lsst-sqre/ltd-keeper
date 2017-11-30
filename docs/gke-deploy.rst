@@ -1,5 +1,5 @@
 #############################
-Initial Kubernetes Deployment
+Initial Kubernetes deployment
 #############################
 
 Prerequisites

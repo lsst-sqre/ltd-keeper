@@ -9,7 +9,7 @@ But if the dashboard design changes, it is useful to trigger a rebuild of all da
 
 Dashboards are created by the `LTD Dasher <https://github.com/lsst-sqre/ltd-dasher>`_ microservice.
 
-Method Summary
+Method summary
 ==============
 
 - :http:post:`/dashboards` --- rebuild all dashboards.

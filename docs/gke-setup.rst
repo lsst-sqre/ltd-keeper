@@ -1,9 +1,9 @@
-############################################
-Setting up a Google Container Engine Cluster
-############################################
+#############################################
+Setting up a Google Kubernetes Engine Cluster
+#############################################
 
 To deploy LTD Keeper we recommend using Docker Containers orchestrated by `Kubernetes <http://kubernetes.io>`_.
-Although Kubernetes can be hosted on any public or private cloud, `Google Container Engine <https://cloud.google.com/container-engine/>`_ provides a convenient platform to run Kubernetes.
+Although Kubernetes can be hosted on any public or private cloud, `Google Kubernetes Engine <https://cloud.google.com/kubernetes-engine/>`_ provides a convenient platform to run Kubernetes.
 This page will describe how to install the Google command line apps, configure them, and create a cluster.
 
 .. _gke-create-gcp-project:
@@ -30,7 +30,7 @@ Follow `Google's Getting Started instructions <https://cloud.google.com/containe
 
 .. _gke-create-cluster:
 
-Create the Cluster
+Create the cluster
 ==================
 
 Now that ``gcloud`` is configured to use the correct Project, in the right zone, we can create a cluster of Google Compute Engine nodes.
