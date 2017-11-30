@@ -2,8 +2,9 @@
 # see http://kubernetes.io/docs/user-guide/pods/
 #
 # Use this to create bare pods for maintenance activities, like running a
-# migration or initializing a database. For regular api serving pods, use the
-# keeper-controller to start up a replication controller that manages pods.
+# migration or initializing a database. For regular api serving pods, use
+# keeper-deployment.yaml to start up a replication controller that manages
+# pods.
 
 apiVersion: v1
 kind: Pod
@@ -14,11 +15,6 @@ metadata:
     tier: management
 spec:
   containers:
-
-    - name: nginx
-      image: "lsstsqre/nginx-python:k8s"
-      ports:
-        - containerPort: 80
 
     - name: cloudsql-proxy
       image: b.gcr.io/cloudsql-docker/gce-proxy:1.05
@@ -37,7 +33,6 @@ spec:
       - name: cloudsql-ssl-certs
         mountPath: /etc/ssl/certs
 
-
     - name: uwsgi
       image: "lsstsqre/ltd-keeper:20170220-0"
       # Container should do nothing on start; let the user access it
@@ -46,9 +41,6 @@ spec:
       ports:
         - containerPort: 3031
           name: keeper
-      # Uncomment the securityContext to run as root instead of uwsgi
-      # securityContext:
-      #   runAsUser: 0
       volumeMounts:
         - name: cloudsql
           mountPath: /cloudsql
