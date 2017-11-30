@@ -33,7 +33,7 @@ spec:
       command: ["/cloud_sql_proxy", "-dir=/cloudsql", "-credential_file=/secret/file.json", "-instances=$MYPROJECT:MYINSTANCE"]
 
     - name: uwsgi
-      image: "lsstsqre/ltd-keeper:latest"
+      image: "lsstsqre/ltd-keeper:20170220-0"
       # Container should do nothing on start; let the user access it
       # http://kubernetes.io/docs/user-guide/containers/#how-docker-handles-command-and-arguments
       command: ["/bin/sleep", "86400"]
@@ -41,8 +41,8 @@ spec:
         - containerPort: 3031
           name: keeper
       # Uncomment the securityContext to run as root instead of uwsgi
-      securityContext:
-        runAsUser: 0
+      # securityContext:
+      #   runAsUser: 0
       volumeMounts:
         - name: cloudsql
           mountPath: /cloudsql
