@@ -103,10 +103,11 @@ spec:
             secretKeyRef:
               name: keeper-secrets
               key: db-url
+
   volumes:
     - name: cloudsql-secret-volume
       secret:
-        secretName: cloudsql-creds
+        secretName: cloudsql-secrets
     - name: cloudsql-ssl-certs
       hostPath:
         path: /etc/ssl/certs
