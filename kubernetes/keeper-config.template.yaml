@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: keeper-config
+data:
+  server-name: "keeper.lsst.codes"
+  profile: "production"
+  # <project>.<region>.<instance_name>
+  cloud-sql-instance: ""
+  url-scheme: "https"
+  # Cluster DNS url to LTD Dasher
+  dasher-url: "http://dasher:3031"
