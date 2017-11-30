@@ -64,3 +64,14 @@ target/
 *.sqlite
 
 integration_tests/ltd_keeper_doc_examples.txt
+
+# Kubernetes deployment
+kubernetes/cloudsql-secrets.yaml
+kubernetes/keeper-secrets.yaml
+kubernetes/ssl-proxy-secrets.yaml
+keeper-config.yaml
+kubernetes/cloudsql-secrets-staging.yaml
+kubernetes/keeper-secrets-staging.yaml
+kubernetes/ssl-proxy-secrets-staging.yaml
+keeper-config-staging.yaml
+kubernetes/dhparam.pem
