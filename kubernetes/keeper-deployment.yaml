@@ -42,6 +42,9 @@ spec:
           ports:
             - containerPort: 3031
               name: keeper
+          volumeMounts:
+            - name: cloudsql
+              mountPath: /cloudsql
           env:
             - name: LTD_KEEPER_URL
               valueFrom:
