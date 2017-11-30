@@ -71,7 +71,6 @@ Create a convenient directory where a unix socket can be created:
    mkdir cloudsql
    sudo chmod 777
 
-
 And run the proxy:
 
 .. code-block:: bash

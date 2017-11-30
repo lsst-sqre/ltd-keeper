@@ -11,26 +11,28 @@ The steps assume the follow steps described on previous pages have been accompli
 
 2. Created the cluster and persistent storage.
 
-3. Customized the :file:`kubernetes/keeper-secrets.template.yaml` and :file:`kubernetes/ssl-proxy-secrets.template.yaml` files with the appropriate configurations and TLS certs.
+3. Customized the configuration files, see :doc:`gke-config`.
 
-Step 1. Deploy Secrets
-======================
+Step 1. deploy configurations
+=============================
 
-Deploy the secrets with:
+Deploy the configurations with:
 
 .. code-block:: bash
 
-   kubectl create -f keeper-secrets.yaml
-   kubectl create -f ssl-proxy-secrets.yaml
-   kubectl create -f cloudsql-secrets.yaml
+   kubectl create -f keeper-secrets-prod.yaml
+   kubectl create -f keeper-config-prod.yaml
+   kubectl create -f ssl-proxy-secrets-prod.yaml
+   kubectl create -f cloudsql-secrets-prod.yaml
 
 You can see they have been deployed with:
 
 .. code-block:: bash
 
    kubectl get secrets
+   kubectl get configmaps
 
-Step 2. Deploy Services
+Step 2. deploy services
 =======================
 
 .. code-block:: bash
@@ -38,7 +40,7 @@ Step 2. Deploy Services
    kubectl create -f ssl-proxy-service.yaml
    kubectl create -f keeper-service.yaml
 
-Check for the external IP of the ssl-proxy-service with:
+Check for the external IP of the ``ssl-proxy-service`` with:
 
 .. code-block:: bash
 
@@ -47,7 +49,7 @@ Check for the external IP of the ssl-proxy-service with:
 Set the domain's A record to this IP.
 This domain was specified as ``server-name`` in :file:`keeper-secrets.yaml`.
 
-Step 3. Deploy the SSL Proxy
+Step 3. Deploy the SSL proxy
 ============================
 
 .. code-block:: bash
@@ -60,18 +62,16 @@ Check that the replication controller exists:
 
    kubectl get rc
 
-And that the nginx-ssl-proxy pod exists:
+And that the ``nginx-ssl-proxy`` pod exists:
 
 .. code-block:: bash
 
    kubectl get pods
 
-Step 4. Deploy the Maintenance Pod
+Step 4. Deploy the maintenance pod
 ==================================
 
 We use a standalone maintenance pod to initialize the database.
-
-This pod needs to run as root, so *uncomment* the ``securityContext`` section in ``keeper-mgmt-pod.yaml``.
 
 Deploy the pod:
 
@@ -130,6 +130,8 @@ Verify that the pod is deployed with:
    kubectl get pods
 
 You can know verify that Keeper is serving over HTTPS:
+
+.. code-block:: bash
 
    curl https://keeper.lsst.codes/products/
 

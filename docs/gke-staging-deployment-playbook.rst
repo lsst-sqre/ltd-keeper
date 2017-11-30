@@ -1,5 +1,5 @@
 #######################################
-Creating and Using a Staging Deployment
+Creating and using a staging deployment
 #######################################
 
 When working on LTD Keeper, it's sometimes useful to create a separate Kubernetes deployment for testing that's isolated from production.
@@ -128,7 +128,7 @@ Further reading
 
 - `Kubernetes namespaces walkthrough <https://kubernetes.io/docs/admin/namespaces/walkthrough/>`_.
 
-.. gke-staging-deployment:
+.. _gke-staging-deployment:
 
 Deploying to the staging namespace
 ==================================
@@ -141,19 +141,16 @@ Modifying configuration and secrets
 
 Secrets and other resources need to be customized for the staging namespace:
 
-- Modifications to :file:`kubernetes/keeper-secrets-template.yaml`:
+- Modifications to :file:`kubernetes/keeper-secrets-staging.yaml`:
 
   - ``db-url`` should point to the new ``ltd-sql-staging`` database.
+
+- Modifications to :file:`kubernetes/keeper-config-staging.yaml`:
+
   - ``server-name`` should point to a staging URL, like ``keeper-staging.lsst.codes``.
     Remember to create a new DNS record pointing to the ``nginx-ssl-proxy``.
 
-- In :file:`kubernetes/keeper-deployment.yaml` and :file:`kubernetes/keeper-mgmt-pod.yaml`, the ``cloudsql-proxy`` command should be updated:
-
-  .. code-block:: yaml
-
-     command: ["/cloud_sql_proxy", "-dir=/cloudsql", "-credential_file=/secret/file.json", "-instances=$PROJECTNAME:ltd-sql-staging"]
-
-  where ``$PROJECTNAME`` should be set to the Google Cloud Platform project name.
+  - ``cloud-sql-instance``: should point to the new ``ltd-sql-staging`` database.
 
 .. note::
 

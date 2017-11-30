@@ -19,6 +19,7 @@ Follow `Google's Getting Started instructions <https://cloud.google.com/containe
 2. Enable the Container Engine API.
 
 3. Install ``gcloud`` (CLI for Google Cloud Platform) and ``kubectl`` (CLI for Kubernetes).
+   See `Google's Install the Google Cloud SDK <https://cloud.google.com/sdk/docs/quickstarts>`_.
 
 4. Set your ``gcloud`` defaults to use the project's ID and set a default zone. For example:
 
@@ -45,16 +46,16 @@ For example:
 
 .. code-block:: bash
 
-   gcloud container clusters create lsst-the-docs \
-       --num-nodes 1 \
+   gcloud container clusters create lsst-docs \
+       --num-nodes 2 \
        --machine-type g1-small
 
-Then make this ``lsst-the-docs`` cluster the default and obtain the credentials:
+Then make this ``lsst-docs`` cluster the default and obtain the credentials:
 
 .. code-block:: bash
 
-   gcloud config set container/cluster lsst-the-docs
-   gcloud container clusters get-credentials lsst-the-docs
+   gcloud config set container/cluster lsst-docs
+   gcloud container clusters get-credentials lsst-docs
 
 You can later rescale this cluster.
 For example:
@@ -80,8 +81,8 @@ If you just need to work with a pre-existing project and cluster, configure ``gc
 
       gcloud config set project plasma-geode-127520
       gcloud config set compute/zone us-central1-b
-      gcloud config set container/cluster lsst-the-docs
-      gcloud container clusters get-credentials lsst-the-docs
+      gcloud config set container/cluster lsst-docs
+      gcloud container clusters get-credentials lsst-docs
 
 You can review your ``gcloud`` default configurations with:
 
