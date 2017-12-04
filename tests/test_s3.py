@@ -25,7 +25,7 @@ import uuid
 import boto3
 import pytest
 
-from app.s3 import delete_directory, copy_directory
+from keeper.s3 import delete_directory, copy_directory
 
 
 @pytest.mark.skipif(os.getenv('LTD_KEEPER_TEST_AWS_ID') is None or

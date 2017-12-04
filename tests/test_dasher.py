@@ -5,8 +5,8 @@ import logging
 import responses
 import pytest
 
-from app.dasher import build_dashboards
-from app.exceptions import DasherError
+from keeper.dasher import build_dashboards
+from keeper.exceptions import DasherError
 
 
 @responses.activate

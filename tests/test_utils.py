@@ -1,7 +1,7 @@
 import pytest
-from app.exceptions import ValidationError
-from app.utils import (auto_slugify_edition, validate_path_slug,
-                       validate_product_slug)
+from keeper.exceptions import ValidationError
+from keeper.utils import (auto_slugify_edition, validate_path_slug,
+                          validate_product_slug)
 
 
 @pytest.mark.parametrize(

@@ -13,7 +13,7 @@ down_revision = None
 from alembic import op
 import sqlalchemy as sa
 
-import app.utils
+import keeper.utils
 
 
 def upgrade():
@@ -43,7 +43,7 @@ def upgrade():
     sa.Column('slug', sa.String(length=256), nullable=False),
     sa.Column('date_created', sa.DateTime(), nullable=False),
     sa.Column('date_ended', sa.DateTime(), nullable=True),
-    sa.Column('git_refs', app.utils.JSONEncodedVARCHAR(length=2048), nullable=True),
+    sa.Column('git_refs', keeper.utils.JSONEncodedVARCHAR(length=2048), nullable=True),
     sa.Column('github_requester', sa.String(length=256), nullable=True),
     sa.Column('uploaded', sa.Boolean(), nullable=True),
     sa.Column('surrogate_key', sa.String(length=32), nullable=False),
@@ -55,7 +55,7 @@ def upgrade():
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('product_id', sa.Integer(), nullable=True),
     sa.Column('build_id', sa.Integer(), nullable=True),
-    sa.Column('tracked_refs', app.utils.JSONEncodedVARCHAR(length=2048), nullable=True),
+    sa.Column('tracked_refs', keeper.utils.JSONEncodedVARCHAR(length=2048), nullable=True),
     sa.Column('slug', sa.String(length=256), nullable=False),
     sa.Column('title', sa.Unicode(length=256), nullable=False),
     sa.Column('date_created', sa.DateTime(), nullable=False),

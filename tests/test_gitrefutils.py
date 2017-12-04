@@ -3,7 +3,7 @@
 
 import pytest
 
-from app.gitrefutils import LsstDocVersionTag
+from keeper.gitrefutils import LsstDocVersionTag
 
 
 def test_lsst_doc_tag():

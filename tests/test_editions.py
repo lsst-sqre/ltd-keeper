@@ -2,7 +2,7 @@
 
 import pytest
 from werkzeug.exceptions import NotFound
-from app.exceptions import ValidationError
+from keeper.exceptions import ValidationError
 
 
 def test_editions(client):

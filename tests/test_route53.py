@@ -9,12 +9,12 @@ import logging
 import boto3
 import pytest
 
-from app.route53 import create_cname, delete_cname
-from app.route53 import _find_cname_record, _get_zone_id
+from keeper.route53 import create_cname, delete_cname
+from keeper.route53 import _find_cname_record, _get_zone_id
 
 
 logging.basicConfig(level=logging.INFO)
-logging.getLogger('app.route53').level = logging.DEBUG
+logging.getLogger('keeper.route53').level = logging.DEBUG
 
 
 @pytest.mark.skipif(os.getenv('LTD_KEEPER_TEST_AWS_ID') is None or

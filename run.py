@@ -35,7 +35,7 @@ Other commands
 ./run.py db upgrade
    Run a DB migration to the current DB scheme.
 
-See config.py for associated configuration.
+See keeper/config.py for associated configuration.
 """
 
 import os
@@ -43,8 +43,8 @@ import os
 from flask.ext.script import Manager
 from flask.ext.migrate import Migrate, MigrateCommand
 
-from app import create_app, db, models
-from app.models import User, Permission
+from keeper import create_app, db, models
+from keeper.models import User, Permission
 
 environment = os.getenv('LTD_KEEPER_PROFILE', 'development')
 keeper_app = create_app(profile=environment)
@@ -77,8 +77,7 @@ def createdb():
 
     To migrate database servers, see the copydb sub-command.
     """
-    import app
-    app.db.create_all()
+    keeper.db.create_all()
 
     # stamp tables with latest schema version
     from alembic.config import Config
