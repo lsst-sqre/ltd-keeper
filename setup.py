@@ -16,7 +16,6 @@ def read_file(filename):
 
 setup(
     name='lsst-the-docs-keeper',
-    version='0.1.0',
     description='LSST the Docs API server',
     long_description=read_file('README.rst'),
     url='https://ltd-keeper.lsst.io',
@@ -34,6 +33,10 @@ setup(
     ],
     keywords='lsst lsst-the-docs',
     packages=find_packages(exclude=('tests',)),
+    use_scm_version=True,
+    setup_requires=[
+        'setuptools_scm==1.15.6'
+    ],
     install_requires=[
         'Flask==0.10.1',
         'uWSGI==2.0.15',

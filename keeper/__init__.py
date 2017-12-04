@@ -9,10 +9,17 @@ Copyright 2014 Miguel Grinberg.
 
 from flask import Flask, jsonify, g
 from flask.ext.sqlalchemy import SQLAlchemy
+from pkg_resources import get_distribution, DistributionNotFound
 
 from .config import config
 
 db = SQLAlchemy()
+
+try:
+    __version__ = get_distribution('lsst-the-docs-keeper').version
+except DistributionNotFound:
+    # Package is not installed
+    __version__ = '0.0.0'
 
 
 def create_app(profile='production'):
