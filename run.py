@@ -35,6 +35,9 @@ Other commands
 ./run.py db upgrade
    Run a DB migration to the current DB scheme.
 
+./run.py version
+   Print the application version.
+
 See keeper/config.py for associated configuration.
 """
 
@@ -150,6 +153,14 @@ def initkeys():
                     db.session.rollback()
                     print('Failed to make surrogate key for {0}'.format(
                         product.slug))
+
+
+@manager.command
+def version():
+    """Print the application version.
+    """
+    # FIXME replace with the setuptools version
+    print('0.1.0')
 
 
 if __name__ == '__main__':
