@@ -35,6 +35,7 @@ spec:
 
     - name: uwsgi
       image: "lsstsqre/ltd-keeper:tickets-DM-12923"
+      imagePullPolicy: "Always"
       # Container should do nothing on start; let the user access it
       # http://kubernetes.io/docs/user-guide/containers/#how-docker-handles-command-and-arguments
       command: ["/bin/sleep", "86400"]
