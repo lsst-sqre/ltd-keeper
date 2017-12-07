@@ -3,7 +3,6 @@ kind: ConfigMap
 metadata:
   name: keeper-config
 data:
-  server-name: "keeper.lsst.codes"
   profile: "production"
   # <project>.<region>.<instance_name>
   cloud-sql-instance: ""

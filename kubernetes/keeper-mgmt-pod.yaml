@@ -46,11 +46,6 @@ spec:
         - name: cloudsql
           mountPath: /cloudsql
       env:
-        - name: LTD_KEEPER_URL
-          valueFrom:
-            configMapKeyRef:
-              name: keeper-config
-              key: server-name
         - name: LTD_KEEPER_PROFILE
           valueFrom:
             configMapKeyRef:
