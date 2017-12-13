@@ -2,6 +2,13 @@
 Change log
 ##########
 
+1.7.0 (2017-12-13)
+==================
+
+In this version we've dropped the ``nginx-ssl-proxy`` pod that we've used thus far and adopted the standard Kubernetes Ingress resources for TLS termination instead.
+This means that the Keeper service is now a NodePort-type service.
+The advantage of using Ingress is that we can rely on Google to maintain that resource and ensure that the TLS-terminating proxy is updated with new security patches.
+
 1.6.0 (2017-12-13)
 ==================
 

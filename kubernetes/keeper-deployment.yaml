@@ -38,7 +38,7 @@ spec:
 
         - name: uwsgi
           imagePullPolicy: "Always"
-          image: "lsstsqre/ltd-keeper:20170220-0"
+          image: "lsstsqre/ltd-keeper:tickets-DM-12923"
           ports:
             - containerPort: 3031
               name: keeper
@@ -46,11 +46,6 @@ spec:
             - name: cloudsql
               mountPath: /cloudsql
           env:
-            - name: LTD_KEEPER_URL
-              valueFrom:
-                configMapKeyRef:
-                  name: keeper-config
-                  key: server-name
             - name: LTD_KEEPER_PROFILE
               valueFrom:
                 configMapKeyRef:

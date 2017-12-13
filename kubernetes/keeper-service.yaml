@@ -1,9 +1,9 @@
-# Load balancer service for Keeper pods
+# Service for the 'keeper' deployment
 #
-# See http://kubernetes.io/docs/user-guide/services/#type-loadbalancer
+# https://kubernetes.io/docs/concepts/services-networking/service/#type-nodeport
 #
-# This Service internally load balances traffic from the nginx-ssl-proxy
-# to pods on the 'keeper' selector.
+# This Services takes traffic from the ingress and routes it to the
+# keeper-nginx port of the keeper pods.
 
 apiVersion: v1
 kind: Service
@@ -12,10 +12,11 @@ metadata:
   labels:
     name: keeper
 spec:
+  type: NodePort
   ports:
-    - name: http
+    - name: keeper-http
+      protocol: TCP
       port: 8080
       targetPort: keeper-nginx
-      protocol: TCP
   selector:
     name: keeper

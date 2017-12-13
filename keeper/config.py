@@ -66,7 +66,6 @@ class ProductionConfig(Config):
     SQLALCHEMY_DATABASE_URI = os.environ.get('LTD_KEEPER_DB_URL')
     DEFAULT_USER = os.environ.get('LTD_KEEPER_BOOTSTRAP_USER')
     DEFAULT_PASSWORD = os.environ.get('LTD_KEEPER_BOOTSTRAP_PASSWORD')
-    SERVER_NAME = os.environ.get('LTD_KEEPER_URL')
     PREFERRED_URL_SCHEME = os.environ.get('LTD_KEEPER_URL_SCHEME')
 
     @classmethod
