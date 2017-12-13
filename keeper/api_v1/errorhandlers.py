@@ -6,6 +6,8 @@ than the default HMTL header response.
 """
 
 from flask import jsonify
+import structlog
+
 from ..exceptions import ValidationError
 from . import api
 
@@ -40,6 +42,9 @@ def method_not_supported(e):
 @api.app_errorhandler(500)
 def internal_server_error(e):
     """App-wide handler for HTTP 500 errors."""
+    logger = structlog.get_logger()
+    logger.error(status=500, message=e.args[0])
+
     response = jsonify({'status': 500, 'error': 'internal server error',
                         'message': e.args[0]})
     response.status_code = 500
