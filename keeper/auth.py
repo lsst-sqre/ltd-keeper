@@ -16,6 +16,8 @@ Copyright 2014 Miguel Grinberg.
 from functools import wraps
 from flask import jsonify, g, current_app
 from flask.ext.httpauth import HTTPBasicAuth
+import structlog
+
 from .models import User
 
 # User+Password-based auth (only allowed for getting a token)
@@ -28,8 +30,16 @@ token_auth = HTTPBasicAuth()
 @password_auth.verify_password
 def verify_password(username, password):
     g.user = User.query.filter_by(username=username).first()
+
+    # Bind the username to the logger
+    if g.user is not None:
+        structlog.get_logger().bind(username=g.user.username)
+    else:
+        structlog.get_logger().bind(username=None)
+
     if g.user is None:
         return False
+
     return g.user.verify_password(password)
 
 
@@ -47,6 +57,13 @@ def verify_auth_token(token, unused):
         g.user = User.query.get(1)
     else:
         g.user = User.verify_auth_token(token)
+
+    # Bind the username to the logger
+    if g.user is not None:
+        structlog.get_logger().bind(username=g.user.username)
+    else:
+        structlog.get_logger().bind(username=None)
+
     return g.user is not None
 
 
