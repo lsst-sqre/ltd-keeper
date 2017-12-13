@@ -17,6 +17,7 @@ from . import fastly
 from .exceptions import ValidationError
 from .utils import split_url, format_utc_datetime, \
     JSONEncodedVARCHAR, MutableList, validate_product_slug, validate_path_slug
+from .gitrefutils import LsstDocVersionTag
 
 
 class Permission(object):
@@ -273,6 +274,31 @@ class Build(db.Model):
     # Relationships
     # product - from Product class
 
+    @classmethod
+    def from_url(cls, build_url):
+        """Get a Build given its API URL.
+
+        Parameters
+        ----------
+        build_url : `str`
+            API URL of the build. This is the same as `Build.get_url`.
+
+        Returns
+        -------
+        build : `Build`
+            The Build instance corresponding to the URL.
+        """
+        # Get new Build ID from the build resource's URL
+        build_endpoint, build_args = split_url(build_url)
+        if build_endpoint != 'api.get_build' or 'id' not in build_args:
+            raise ValidationError('Invalid build_url: ' +
+                                  'build_url')
+        build = cls.query.get(build_args['id'])
+        if build is None:
+            raise ValidationError('Invalid build_url: ' + build_url)
+
+        return build
+
     @property
     def bucket_root_dirname(self):
         """Directory in the bucket where the build is located."""
@@ -362,14 +388,13 @@ class Build(db.Model):
         """Hook for when a build has been uploaded."""
         self.uploaded = True
 
-        # Rebuild any edition that tracks this build's git refs
         editions = Edition.query.autoflush(False)\
             .filter(Edition.product == self.product)\
-            .filter(Edition.tracked_refs == self.git_refs)\
             .all()
 
         for edition in editions:
-            edition.rebuild(self.get_url())
+            if edition.should_rebuild(build=self):
+                edition.rebuild(build=self)
 
     def deprecate_build(self):
         """Trigger a build deprecation.
@@ -377,6 +402,85 @@ class Build(db.Model):
         Sets the `date_ended` field.
         """
         self.date_ended = datetime.now()
+
+
+class EditionMode(object):
+    """Definitions for `Edition.mode`.
+
+    These modes determine how an edition should be updated with new builds.
+    """
+
+    _modes = {
+        'git_refs': {
+            'id': 1,
+            'doc': ('Default tracking mode where an edition tracks an array '
+                    'of Git refs. This is the default mode if Edition.mode '
+                    'is None.')
+        },
+        'lsst_doc': {
+            'id': 2,
+            'doc': ('LSST document-specific tracking mode where an edition '
+                    'publishes the most recent vN.M tag.')
+        }
+    }
+
+    _reverse_map = {mode['id']: mode_name
+                    for mode_name, mode in _modes.items()}
+
+    @staticmethod
+    def name_to_id(mode):
+        """Convert a mode name (string used by the web API) to a mode ID
+        (integer) used by the DB.
+
+        Parameters
+        ----------
+        mode : `str`
+            Mode name.
+
+        Returns
+        -------
+        mode_id : `int`
+            Mode ID.
+
+        Raises
+        ------
+        ValidationError
+            Raised if ``mode`` is unknown.
+        """
+        try:
+            mode_id = EditionMode._modes[mode]['id']
+        except KeyError:
+            message = 'Edition mode {!r} unknown. Valid values are {!r}'
+            raise ValidationError(message.format(mode, EditionMode.keys()))
+        return mode_id
+
+    @staticmethod
+    def id_to_name(mode_id):
+        """Convert a mode ID (integer used by the DB) to a name used by the
+        web API.
+
+        Parameters
+        ----------
+        mode_id : `int`
+            Mode ID.
+
+        Returns
+        -------
+        mode : `str`
+            Mode name.
+
+        Raises
+        ------
+        ValidationError
+            Raised if ``mode`` is unknown.
+        """
+        try:
+            mode = EditionMode._reverse_map[mode_id]
+        except KeyError:
+            message = 'Edition mode ID {!r} unknown. Valid values are {!r}'
+            raise ValidationError(
+                message.format(mode_id, EditionMode._reverse_map.keys()))
+        return mode
 
 
 class Edition(db.Model):
@@ -393,6 +497,10 @@ class Edition(db.Model):
     # Build currently used by this Edition
     build_id = db.Column(db.Integer, db.ForeignKey('builds.id'),
                          index=True)
+    # Algorithm for updating this edition with a new build.
+    # Integer values are defined in EditionMode.
+    # Null is the default mode: EditionMode.GIT_REFS.
+    mode = db.Column(db.Integer, nullable=True)
     # What product Git refs this Edition tracks and publishes
     tracked_refs = db.Column(MutableList.as_mutable(JSONEncodedVARCHAR(2048)))
     # url-safe slug for edition
@@ -448,6 +556,7 @@ class Edition(db.Model):
             'self_url': self.get_url(),
             'product_url': self.product.get_url(),
             'build_url': build_url,
+            'mode': EditionMode.id_to_name(self.mode),
             'tracked_refs': self.tracked_refs,
             'slug': self.slug,
             'title': self.title,
@@ -475,6 +584,12 @@ class Edition(db.Model):
                                   'array of strings')
         self.tracked_refs = tracked_refs
 
+        if 'mode' in data:
+            self.set_mode(data['mode'])
+        else:
+            # Set default
+            self.set_mode('git_refs')
+
         # Validate the slug
         self._validate_slug(data['slug'])
 
@@ -498,6 +613,9 @@ class Edition(db.Model):
                                       'be an array of strings')
             self.tracked_refs = data['tracked_refs']
 
+        if 'mode' in data:
+            self.set_mode(data['mode'])
+
         if 'title' in data:
             self.title = data['title']
 
@@ -507,9 +625,94 @@ class Edition(db.Model):
         if 'slug' in data:
             self.update_slug(data['slug'])
 
-    def rebuild(self, build_url):
+    def should_rebuild(self, build_url=None, build=None):
+        """Determine whether the edition should be rebuilt to show a certain
+        build given the tracking mode.
+
+        Parameters
+        ----------
+        build_url : `str`, optional
+            API URL of the build resource. Optional if ``build`` is provided
+            instead.
+        build : `Build`, optional
+            `Build` object. Optional if ``build_url`` is provided instead.
+
+        Returns
+        -------
+        decision : `bool`
+            `True` if the edition should be rebuilt using this Build, or
+            `False` otherwise.
+        """
+        if build is not None:
+            candidate_build = build
+        else:
+            candidate_build = Build.from_url(build_url)
+
+        # Prefilter
+        if candidate_build.product != self.product:
+            return False
+        if candidate_build.uploaded is False:
+            return False
+
+        if self.mode == EditionMode.name_to_id('git_refs') \
+                or self.mode is None:
+            # Default tracking mode that follows an array of Git refs.
+            if (candidate_build.product == self.product) \
+                    and (candidate_build.git_refs == self.tracked_refs):
+                return True
+
+        elif self.mode == EditionMode.name_to_id('lsst_doc'):
+            # LSST document tracking mode.
+
+            # If the edition is unpublished or showing `master`, and the
+            # build is tracking `master`, then allow this rebuild.
+            # This is used in the period before a semantic version is
+            # available.
+            if candidate_build.git_refs[0] == 'master':
+                if self.build_id is None or \
+                        self.build.git_refs[0] == 'master':
+                    return True
+
+            # Does the build have the vN.M tag?
+            try:
+                candidate_version = LsstDocVersionTag(
+                    candidate_build.git_refs[0])
+            except ValueError:
+                return False
+
+            # Does the edition's current build have a LSST document version
+            # as its Git ref?
+            try:
+                current_version = LsstDocVersionTag(
+                    self.build.git_refs[0])
+            except ValueError:
+                # Not currently tracking a version, so automatically accept
+                # the candidate.
+                return True
+
+            # Is the candidate version newer than the existing version?
+            if candidate_version >= current_version:
+                # Accept >= in case a replacement of the same version is
+                # somehow required.
+                return True
+
+        else:
+            # Mode is unknown
+            return False
+
+    def rebuild(self, build_url=None, build=None):
         """Modify the build this edition points to.
 
+        Parameters
+        ----------
+        build_url : `str`, optional
+            API URL of the build resource. Optional if ``build`` is provided
+            instead.
+        build : `Build`, optional
+            `Build` object. Optional if ``build_url`` is provided instead.
+
+        Notes
+        -----
         This method accomplishes the following:
 
         1. Gets surrogate key from existing build used by edition
@@ -526,14 +729,12 @@ class Edition(db.Model):
         if self.surrogate_key is None:
             self.surrogate_key = uuid.uuid4().hex
 
-        # Get new Build ID from the build resource's URL
-        build_endpoint, build_args = split_url(build_url)
-        if build_endpoint != 'api.get_build' or 'id' not in build_args:
-            raise ValidationError('Invalid build_url: ' +
-                                  'build_url')
-        self.build = Build.query.get(build_args['id'])
-        if self.build is None:
-            raise ValidationError('Invalid build_url: ' + build_url)
+        # Get and validate the build
+        if build is not None:
+            self.build = build
+        else:
+            self.build = Build.from_url(build_url)
+
         if self.build.uploaded is False:
             raise ValidationError('Build has not been uploaded: ' + build_url)
         if self.build.date_ended is not None:
@@ -561,6 +762,23 @@ class Edition(db.Model):
         # TODO start a job that will warm the Fastly cache with the new edition
 
         self.date_rebuilt = datetime.now()
+
+    def set_mode(self, mode):
+        """Set the ``mode`` attribute.
+
+        Parameters
+        ----------
+        mode : `int`
+            Mode identifier. Validated to be one in `EditionMode`.
+
+        Raises
+        ------
+        ValidationError
+            Raised if `mode` is unknown.
+        """
+        self.mode = EditionMode.name_to_id(mode)
+
+        # TODO set tracked_refs to None if mode is LSST_DOC.
 
     def update_slug(self, new_slug):
         """Update the edition's slug by migrating files on S3."""

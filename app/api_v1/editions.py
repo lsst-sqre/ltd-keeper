@@ -37,6 +37,7 @@ def new_edition(slug):
            "build_url": "http://localhost:5000/builds/1",
            "slug": "latest",
            "title": "Latest",
+           "mode:": "git_refs",
            "tracked_refs": [
                "master"
            ]
@@ -62,10 +63,12 @@ def new_edition(slug):
     :<json string build_url: URL of the build entity this Edition uses.
     :<json string slug: URL-safe name for edition.
     :<json string title: Human-readable name for edition.
+    :<json str mode: Tracking mode.
+       ``git_refs``: track the Git ref specified by ``tracked_refs``.
+       ``lsst_doc``: track LSST document version tags.
     :<json array tracked_refs: Git ref(s) that describe the version of the
-        Product that this this Edition is intended to point to. For
-        multi-package documentation builds this is a list of Git refs that
-        are checked out, in order of priority, for each component repository.
+        Product that this this Edition is intended to point to when using
+        the ``git_refs`` tracking mode.
 
     :resheader Location: URL of the created Edition resource.
 
@@ -203,6 +206,7 @@ def get_edition(id):
            "date_created": "2016-03-01T11:50:18.196724Z",
            "date_ended": null,
            "date_rebuilt": "2016-03-01T11:50:18.196706Z",
+           "mode": "git_refs",
            "product_url": "http://localhost:5000/products/lsst_apps",
            "published_url": "pipelines.lsst.io",
            "self_url": "http://localhost:5000/editions/1",
@@ -222,6 +226,9 @@ def get_edition(id):
         will be ``null`` for editions that are *not deprecated*.
     :>json string date_rebuilt: UTC date time when the edition last re-pointed
         to a different build.
+    :>json str mode: Tracking mode.
+       ``git_refs``: track the Git ref specified by ``tracked_refs``.
+       ``lsst_doc``: track LSST document version tags.
     :>json string product_url: URL of parent product entity.
     :>json string published_url: Full URL where this edition is published.
     :>json string self_url: URL of this Edition entity.
@@ -291,6 +298,7 @@ def edit_edition(id):
            "date_created": "2016-03-01T10:21:29.017615Z",
            "date_ended": null,
            "date_rebuilt": "2016-03-01T10:21:29.590839Z",
+           "mode": "git_refs",
            "product_url": "http://localhost:5000/products/lsst_apps",
            "published_url": "pipelines.lsst.io",
            "self_url": "http://localhost:5000/editions/1",
@@ -311,6 +319,9 @@ def edit_edition(id):
     :<json string title: Human-readable name for edition (optional).
     :<json string slug: URL-safe name for edition (optinal). Changing the slug
         dynamically updates the ``published_url``.
+    :<json str mode: Tracking mode.
+       ``git_refs``: track the Git ref specified by ``tracked_refs``.
+       ``lsst_doc``: track LSST document version tags.
     :<json array tracked_refs: Git ref(s) that this Edition points to.
         For multi-package documentation builds this is a list of Git refs that
         are checked out, in order of priority, for each component repository
@@ -322,6 +333,9 @@ def edit_edition(id):
         will be ``null`` for editions that are *not deprecated*.
     :>json string date_rebuilt: UTC date time when the edition last re-pointed
         to a different build.
+    :>json str mode: Tracking mode.
+       ``git_refs``: track the Git ref specified by ``tracked_refs``.
+       ``lsst_doc``: track LSST document version tags.
     :>json string product_url: URL of parent product entity.
     :>json string published_url: Full URL where this edition is published.
     :>json string self_url: URL of this Edition entity.
@@ -330,9 +344,10 @@ def edit_edition(id):
         ``x-amz-meta-surrogate-control`` header of any the edition's S3
         objects to control Fastly caching.
     :>json string title: Human-readable name for edition.
-    :>json string tracked_refs: Git ref that this Edition points to. For multi-
-        repository builds, this can be a comma-separated list of refs to use,
-        in order of priority.
+    :>json string tracked_refs: Git ref that this Edition points to, for use
+        with the ``git_refs`` tricking mode. For multi-repository products,
+        this can be a comma-separated list of refs to use, in order of
+        priority.
 
     :statuscode 200: No errors.
     :statuscode 404: Edition resource not found.
