@@ -14,23 +14,23 @@ You can get the application by cloning the Git repository:
    git clone https://github.com/lsst-sqre/ltd-keeper.git
 
 Install the pre-requisites with :command:`pip`:
+Install for development:
 
 .. code-block:: bash
 
    cd ltd-keeper
-   pip install -r requirements.txt
+   make install
 
 LTD Keeper also uses `SQLite <http://www.sqlite.org>`_ in development and testing modes (any SQL server can be used in production).
 
-
-Running Tests: py.test
+Running Tests: pytest
 ======================
 
 You can invoke the `pytest <http://pytest.org/latest/>`_-based tests by running:
 
 .. code-block:: bash
 
-   py.test --flake8 --cov=app
+   make test
 
 Running for development: run.py runserver
 =========================================

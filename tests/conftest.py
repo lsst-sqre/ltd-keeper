@@ -2,9 +2,9 @@
 
 import pytest
 
-from app import create_app, db
-from app.models import User, Permission
-from app.testutils import TestClient
+from keeper import create_app, db
+from keeper.models import User, Permission
+from keeper.testutils import TestClient
 
 
 DEFAULT_USERNAME = 'hipster'

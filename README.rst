@@ -11,14 +11,14 @@ Keeper is implemented as a Python `Flask <http://flask.pocoo.org>`_ app.
 Docs
 ====
 
-**Read the docs at http://ltd-keeper.lsst.io**.
+**Read the docs at https://ltd-keeper.lsst.io**.
 
 The documentation covers both the REST API consumption and DevOps perspectives.
 
 ****
 
-Copyright 2016 AURA/LSST.
+Copyright 2016–2017 Association of Universities for Research in Astronomy, Inc.
 
 MIT license. See the LICENSE file. See also licenses/ for licenses of third-party code.
 
-.. _SQR-006: http://sqr-006.lsst.io
+.. _SQR-006: https://sqr-006.lsst.io

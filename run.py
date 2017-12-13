@@ -35,7 +35,10 @@ Other commands
 ./run.py db upgrade
    Run a DB migration to the current DB scheme.
 
-See config.py for associated configuration.
+./run.py version
+   Print the application version.
+
+See keeper/config.py for associated configuration.
 """
 
 import os
@@ -43,14 +46,14 @@ import os
 from flask.ext.script import Manager
 from flask.ext.migrate import Migrate, MigrateCommand
 
-from app import create_app, db, models
-from app.models import User, Permission
+import keeper
+from keeper.models import User, Permission
 
 environment = os.getenv('LTD_KEEPER_PROFILE', 'development')
-keeper_app = create_app(profile=environment)
+keeper_app = keeper.create_app(profile=environment)
 manager = Manager(keeper_app)
 
-migrate = Migrate(keeper_app, db,
+migrate = Migrate(keeper_app, keeper.db,
                   compare_type=True,  # for autogenerate
                   render_as_batch=True)  # for sqlite; safe for other servers
 manager.add_command('db', MigrateCommand)
@@ -59,7 +62,7 @@ manager.add_command('db', MigrateCommand)
 @manager.shell
 def make_shell_context():
     """Pre-populate the shell environment when running run.py shell."""
-    return dict(app=keeper_app, db=db, models=models)
+    return dict(app=keeper_app, db=keeper.db, models=keeper.models)
 
 
 @manager.command
@@ -77,8 +80,7 @@ def createdb():
 
     To migrate database servers, see the copydb sub-command.
     """
-    import app
-    app.db.create_all()
+    keeper.db.create_all()
 
     # stamp tables with latest schema version
     from alembic.config import Config
@@ -105,8 +107,8 @@ def init():
             u = User(username=keeper_app.config['DEFAULT_USER'],
                      permissions=Permission.full_permissions())
             u.set_password(keeper_app.config['DEFAULT_PASSWORD'])
-            db.session.add(u)
-            db.session.commit()
+            keeper.db.session.add(u)
+            keeper.db.session.commit()
 
 
 @manager.command
@@ -140,17 +142,24 @@ def initkeys():
     """Temporary command to add surrogate keys to Products."""
     import uuid
     with keeper_app.app_context():
-        for product in models.Product.query.all():
+        for product in keeper.models.Product.query.all():
             if product.surrogate_key is None:
                 print('Adding surrogate key to {0}'.format(product.slug))
                 product.surrogate_key = uuid.uuid4().hex
                 try:
-                    db.session.add(product)
-                    db.session.commit()
+                    keeper.db.session.add(product)
+                    keeper.db.session.commit()
                 except Exception:
-                    db.session.rollback()
+                    keeper.db.session.rollback()
                     print('Failed to make surrogate key for {0}'.format(
-                        product.slug))
+                          product.slug))
+
+
+@manager.command
+def version():
+    """Print the application version.
+    """
+    print(keeper.__version__)
 
 
 if __name__ == '__main__':

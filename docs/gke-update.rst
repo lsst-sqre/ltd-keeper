@@ -13,10 +13,17 @@ Procedure
 
 1. Keeper should be pushed to GitHub and pass all tests on Travis CI.
 
-2. Build a new Docker image and push to Docker Hub according to procedure on :doc:`docker-image`.
-   Give the image a unique tag; we haven't adopted a format yet, but ``:YYYYMMDD-N`` works.
+2. Formally make a Git release by tagging it:
 
-3. Update the :file:`keeper-deployment.yaml` and update the name of the ``uwsgi`` container's ``image`` to the new Docker image.
+   .. code-block:: bash
+
+      git tag -s X.Y.Z -m "X.Y.Z"
+      git push --tags
+
+   Travis CI pushes a new Docker image to Docker Hub.
+   See :doc:`docker-image`.
+
+3. Update the :file:`keeper-deployment.yaml` and update the name of the ``uwsgi`` container's ``image`` to the new Docker image: ``lsstsqre/ltd-keeper:X.Y.Z``.
 
 4. Apply the new deployment configuration:
 

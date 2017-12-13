@@ -1,15 +1,35 @@
 FROM python:3.5.1
 
 MAINTAINER Jonathan Sick <jsick@lsst.org>
+LABEL description="API server for LSST the Docs" \
+      name="lsstsqre/ltd-keeper"
 
 ENV APPDIR /ltd-keeper
-ADD . $APPDIR/
+
+# Supply on CL as --build-arg VERSION=<version> (or run `make image`).
+ARG VERSION
+LABEL version="$VERSION"
+
+# Must run python setup.py sdist first before building the Docker image.
+# RUN mkdir -p $APPDIR
+COPY run.py \
+     migrations \
+     uwsgi.ini \
+     dist/lsst-the-docs-keeper-$VERSION.tar.gz \
+     $APPDIR/
+# Recreate the directory structure of alembic's migrations directory
+COPY migrations/alembic.ini \
+     migrations/env.py \
+     migrations/script.py.mako \
+     $APPDIR/migrations/
+COPY migrations/versions/* $APPDIR/migrations/versions/
+
 WORKDIR $APPDIR
-RUN pip install -r requirements.txt
 
-RUN groupadd -r uwsgi_grp && useradd -r -g uwsgi_grp uwsgi
-
-RUN chown -R uwsgi:uwsgi_grp $APPDIR
+RUN pip install lsst-the-docs-keeper-$VERSION.tar.gz && \
+    rm lsst-the-docs-keeper-$VERSION.tar.gz && \
+    groupadd -r uwsgi_grp && useradd -r -g uwsgi_grp uwsgi && \
+    chown -R uwsgi:uwsgi_grp $APPDIR
 
 USER uwsgi
 

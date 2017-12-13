@@ -2,8 +2,8 @@ import uuid
 import pytest
 import responses
 
-from app.fastly import FastlyService
-from app.exceptions import FastlyError
+from keeper.fastly import FastlyService
+from keeper.exceptions import FastlyError
 
 
 @responses.activate

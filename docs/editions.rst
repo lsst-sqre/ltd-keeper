@@ -70,5 +70,5 @@ Methods
 Reference
 =========
 
-.. autoflask:: app:create_app(profile='development')
+.. autoflask:: keeper:create_app(profile='development')
    :endpoints: api.get_edition, api.edit_edition, api.deprecate_edition
