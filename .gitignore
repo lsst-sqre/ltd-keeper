@@ -77,5 +77,6 @@ kubernetes/keeper-config-staging.yaml
 kubernetes/cloudsql-secrets-prod.yaml
 kubernetes/keeper-secrets-prod.yaml
 kubernetes/ssl-proxy-secrets-prod.yaml
+kubernetes/keeper-tls-secrets.yaml
 kubernetes/keeper-config-prod.yaml
 kubernetes/dhparam.pem
