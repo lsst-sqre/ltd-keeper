@@ -1,5 +1,5 @@
 ##############################
-Developing Database Migrations
+Developing database migrations
 ##############################
 
 LTD Keeper uses `Alembic`_ (via `Flask-Migrate`_) to manage SQL database schema migrations.
@@ -7,7 +7,7 @@ The entire schema is encoded in Alembic such that Alembic can build a DB schema 
 This page describes how to create a schema migration.
 See :doc:`gke-migrations` for applying these migrations to production environments.
 
-Creating a Migration
+Creating a migration
 ====================
 
 Migrations occur whenever the DB schema changes.
@@ -24,7 +24,7 @@ where the *message* briefly describes the schema change.
 This command will auto-generate a migration script in :file:`migrations/versions`.
 Review that script
 
-Testing a Migration
+Testing a migration
 ===================
 
 The migration can be tested locally if you have a development DB running a previous version of the schema:
@@ -37,7 +37,7 @@ The migration can be tested locally if you have a development DB running a previ
 With a :doc:`staging deployment <gke-staging-deployment-playbook>`, it is also possible to :doc:`test migrations <gke-migrations>` against a copy of the production database.
 This is now recommended practice.
 
-Coding for Migrations
+Coding for migrations
 =====================
 
 Migrations only update the schema of a DB, not the data within it.

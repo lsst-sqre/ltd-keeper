@@ -4,7 +4,7 @@ Introduction
 
 LTD Keeper provides a simple RESTFul API for both administering and browsing documentation resources.
 
-Users and Authentication
+Users and authentication
 ========================
 
 LTD Keeper requires authentication for POST/PUT/PATCH/DELETE operations, but GET requests can be anonymous.

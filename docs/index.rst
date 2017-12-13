@@ -26,7 +26,6 @@ For more information about LSST the Docs, see `SQR-006: Documentation Deployment
 
    install
    docker-image
-   compose
    dev-migrations
 
 .. toctree::

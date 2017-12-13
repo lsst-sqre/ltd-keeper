@@ -98,7 +98,7 @@ class User(db.Model):
         s = Serializer(current_app.config['SECRET_KEY'])
         try:
             data = s.loads(token)
-        except:
+        except Exception:
             return None
         return User.query.get(data['id'])
 
@@ -151,7 +151,6 @@ class Product(db.Model):
     # Name of the S3 bucket hosting builds
     bucket_name = db.Column(db.Unicode(255), nullable=True)
     # surrogate_key for Fastly quick purges of dashboards
-    # FIXME nullable initially, projects will dynamically create keys as needed
     # Editions and Builds have independent surrogate keys.
     surrogate_key = db.Column(db.String(32))
 

@@ -11,7 +11,7 @@ LTD Keeper can host documentation for several products.
 The actual documentation associated with a Product is manifested by **builds**.
 In turn, builds are the source of **editions**, which are published versions of the Product's documentation.
 
-Method Summary
+Method summary
 ==============
 
 - :http:get:`/products/` --- list all documentation products.

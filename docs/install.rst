@@ -1,6 +1,6 @@
-##################################################
-Installing and Configuring for Development/Testing
-##################################################
+######################################################
+Installing and configuring for development and testing
+######################################################
 
 Installation
 ============
@@ -32,7 +32,7 @@ You can invoke the `pytest <http://pytest.org/latest/>`_-based tests by running:
 
    py.test --flake8 --cov=app
 
-Running for Development: run.py runserver
+Running for development: run.py runserver
 =========================================
 
 The 'development' configuration profile provides useful defaults for running an LTD Keeper instance locally (see :file:`config.py`).

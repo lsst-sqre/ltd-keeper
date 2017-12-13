@@ -16,11 +16,18 @@ spec:
           image: "lsstsqre/nginx-python:k8s"
           ports:
             # from keeper-service
-            - name: nginx-keeper
+            - name: keeper-nginx
               containerPort: 8080
 
         - name: cloudsql-proxy
           image: b.gcr.io/cloudsql-docker/gce-proxy:1.05
+          command: ["/cloud_sql_proxy", "-dir=/cloudsql", "-credential_file=/secret/file.json", "-instances=$(CLOUD_SQL_INSTANCE)"]
+          env:
+          - name: CLOUD_SQL_INSTANCE
+            valueFrom:
+              configMapKeyRef:
+                name: keeper-config
+                key: cloud-sql-instance
           volumeMounts:
           - name: cloudsql
             mountPath: /cloudsql
@@ -28,22 +35,37 @@ spec:
             mountPath: /secret/
           - name: cloudsql-ssl-certs
             mountPath: /etc/ssl/certs
-          # FIXME set project and instance name
-          command: ["/cloud_sql_proxy", "-dir=/cloudsql", "-credential_file=/secret/file.json", "-instances=$MYPROJECT:MYINSTANCE"]
 
         - name: uwsgi
           imagePullPolicy: "Always"
-          image: "lsstsqre/ltd-keeper:latest"
+          image: "lsstsqre/ltd-keeper:20170220-0"
           ports:
             - containerPort: 3031
               name: keeper
+          volumeMounts:
+            - name: cloudsql
+              mountPath: /cloudsql
           env:
+            - name: LTD_KEEPER_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: keeper-config
+                  key: server-name
             - name: LTD_KEEPER_PROFILE
-              value: production
+              valueFrom:
+                configMapKeyRef:
+                  name: keeper-config
+                  key: profile
             - name: LTD_KEEPER_URL_SCHEME
-              value: https
+              valueFrom:
+                configMapKeyRef:
+                  name: keeper-config
+                  key: url-scheme
             - name: LTD_DASHER_URL
-              value: "http://dasher:3031"  # URL with cluster DNS to LTD Dasher - https://github.com/lsst-sqre/ltd-dasher
+              valueFrom:
+                configMapKeyRef:
+                  name: keeper-config
+                  key: dasher-url
             - name: LTD_KEEPER_SECRET_KEY
               valueFrom:
                 secretKeyRef:
@@ -79,20 +101,16 @@ spec:
                 secretKeyRef:
                   name: keeper-secrets
                   key: default-password
-            - name: LTD_KEEPER_URL
-              valueFrom:
-                secretKeyRef:
-                  name: keeper-secrets
-                  key: server-name
             - name: LTD_KEEPER_DB_URL
               valueFrom:
                 secretKeyRef:
                   name: keeper-secrets
                   key: db-url
+
       volumes:
         - name: cloudsql-secret-volume
           secret:
-            secretName: cloudsql-creds
+            secretName: cloudsql-secrets
         - name: cloudsql-ssl-certs
           hostPath:
             path: /etc/ssl/certs
