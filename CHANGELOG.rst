@@ -2,12 +2,25 @@
 Change log
 ##########
 
+1.8.0 (2017-12-13)
+==================
+
+Adds logging with `structlog <http://www.structlog.org/en/stable/>`__.
+Structlog is configured to generate key-value log strings in test/development and JSON-formatted strings in production.
+The ``@log_route`` decorator creates a new logger and binds metadata about a request, such as a unique request ID, method and path.
+It also logs the response latency and status when the route returns.
+The auth decorators bind the username once the user is known.
+
+`DM-12974 <https://jira.lsstcorp.org/browse/DM-12974>`__.
+
 1.7.0 (2017-12-13)
 ==================
 
 In this version we've dropped the ``nginx-ssl-proxy`` pod that we've used thus far and adopted the standard Kubernetes Ingress resources for TLS termination instead.
 This means that the Keeper service is now a NodePort-type service.
 The advantage of using Ingress is that we can rely on Google to maintain that resource and ensure that the TLS-terminating proxy is updated with new security patches.
+
+`DM-12923 <https://jira.lsstcorp.org/browse/DM-12923>`__.
 
 1.6.0 (2017-12-13)
 ==================
