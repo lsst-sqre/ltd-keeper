@@ -4,9 +4,11 @@
 from flask import jsonify, url_for
 from . import api
 from ..version import get_version
+from ..logutils import log_route
 
 
 @api.route('/', methods=['GET'])
+@log_route()
 def get_root():
     """Root API route.
     """

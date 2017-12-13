@@ -12,6 +12,7 @@ from flask.ext.sqlalchemy import SQLAlchemy
 
 from .config import config
 from .version import get_version
+from .logutils import log_route
 
 db = SQLAlchemy()
 
@@ -40,6 +41,7 @@ def create_app(profile='production'):
 
     # authentication token route
     @app.route('/token')
+    @log_route()
     @password_auth.login_required
     def get_auth_token():
         """Obtain a token for API users.

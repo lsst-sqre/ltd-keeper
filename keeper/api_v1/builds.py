@@ -8,10 +8,12 @@ from .. import db
 from ..auth import token_auth, permission_required, is_authorized
 from ..models import Product, Build, Edition, Permission
 from ..utils import auto_slugify_edition
+from ..logutils import log_route
 from ..dasher import build_dashboard_safely
 
 
 @api.route('/products/<slug>/builds/', methods=['POST'])
+@log_route()
 @token_auth.login_required
 @permission_required(Permission.UPLOAD_BUILD)
 def new_build(slug):
@@ -157,6 +159,7 @@ def new_build(slug):
 
 
 @api.route('/builds/<int:id>', methods=['PATCH'])
+@log_route()
 @token_auth.login_required
 @permission_required(Permission.UPLOAD_BUILD)
 def patch_build(id):
@@ -219,6 +222,7 @@ def patch_build(id):
 
 
 @api.route('/builds/<int:id>', methods=['DELETE'])
+@log_route()
 @token_auth.login_required
 @permission_required(Permission.DEPRECATE_BUILD)
 def deprecate_build(id):
@@ -267,6 +271,7 @@ def deprecate_build(id):
 
 
 @api.route('/products/<slug>/builds/', methods=['GET'])
+@log_route()
 def get_product_builds(slug):
     """List all builds for a product.
 
@@ -309,6 +314,7 @@ def get_product_builds(slug):
 
 
 @api.route('/builds/<int:id>', methods=['GET'])
+@log_route()
 def get_build(id):
     """Show metadata for a single build.
 
