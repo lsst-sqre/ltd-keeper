@@ -2,6 +2,43 @@
 Change log
 ##########
 
+1.6.0 (2017-12-13)
+==================
+
+- Migrate to setuptools-based packaging.
+  LTD Keeper is now ``pip install``\ 'd into the Docker image at build time using the local sdist distribution (there are no plans to put LTD Keeper itself on PyPI).
+
+- Use `setuptools_scm <https://github.com/pypa/setuptools_scm/>`__ to automatically establish the application version based on the Git tag.
+
+- Automate the creation of the Docker image in Travis CI.
+  The image is tagged with the branch or tag name.
+  The build for the ``master`` branch is labeled as ``latest``.
+
+- Build and testing are coordinated with a brand new Makefile.
+
+`DM-12914 <https://jira.lsstcorp.org/browse/DM-12914>`__.
+
+1.5.0 (2017-12-13)
+==================
+
+Added the explicit idea of tracking modes to edition resources.
+This determines whether or not an edition is updated with a new build.
+The mode is set with the ``mode`` field of the ``/products/<product>/edition`` resource.
+
+The default tracking mode (``git_refs``) is to update if a build resource has the right git ref (a tag or branch name).
+
+The new ``lsst_doc`` tracking mode allows an edition to watch for builds with git refs formatted as ``v<Major>.<Minor>`` and always publish the newest such tag.
+This supports the revised LSST DM document release procedure: https://developer.lsst.io/v/DM-11952/docs/change-controlled-docs.html
+
+`DM-12356 <https://jira.lsstcorp.org/browse/DM-12356>`__.
+
+1.4.0 (2017-12-13)
+==================
+
+Removed some technical debt and drift in the Kubernetes deployment templates.
+
+`DM-12862 <https://jira.lsstcorp.org/browse/DM-12862>`__.
+
 1.3.0 (2017-08-08)
 ==================
 
