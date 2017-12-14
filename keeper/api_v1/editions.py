@@ -6,10 +6,12 @@ from . import api
 from .. import db
 from ..auth import token_auth, permission_required
 from ..models import Product, Edition, Permission
+from ..logutils import log_route
 from ..dasher import build_dashboard_safely
 
 
 @api.route('/products/<slug>/editions/', methods=['POST'])
+@log_route()
 @token_auth.login_required
 @permission_required(Permission.ADMIN_EDITION)
 def new_edition(slug):
@@ -89,6 +91,7 @@ def new_edition(slug):
 
 
 @api.route('/editions/<int:id>', methods=['DELETE'])
+@log_route()
 @token_auth.login_required
 @permission_required(Permission.ADMIN_EDITION)
 def deprecate_edition(id):
@@ -141,6 +144,7 @@ def deprecate_edition(id):
 
 
 @api.route('/products/<slug>/editions/', methods=['GET'])
+@log_route()
 def get_product_editions(slug):
     """List all editions published for a Product.
 
@@ -182,6 +186,7 @@ def get_product_editions(slug):
 
 
 @api.route('/editions/<int:id>', methods=['GET'])
+@log_route()
 def get_edition(id):
     """Show metadata for an Edition.
 
@@ -248,6 +253,7 @@ def get_edition(id):
 
 
 @api.route('/editions/<int:id>', methods=['PATCH'])
+@log_route()
 @token_auth.login_required
 @permission_required(Permission.ADMIN_EDITION)
 def edit_edition(id):

@@ -1,0 +1,8 @@
+kind: Namespace
+apiVersion: v1
+metadata:
+  name: "ltd-prod"
+  labels:
+    name: "ltd-prod"
+    env: "prod"
+    project: "lsst-the-docs"

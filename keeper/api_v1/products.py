@@ -5,10 +5,12 @@ from . import api
 from .. import db
 from ..auth import token_auth, permission_required
 from ..models import Product, Permission, Edition
+from ..logutils import log_route
 from ..dasher import build_dashboard_safely, build_dashboards
 
 
 @api.route('/products/', methods=['GET'])
+@log_route()
 def get_products():
     """List all documentation products (anonymous access allowed).
 
@@ -44,6 +46,7 @@ def get_products():
 
 
 @api.route('/products/<slug>', methods=['GET'])
+@log_route()
 def get_product(slug):
     """Get the record of a single documentation product (anonymous access
     allowed).
@@ -114,6 +117,7 @@ def get_product(slug):
 
 
 @api.route('/products/', methods=['POST'])
+@log_route()
 @token_auth.login_required
 @permission_required(Permission.ADMIN_PRODUCT)
 def new_product():
@@ -218,6 +222,7 @@ def new_product():
 
 
 @api.route('/products/<slug>', methods=['PATCH'])
+@log_route()
 @token_auth.login_required
 @permission_required(Permission.ADMIN_PRODUCT)
 def edit_product(slug):
@@ -290,6 +295,7 @@ def edit_product(slug):
 
 
 @api.route('/products/<slug>/dashboard', methods=['POST'])
+@log_route()
 @token_auth.login_required
 @permission_required(Permission.ADMIN_PRODUCT)
 def rebuild_product_dashboard(slug):

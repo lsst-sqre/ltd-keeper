@@ -38,7 +38,7 @@ spec:
 
         - name: uwsgi
           imagePullPolicy: "Always"
-          image: "lsstsqre/ltd-keeper:tickets-DM-12923"
+          image: "lsstsqre/ltd-keeper:tickets-DM-12974"
           ports:
             - containerPort: 3031
               name: keeper

@@ -556,7 +556,7 @@ class Edition(db.Model):
             'self_url': self.get_url(),
             'product_url': self.product.get_url(),
             'build_url': build_url,
-            'mode': EditionMode.id_to_name(self.mode),
+            'mode': self.mode_name,
             'tracked_refs': self.tracked_refs,
             'slug': self.slug,
             'title': self.title,
@@ -588,7 +588,7 @@ class Edition(db.Model):
             self.set_mode(data['mode'])
         else:
             # Set default
-            self.set_mode('git_refs')
+            self.set_mode(self.default_mode_name)
 
         # Validate the slug
         self._validate_slug(data['slug'])
@@ -779,6 +779,31 @@ class Edition(db.Model):
         self.mode = EditionMode.name_to_id(mode)
 
         # TODO set tracked_refs to None if mode is LSST_DOC.
+
+    @property
+    def default_mode_name(self):
+        """Default tracking mode name if ``Edition.mode`` is `None` (`str`).
+        """
+        return 'git_refs'
+
+    @property
+    def default_mode_id(self):
+        """Default tracking mode ID if ``Edition.mode`` is `None` (`int`).
+        """
+        return EditionMode.name_to_id(self.default_mode_name)
+
+    @property
+    def mode_name(self):
+        """Name of the mode (`str`).
+
+        See also
+        --------
+        EditionMode
+        """
+        if self.mode is not None:
+            return EditionMode.id_to_name(self.mode)
+        else:
+            return self.default_mode_name
 
     def update_slug(self, new_slug):
         """Update the edition's slug by migrating files on S3."""
