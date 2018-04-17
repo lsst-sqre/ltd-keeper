@@ -39,7 +39,7 @@ setup(
     ],
     install_requires=[
         'Flask==0.10.1',
-        'uWSGI==2.0.15',
+        'uWSGI==2.0.17',
         'Flask-SQLAlchemy==2.1',
         'PyMySQL==0.7.6',
         'Flask-HTTPAuth==2.2.1',
