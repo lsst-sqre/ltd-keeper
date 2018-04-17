@@ -47,7 +47,7 @@ setup(
         'Flask-Migrate==1.8.0',
         'python-dateutil==2.4.2',
         'boto3==1.2.3',
-        'requests==2.10.0',
+        'requests==2.18.4',
         'structlog==17.2.0',
     ],
     extras_require={
