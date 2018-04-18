@@ -29,6 +29,50 @@ classifiers = [
     'Topic :: Documentation'
 ],
 keywords = 'lsst lsst-the-docs'
+
+# Setup-time requirements
+setup_requires = [
+    'setuptools_scm==1.15.6',
+    'pytest-runner==4.2',
+]
+
+# Installation (application runtime) requirements
+install_requires = [
+    'Flask==0.10.1',
+    'uWSGI==2.0.17',
+    'Flask-SQLAlchemy==2.1',
+    'PyMySQL==0.7.6',
+    'Flask-HTTPAuth==2.2.1',
+    'Flask-Script==2.0.5',
+    'Flask-Migrate==1.8.0',
+    'python-dateutil==2.4.2',
+    'boto3==1.2.3',
+    'requests==2.18.4',
+    'structlog==17.2.0',
+]
+
+# Test dependencies
+tests_require = [
+    'pytest==3.5.0',
+    'pytest-cov==2.5.1',
+    'pytest-flake8==1.0.0',
+    'responses==0.9.0',
+]
+
+# Sphinx documentation requirements
+docs_require = [
+    'Sphinx==1.5.1',
+    'sphinx-rtd-theme==0.1.9',
+    'numpydoc==0.5',
+    'sphinxcontrib-httpdomain==1.4.0',
+]
+
+# Optional installation dependencies
+extras_require = {
+    # Recommended extra for development
+    'dev': ['httpie'] + docs_require + tests_require
+}
+
 setup(
     name=name,
     description=description,
@@ -41,35 +85,8 @@ setup(
     keywords=keywords,
     packages=find_packages(exclude=('tests',)),
     use_scm_version=True,
-    setup_requires=[
-        'setuptools_scm==1.15.6'
-    ],
-    install_requires=[
-        'Flask==0.10.1',
-        'uWSGI==2.0.17',
-        'Flask-SQLAlchemy==2.1',
-        'PyMySQL==0.7.6',
-        'Flask-HTTPAuth==2.2.1',
-        'Flask-Script==2.0.5',
-        'Flask-Migrate==1.8.0',
-        'python-dateutil==2.4.2',
-        'boto3==1.2.3',
-        'requests==2.18.4',
-        'structlog==17.2.0',
-    ],
-    extras_require={
-        'dev': [
-            'pytest==3.5.0',
-            'pytest-cov==2.5.1',
-            'pytest-flake8==1.0.0',
-            'responses==0.9.0',
-            'Sphinx==1.5.1',
-            'sphinx-rtd-theme==0.1.9',
-            'numpydoc==0.5',
-            'sphinxcontrib-httpdomain==1.4.0',
-            'httpie'],
-    },
-    entry_points={
-        'console_scripts': []
-    }
+    setup_requires=setup_requires,
+    tests_require=tests_require,
+    install_requires=install_requires,
+    extras_require=extras_require
 )
