@@ -52,10 +52,10 @@ setup(
     ],
     extras_require={
         'dev': [
-            'pytest==3.2.5',
-            'pytest-cov==2.4.0',
-            'pytest-flake8==0.9.1',
-            'responses==0.5.1',
+            'pytest==3.5.0',
+            'pytest-cov==2.5.1',
+            'pytest-flake8==1.0.0',
+            'responses==0.9.0',
             'Sphinx==1.5.1',
             'sphinx-rtd-theme==0.1.9',
             'numpydoc==0.5',
