@@ -8,7 +8,7 @@ Copyright 2014 Miguel Grinberg.
 """
 
 from flask import Flask, jsonify, g
-from flask.ext.sqlalchemy import SQLAlchemy
+from flask_sqlalchemy import SQLAlchemy
 
 from .config import config
 from .version import get_version

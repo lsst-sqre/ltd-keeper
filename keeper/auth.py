@@ -15,7 +15,7 @@ Copyright 2014 Miguel Grinberg.
 
 from functools import wraps
 from flask import jsonify, g, current_app
-from flask.ext.httpauth import HTTPBasicAuth
+from flask_httpauth import HTTPBasicAuth
 import structlog
 
 from .models import User
