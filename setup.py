@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 import os
 from setuptools import setup, find_packages
 
@@ -14,24 +12,33 @@ def read_file(filename):
     return content
 
 
+name = 'lsst-the-docs-keeper'
+description = 'LSST the Docs API server'
+long_description = read_file('README.rst')
+url = 'https://ltd-keeper.lsst.io'
+author = 'Association of Universities for Research in Astronomy, Inc.'
+author_email = 'jsick@lsst.org'
+license = 'MIT'
+classifiers = [
+    'Development Status :: 5 - Production/Stable'
+    'Programming Language :: Python :: 3.5'
+    'Programming Language :: Python :: 3.6'
+    'License :: OSI Approved :: MIT License'
+    'Framework :: Flask'
+    'Intended Audience :: Science/Research'
+    'Topic :: Documentation'
+],
+keywords = 'lsst lsst-the-docs'
 setup(
-    name='lsst-the-docs-keeper',
-    description='LSST the Docs API server',
-    long_description=read_file('README.rst'),
-    url='https://ltd-keeper.lsst.io',
-    author='Association of Universities for Research in Astronomy, Inc.',
-    author_email='jsick@lsst.org',
-    license='MIT',
-    classifiers=[
-        'Development Status :: 5 - Production/Stable',
-        'Programming Language :: Python :: 3.5',
-        'Programming Language :: Python :: 3.6',
-        'License :: OSI Approved :: MIT License',
-        'Framework :: Flask',
-        'Intended Audience :: Science/Research',
-        'Topic :: Documentation',
-    ],
-    keywords='lsst lsst-the-docs',
+    name=name,
+    description=description,
+    long_description=long_description,
+    url=url,
+    author=author,
+    author_email=author_email,
+    license=license,
+    classifiers=classifiers,
+    keywords=keywords,
     packages=find_packages(exclude=('tests',)),
     use_scm_version=True,
     setup_requires=[
