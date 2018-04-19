@@ -2,7 +2,7 @@
 
 from flask import jsonify, request, current_app
 from . import api
-from .. import db
+from ..models import db
 from ..auth import token_auth, permission_required
 from ..models import Product, Permission, Edition
 from ..logutils import log_route

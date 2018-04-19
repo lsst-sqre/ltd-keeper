@@ -4,7 +4,7 @@ import uuid
 from flask import jsonify, request, current_app
 
 from . import api
-from .. import db
+from ..models import db
 from ..auth import token_auth, permission_required, is_authorized
 from ..models import Product, Build, Edition, Permission
 from ..utils import auto_slugify_edition

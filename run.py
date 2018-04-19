@@ -49,11 +49,10 @@ from flask_migrate import Migrate, MigrateCommand
 import keeper
 from keeper.models import User, Permission
 
-environment = os.getenv('LTD_KEEPER_PROFILE', 'development')
-keeper_app = keeper.create_app(profile=environment)
+keeper_app = keeper.flask_app
 manager = Manager(keeper_app)
 
-migrate = Migrate(keeper_app, keeper.db,
+migrate = Migrate(keeper_app, keeper.models.db,
                   compare_type=True,  # for autogenerate
                   render_as_batch=True)  # for sqlite; safe for other servers
 manager.add_command('db', MigrateCommand)
@@ -62,7 +61,7 @@ manager.add_command('db', MigrateCommand)
 @manager.shell
 def make_shell_context():
     """Pre-populate the shell environment when running run.py shell."""
-    return dict(app=keeper_app, db=keeper.db, models=keeper.models)
+    return dict(app=keeper_app, db=keeper.models.db, models=keeper.models)
 
 
 @manager.command
@@ -80,7 +79,7 @@ def createdb():
 
     To migrate database servers, see the copydb sub-command.
     """
-    keeper.db.create_all()
+    keeper.models.db.create_all()
 
     # stamp tables with latest schema version
     from alembic.config import Config
@@ -107,8 +106,8 @@ def init():
             u = User(username=keeper_app.config['DEFAULT_USER'],
                      permissions=Permission.full_permissions())
             u.set_password(keeper_app.config['DEFAULT_PASSWORD'])
-            keeper.db.session.add(u)
-            keeper.db.session.commit()
+            keeper.models.db.session.add(u)
+            keeper.models.db.session.commit()
 
 
 @manager.command
@@ -147,10 +146,10 @@ def initkeys():
                 print('Adding surrogate key to {0}'.format(product.slug))
                 product.surrogate_key = uuid.uuid4().hex
                 try:
-                    keeper.db.session.add(product)
-                    keeper.db.session.commit()
+                    keeper.models.db.session.add(product)
+                    keeper.models.db.session.commit()
                 except Exception:
-                    keeper.db.session.rollback()
+                    keeper.models.db.session.rollback()
                     print('Failed to make surrogate key for {0}'.format(
                           product.slug))
 

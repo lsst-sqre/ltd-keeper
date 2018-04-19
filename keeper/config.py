@@ -46,7 +46,9 @@ class DevelopmentConfig(Config):
 
     @classmethod
     def init_app(cls, app):
-        """Initialization hook called during create_app."""
+        """Initialization hook called during
+        `keeper.appfactory.create_flask_app`.
+        """
         logging.basicConfig(
             format="%(message)s",
             stream=sys.stdout,
@@ -82,7 +84,9 @@ class TestConfig(Config):
 
     @classmethod
     def init_app(cls, app):
-        """Initialization hook called during create_app."""
+        """Initialization hook called during `
+        `keeper.appfactory.create_flask_app`.
+        """
         logging.basicConfig(
             format="%(message)s",
             stream=sys.stdout,
@@ -120,7 +124,9 @@ class ProductionConfig(Config):
 
     @classmethod
     def init_app(cls, app):
-        """Initialization hook called during create_app."""
+        """Initialization hook called during
+        `keeper.appfactory.create_flask_app`.
+        """
         logging.basicConfig(
             format="%(message)s",
             stream=sys.stdout,

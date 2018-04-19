@@ -2,8 +2,8 @@
 
 import pytest
 
-from keeper import create_app, db
-from keeper.models import User, Permission
+from keeper.appfactory import create_flask_app
+from keeper.models import db, User, Permission
 from keeper.testutils import TestClient
 
 
@@ -20,7 +20,7 @@ BUILD_DEPRECATOR_USERNAME = 'build_deprecator'
 @pytest.fixture
 def empty_app(request):
     """An application with only a single user, but otherwise empty"""
-    app = create_app('testing')
+    app = create_flask_app(profile='testing')
     ctx = app.app_context()
     ctx.push()
     db.drop_all()

@@ -9,8 +9,8 @@ import urllib.parse
 from werkzeug.security import generate_password_hash, check_password_hash
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from flask import url_for, current_app
+from flask_sqlalchemy import SQLAlchemy
 
-from . import db
 from . import s3
 from . import route53
 from . import fastly
@@ -18,6 +18,13 @@ from .exceptions import ValidationError
 from .utils import split_url, format_utc_datetime, \
     JSONEncodedVARCHAR, MutableList, validate_product_slug, validate_path_slug
 from .gitrefutils import LsstDocVersionTag
+
+
+db = SQLAlchemy()
+"""Database connection.
+
+This is initialized in `keeper.appfactory.create_flask_app`.
+"""
 
 
 class Permission(object):
