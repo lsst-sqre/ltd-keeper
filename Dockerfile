@@ -12,8 +12,7 @@ LABEL version="$VERSION"
 
 # Must run python setup.py sdist first before building the Docker image.
 # RUN mkdir -p $APPDIR
-COPY run.py \
-     migrations \
+COPY migrations \
      uwsgi.ini \
      dist/lsst-the-docs-keeper-$VERSION.tar.gz \
      $APPDIR/
