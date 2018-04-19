@@ -27,6 +27,10 @@ def create_flask_app(profile=None):
     app.config.from_object(config[profile])
     config[profile].init_app(app)
 
+    # Initialize the celery app
+    from .celery import create_celery_app
+    create_celery_app(app)
+
     # Initialize the Flask-SQLAlchemy  database interface and
     # initialize Alembic migrations through Flask-Migrate
     from .models import db, migrate
