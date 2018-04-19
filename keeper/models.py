@@ -10,6 +10,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from flask import url_for, current_app
 from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
 
 from . import s3
 from . import route53
@@ -22,6 +23,12 @@ from .gitrefutils import LsstDocVersionTag
 
 db = SQLAlchemy()
 """Database connection.
+
+This is initialized in `keeper.appfactory.create_flask_app`.
+"""
+
+migrate = Migrate()
+"""Flask-SQLAlchemy extension instance.
 
 This is initialized in `keeper.appfactory.create_flask_app`.
 """

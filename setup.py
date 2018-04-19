@@ -43,7 +43,6 @@ install_requires = [
     'Flask-SQLAlchemy==2.3.2',
     'PyMySQL==0.8.0',
     'Flask-HTTPAuth==2.2.1',
-    'Flask-Script==2.0.5',
     'Flask-Migrate==2.1.1',
     'python-dateutil==2.4.2',
     'boto3==1.2.3',
