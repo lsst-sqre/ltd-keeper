@@ -1,4 +1,4 @@
-.PHONY: help install test run db-init db-upgrade docs docs-clean image docker-push travis-docker-deploy version
+.PHONY: help install test run db-init db-upgrade redis worker flower docs docs-clean image docker-push travis-docker-deploy version
 
 VERSION=$(shell FLASK_APP=keeper LTD_KEEPER_PROFILE=development flask version)
 
@@ -9,6 +9,9 @@ help:
 	@echo "  make run ....... (run Flask dev server)"
 	@echo "  make db-init ... (create a dev DB with an admin user)"
 	@echo "  make db-upgrade  (apply any migrations to the current DB)"
+	@echo "  make redis ..... (start a Redis Docker container)"
+	@echo "  make worker .... (start a Celery worker)"
+	@echo "  make flower .... (start the Flower task monitor)"
 	@echo "  make docs ...... (make Sphinx docs)"
 	@echo "  make docs-clean  (clean Sphinx docs)"
 	@echo "  make image ..... (make tagged Docker image)"
@@ -30,6 +33,15 @@ db-init:
 
 db-upgrade:
 	FLASK_APP=keeper LTD_KEEPER_PROFILE=development flask db upgrade
+
+redis:
+	docker run --rm --name redis-dev -p 6379:6379 redis
+
+worker:
+	celery worker -A keeper.celery.celery_app -E -l DEBUG
+
+flower:
+	celery -A keeper.celery.celery_app flower
 
 docs:
 	$(MAKE) -C docs html

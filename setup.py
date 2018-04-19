@@ -70,7 +70,7 @@ docs_require = [
 # Optional installation dependencies
 extras_require = {
     # Recommended extra for development
-    'dev': ['httpie'] + docs_require + tests_require
+    'dev': ['httpie', 'flower==0.9.2'] + docs_require + tests_require
 }
 
 setup(
