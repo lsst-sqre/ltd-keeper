@@ -3,9 +3,11 @@
 Copyright 2016 AURA/LSST.
 Copyright 2014 Miguel Grinberg.
 """
+
 from datetime import datetime
 import uuid
 import urllib.parse
+
 from werkzeug.security import generate_password_hash, check_password_hash
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from flask import url_for, current_app
@@ -15,11 +17,11 @@ from structlog import get_logger
 
 from . import s3
 from . import route53
-from . import fastly
 from .exceptions import ValidationError
-from .utils import split_url, format_utc_datetime, \
-    JSONEncodedVARCHAR, MutableList, validate_product_slug, validate_path_slug
+from .utils import (split_url, format_utc_datetime, JSONEncodedVARCHAR,
+                    MutableList, validate_product_slug, validate_path_slug)
 from .gitrefutils import LsstDocVersionTag
+from .taskrunner import append_task_to_chain
 
 
 db = SQLAlchemy()
@@ -437,7 +439,7 @@ class Build(db.Model):
 
         for edition in editions:
             if edition.should_rebuild(build=self):
-                edition.rebuild(build=self)
+                edition.set_pending_rebuild(build=self)
 
     def deprecate_build(self):
         """Trigger a build deprecation.
@@ -560,6 +562,8 @@ class Edition(db.Model):
     date_ended = db.Column(db.DateTime, nullable=True)
     # The surrogate-key header for Fastly (quick purges); 32-char hex
     surrogate_key = db.Column(db.String(32))
+    # Flag indicating if a rebuild is pending work by the rebuild task
+    pending_rebuild = db.Column(db.Boolean, default=False, nullable=False)
 
     # Relationships
     build = db.relationship('Build', uselist=False)  # one-to-one
@@ -668,9 +672,9 @@ class Edition(db.Model):
         if self.surrogate_key is None:
             self.surrogate_key = uuid.uuid4().hex
 
-        # Set initial build pointer
+        # Indicate rebuild it needed
         if 'build_url' in data:
-            self.rebuild(data['build_url'])
+            self.set_pending_rebuild(build_url=data['build_url'])
 
         self.date_created = datetime.now()
 
@@ -692,7 +696,7 @@ class Edition(db.Model):
             self.title = data['title']
 
         if 'build_url' in data:
-            self.rebuild(data['build_url'])
+            self.set_pending_rebuild(build_url=data['build_url'])
 
         if 'slug' in data:
             self.update_slug(data['slug'])
@@ -772,8 +776,13 @@ class Edition(db.Model):
             # Mode is unknown
             return False
 
-    def rebuild(self, build_url=None, build=None):
-        """Modify the build this edition points to.
+    def set_pending_rebuild(self, build_url=None, build=None):
+        """Update the build this edition is declared to point to and set it
+        to a pending state.
+
+        The caller must separately initial a
+        `keeper.tasks.editionrebuild.rebuild_edition` task to implement the
+        declared change (after this DB change is committed).
 
         Parameters
         ----------
@@ -783,56 +792,73 @@ class Edition(db.Model):
         build : `Build`, optional
             `Build` object. Optional if ``build_url`` is provided instead.
 
+        See also
+        --------
+        Edition.set_rebuild_complete
+
         Notes
         -----
-        This method accomplishes the following:
+        This method does the following things:
 
-        1. Gets surrogate key from existing build used by edition
-        2. Gets and validates new build
-        3. Copys new build into edition's directory in S3 bucket
-        4. Purge Fastly's cache for this edition.
+        1. Sets the Edition's surrogate-key for Fastly (for forward migration
+           purposes).
+
+        2. Validates the state
+
+           - The edition cannot have an already-pending rebuild.
+           - The build cannot be deprecated.
+           - The build must be uploaded.
+
+        3. Sets the desired state (update the build reference and sets
+           ``pending_rebuild`` field to `True`).
+
+        The ``rebuild_edition`` celery task, separately, implements the rebuild
+        and calls the `Edition.set_rebuild_complete` method to confirm that
+        the rebuild is complete.
         """
-        FASTLY_SERVICE_ID = current_app.config['FASTLY_SERVICE_ID']
-        FASTLY_KEY = current_app.config['FASTLY_KEY']
-        AWS_ID = current_app.config['AWS_ID']
-        AWS_SECRET = current_app.config['AWS_SECRET']
-
         # Create a surrogate-key for the edition if it doesn't have one
         if self.surrogate_key is None:
             self.surrogate_key = uuid.uuid4().hex
 
-        # Get and validate the build
+        # State validation
+        if self.pending_rebuild:
+            raise ValidationError(
+                'This edition already has a pending rebuild, this request '
+                'will not be accepted.')
+        if build.uploaded is False:
+            raise ValidationError('Build has not been uploaded: ' + build_url)
+        if build.date_ended is not None:
+            raise ValidationError('Build was deprecated: ' + build_url)
+
+        # Set the desired state
         if build is not None:
             self.build = build
         else:
             self.build = Build.from_url(build_url)
 
-        if self.build.uploaded is False:
-            raise ValidationError('Build has not been uploaded: ' + build_url)
-        if self.build.date_ended is not None:
-            raise ValidationError('Build was deprecated: ' + build_url)
+        self.pending_rebuild = True
 
-        if AWS_ID is not None and AWS_SECRET is not None:
-            s3.copy_directory(
-                bucket_name=self.product.bucket_name,
-                src_path=self.build.bucket_root_dirname,
-                dest_path=self.bucket_root_dirname,
-                aws_access_key_id=AWS_ID,
-                aws_secret_access_key=AWS_SECRET,
-                surrogate_key=self.surrogate_key,
-                # Force Fastly to cache the edition for 1 year
-                surrogate_control='max-age=31536000',
-                # Force browsers to revalidate their local cache using ETags.
-                cache_control='no-cache')
+        # Add the rebuild_edition task
+        # Lazy load the task because it referenes the db/Edition model
+        from .tasks.editionrebuild import rebuild_edition
+        append_task_to_chain(rebuild_edition.si(self.get_url(), self.id))
 
-        if FASTLY_SERVICE_ID is not None and FASTLY_KEY is not None:
-            fastly_service = fastly.FastlyService(
-                FASTLY_SERVICE_ID,
-                FASTLY_KEY)
-            fastly_service.purge_key(self.surrogate_key)
+    def set_rebuild_complete(self):
+        """Confirm that the rebuild is complete and the declared state is
+        correct.
 
-        # TODO start a job that will warm the Fastly cache with the new edition
+        Notes
+        -----
+        This method does two things:
 
+        1. Sets the ``pending_rebuild`` field to False.
+        2. Updates the ``date_rebuild`` field's timestamp to now.
+
+        See also
+        --------
+        Edition.set_pending_rebuild
+        """
+        self.pending_rebuild = False
         self.date_rebuilt = datetime.now()
 
     def set_mode(self, mode):
