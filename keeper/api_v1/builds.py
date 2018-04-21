@@ -1,7 +1,7 @@
 """API v1 routes for builds."""
 
 import uuid
-from flask import jsonify, request, current_app
+from flask import jsonify, request
 
 from . import api
 from ..models import db
@@ -9,7 +9,8 @@ from ..auth import token_auth, permission_required, is_authorized
 from ..models import Product, Build, Edition, Permission
 from ..utils import auto_slugify_edition
 from ..logutils import log_route
-from ..dasher import build_dashboard_safely
+from ..taskrunner import launch_task_chain, append_task_to_chain
+from ..tasks.dashboardbuild import build_dashboard
 
 
 @api.route('/products/<slug>/builds/', methods=['POST'])
@@ -127,12 +128,20 @@ def new_build(slug):
     :statuscode 404: Product not found.
     """
     product = Product.query.filter_by(slug=slug).first_or_404()
+    product_url = product.get_url()  # load for dashboard build
+
     surrogate_key = uuid.uuid4().hex
     build = Build(product=product, surrogate_key=surrogate_key)
     try:
         build.import_data(request.json)
+
         db.session.add(build)
         db.session.commit()
+
+        # Load for route return. With multiple DB commits, stuff can get
+        # lost from the session.
+        build_resource_json = build.export_data()
+        build_url = build.get_url()
     except Exception:
         db.session.rollback()
         raise
@@ -155,7 +164,11 @@ def new_build(slug):
         except Exception:
             db.session.rollback()
 
-    return jsonify(build.export_data()), 201, {'Location': build.get_url()}
+    # Run the task queue
+    append_task_to_chain(build_dashboard.si(product_url))
+    launch_task_chain()
+
+    return jsonify(build_resource_json), 201, {'Location': build_url}
 
 
 @api.route('/builds/<int:id>', methods=['PATCH'])
@@ -215,10 +228,18 @@ def patch_build(id):
     :statuscode 404: Build not found.
     """
     build = Build.query.get_or_404(id)
-    build.patch_data(request.json)
-    db.session.commit()
-    build_dashboard_safely(current_app, request, build.product)
-    return jsonify({}), 200, {'Location': build.get_url()}
+    try:
+        build.patch_data(request.json)
+        build_url = build.get_url()
+        db.session.commit()
+
+        # Run the task queue
+        append_task_to_chain(build_dashboard.si(build.product.get_url()))
+        launch_task_chain()
+    except Exception:
+        db.session.rollback()
+        raise
+    return jsonify({}), 200, {'Location': build_url}
 
 
 @api.route('/builds/<int:id>', methods=['DELETE'])

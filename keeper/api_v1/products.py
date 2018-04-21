@@ -1,12 +1,13 @@
 """API v1 routes for products."""
 
-from flask import jsonify, request, current_app
+from flask import jsonify, request
 from . import api
 from ..models import db
 from ..auth import token_auth, permission_required
 from ..models import Product, Permission, Edition
 from ..logutils import log_route
-from ..dasher import build_dashboard_safely, build_dashboards
+from ..tasks.dashboardbuild import build_dashboard
+from ..taskrunner import launch_task_chain, append_task_to_chain
 
 
 @api.route('/products/', methods=['GET'])
@@ -212,11 +213,13 @@ def new_product():
         db.session.add(edition)
 
         db.session.commit()
+
+        # Run the task queue
+        append_task_to_chain(build_dashboard.si(product.get_url()))
+        launch_task_chain()
     except Exception:
         db.session.rollback()
         raise
-
-    build_dashboard_safely(current_app, request, product)
 
     return jsonify({}), 201, {'Location': product.get_url()}
 
@@ -285,11 +288,13 @@ def edit_product(slug):
         product.patch_data(request.json)
         db.session.add(product)
         db.session.commit()
+
+        # Run the task queue
+        append_task_to_chain(build_dashboard.si(product.get_url()))
+        launch_task_chain()
     except Exception:
         db.session.rollback()
         raise
-
-    build_dashboard_safely(current_app, request, product)
 
     return jsonify({}), 200, {'Location': product.get_url()}
 
@@ -314,7 +319,6 @@ def rebuild_product_dashboard(slug):
     - :http:post:`/dashboards`
     """
     product = Product.query.filter_by(slug=slug).first_or_404()
-    build_dashboards([product.get_url()],
-                     current_app.config['LTD_DASHER_URL'],
-                     current_app.logger)
+    append_task_to_chain(build_dashboard.si(product.get_url()))
+    launch_task_chain()
     return jsonify({}), 202, {}

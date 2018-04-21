@@ -1,13 +1,14 @@
 """API v1 routes for Editions."""
 
-from flask import jsonify, request, current_app
+from flask import jsonify, request
 
 from . import api
 from ..models import db
 from ..auth import token_auth, permission_required
 from ..models import Product, Edition, Permission
 from ..logutils import log_route
-from ..dasher import build_dashboard_safely
+from ..taskrunner import launch_task_chain, append_task_to_chain
+from ..tasks.dashboardbuild import build_dashboard
 
 
 @api.route('/products/<slug>/editions/', methods=['POST'])
@@ -83,11 +84,16 @@ def new_edition(slug):
         edition.import_data(request.json)
         db.session.add(edition)
         db.session.commit()
+
+        edition_url = edition.get_url()
+
+        # Run the task queue
+        append_task_to_chain(build_dashboard.si(product.get_url()))
+        launch_task_chain()
     except Exception:
         db.session.rollback()
         raise
-    build_dashboard_safely(current_app, request, product)
-    return jsonify({}), 201, {'Location': edition.get_url()}
+    return jsonify({}), 201, {'Location': edition_url}
 
 
 @api.route('/editions/<int:id>', methods=['DELETE'])
@@ -139,7 +145,10 @@ def deprecate_edition(id):
     edition = Edition.query.get_or_404(id)
     edition.deprecate()
     db.session.commit()
-    build_dashboard_safely(current_app, request, edition.product)
+
+    append_task_to_chain(build_dashboard.si(edition.product.get_url()))
+    launch_task_chain()
+
     return jsonify({}), 200
 
 
@@ -366,8 +375,13 @@ def edit_edition(id):
         edition.patch_data(request.json)
         db.session.add(edition)
         db.session.commit()
+
+        edition_json = edition.export_data()
+
+        # Run the task queue
+        append_task_to_chain(build_dashboard.si(edition.product.get_url()))
+        launch_task_chain()
     except Exception:
         db.session.rollback()
         raise
-    build_dashboard_safely(current_app, request, edition.product)
-    return jsonify(edition.export_data())
+    return jsonify(edition_json)

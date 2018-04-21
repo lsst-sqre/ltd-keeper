@@ -1,10 +1,11 @@
 """API v1 route for dashboard building."""
 
-from flask import jsonify, current_app
+from flask import jsonify
 from . import api
 from ..auth import token_auth, permission_required
 from ..models import Product, Permission
-from ..dasher import build_dashboards
+from ..taskrunner import launch_task_chain, append_task_to_chain
+from ..tasks.dashboardbuild import build_dashboard
 
 
 @api.route('/dashboards', methods=['POST'])
@@ -26,8 +27,7 @@ def rebuild_all_dashboards():
     - :http:post:`/products/(slug)/dashboard` for single-product dashboard
       rebuilds.
     """
-    build_dashboards(
-        [product.get_url() for product in Product.query.all()],
-        current_app.config['LTD_DASHER_URL'],
-        current_app.logger)
+    for product in Product.query.all():
+        append_task_to_chain(build_dashboard.si(product.get_url()))
+    launch_task_chain()
     return jsonify({}), 202, {}
