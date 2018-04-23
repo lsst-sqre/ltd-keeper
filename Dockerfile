@@ -15,6 +15,7 @@ LABEL version="$VERSION"
 COPY migrations \
      uwsgi.ini \
      dist/lsst-the-docs-keeper-$VERSION.tar.gz \
+     bin/run-celery-worker.bash \
      $APPDIR/
 # Recreate the directory structure of alembic's migrations directory
 COPY migrations/alembic.ini \

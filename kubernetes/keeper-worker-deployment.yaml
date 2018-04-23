@@ -1,23 +1,16 @@
+# Deployment of celery workers for keeper
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: keeper-deployment
+  name: keeper-worker-deployment
 spec:
   replicas: 1
   template:
     metadata:
       labels:
-        name: keeper
+        name: keeper-worker
     spec:
       containers:
-
-        - name: nginx
-          imagePullPolicy: "Always"
-          image: "lsstsqre/nginx-python:k8s"
-          ports:
-            # from keeper-service
-            - name: keeper-nginx
-              containerPort: 8080
 
         - name: cloudsql-proxy
           image: b.gcr.io/cloudsql-docker/gce-proxy:1.05
@@ -36,12 +29,11 @@ spec:
           - name: cloudsql-ssl-certs
             mountPath: /etc/ssl/certs
 
-        - name: uwsgi
+        - name: keeper-worker
           imagePullPolicy: "Always"
           image: "lsstsqre/ltd-keeper:tickets-DM-14122"
-          ports:
-            - containerPort: 3031
-              name: keeper
+          command: ["/bin/bash"]
+          args: ["-c", "/ltd-keeper/run-celery-worker.bash"]
           volumeMounts:
             - name: cloudsql
               mountPath: /cloudsql
