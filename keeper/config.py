@@ -57,7 +57,7 @@ class DevelopmentConfig(Config):
         logging.basicConfig(
             format="%(message)s",
             stream=sys.stdout,
-            level=logging.INFO,
+            level=logging.DEBUG,
         )
 
         structlog.configure(
@@ -95,7 +95,7 @@ class TestConfig(Config):
         logging.basicConfig(
             format="%(message)s",
             stream=sys.stdout,
-            level=logging.INFO,
+            level=logging.DEBUG,
         )
 
         structlog.configure(
