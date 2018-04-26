@@ -7,7 +7,10 @@ import sys
 
 import structlog
 
-BASEDIR = os.path.abspath(os.path.dirname(__file__))
+BASEDIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+"""Director path at the root of the repository (only for test and development
+profiles).
+"""
 
 
 class Config(object):
