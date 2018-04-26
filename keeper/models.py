@@ -335,8 +335,7 @@ class Build(db.Model):
         # Get new Build ID from the build resource's URL
         build_endpoint, build_args = split_url(build_url)
         if build_endpoint != 'api.get_build' or 'id' not in build_args:
-            raise ValidationError('Invalid build_url: ' +
-                                  'build_url')
+            raise ValidationError('Invalid build_url: {}'.format(build_url))
         build = cls.query.get(build_args['id'])
         if build is None:
             raise ValidationError('Invalid build_url: ' + build_url)
