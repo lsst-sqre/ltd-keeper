@@ -635,7 +635,8 @@ class Edition(db.Model):
             'date_created': format_utc_datetime(self.date_created),
             'date_rebuilt': format_utc_datetime(self.date_rebuilt),
             'date_ended': format_utc_datetime(self.date_ended),
-            'surrogate_key': self.surrogate_key
+            'surrogate_key': self.surrogate_key,
+            'pending_rebuild': self.pending_rebuild
         }
 
     def import_data(self, data):
