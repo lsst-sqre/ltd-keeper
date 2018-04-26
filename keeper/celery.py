@@ -34,3 +34,8 @@ def create_celery_app(flask_app):
                 return TaskBase.__call__(self, *args, **kwargs)
 
     celery_app.Task = ContextTask
+
+    # Ensure that all tasks are import and registered before they're called
+    # For example, rebuild_edition's import is deferred otherwise in
+    # keeper.models to avoid circular imports
+    from . import tasks  # noqa: F401
