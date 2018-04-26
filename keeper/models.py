@@ -825,6 +825,9 @@ class Edition(db.Model):
         and calls the `Edition.set_rebuild_complete` method to confirm that
         the rebuild is complete.
         """
+        if build is None:
+            build = Build.from_url(build_url)
+
         # Create a surrogate-key for the edition if it doesn't have one
         if self.surrogate_key is None:
             self.surrogate_key = uuid.uuid4().hex
@@ -840,11 +843,7 @@ class Edition(db.Model):
             raise ValidationError('Build was deprecated: ' + build_url)
 
         # Set the desired state
-        if build is not None:
-            self.build = build
-        else:
-            self.build = Build.from_url(build_url)
-
+        self.build = build
         self.pending_rebuild = True
 
         # Add the rebuild_edition task
