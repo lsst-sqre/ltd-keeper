@@ -57,6 +57,8 @@ tests_require = [
     'pytest-cov==2.5.1',
     'pytest-flake8==1.0.0',
     'responses==0.9.0',
+    'pytest-mock==1.9.0',
+    'mock==2.0.0',
 ]
 
 # Sphinx documentation requirements
