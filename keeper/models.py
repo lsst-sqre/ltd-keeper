@@ -11,6 +11,7 @@ from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from flask import url_for, current_app
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
+from structlog import get_logger
 
 from . import s3
 from . import route53
@@ -173,6 +174,35 @@ class Product(db.Model):
     # are defined in those classes
     builds = db.relationship('Build', backref='product', lazy='dynamic')
     editions = db.relationship('Edition', backref='product', lazy='dynamic')
+
+    @classmethod
+    def from_url(cls, product_url):
+        """Get a Product given its API URL.
+
+        Parameters
+        ----------
+        product_url : `str`
+            API URL of the product. This is the same as `Product.get_url`.
+
+        Returns
+        -------
+        product : `Product`
+            The `Product` instance corresponding to the URL.
+        """
+        logger = get_logger(__name__)
+
+        # Get new Product ID from the product resource's URL
+        product_endpoint, product_args = split_url(product_url)
+        if product_endpoint != 'api.get_product' or 'slug' not in product_args:
+            logger.debug('Invalid product_url',
+                         product_endpoint=product_endpoint,
+                         product_args=product_args)
+            raise ValidationError('Invalid product_url: {}'
+                                  .format(product_url))
+        slug = product_args['slug']
+        product = cls.query.filter_by(slug=slug).first_or_404()
+
+        return product
 
     @property
     def domain(self):
@@ -534,6 +564,34 @@ class Edition(db.Model):
 
     # Relationships
     build = db.relationship('Build', uselist=False)  # one-to-one
+
+    @classmethod
+    def from_url(cls, edition_url):
+        """Get an Edition given its API URL.
+
+        Parameters
+        ----------
+        edition_url : `str`
+            API URL of the edition. This is the same as `Edition.get_url`.
+
+        Returns
+        -------
+        edition : `Edition`
+            The `Edition` instance corresponding to the URL.
+        """
+        logger = get_logger(__name__)
+
+        # Get new Product ID from the product resource's URL
+        edition_endpoint, endpoint_args = split_url(edition_url)
+        if edition_endpoint != 'api.get_edition' or 'id' not in endpoint_args:
+            logger.debug('Invalid edition_url',
+                         edition_endpoint=edition_endpoint,
+                         endpoint_args=endpoint_args)
+            raise ValidationError('Invalid edition_url: {}'
+                                  .format(edition_url))
+        edition = cls.query.get(endpoint_args['id'])
+
+        return edition
 
     @property
     def bucket_root_dirname(self):
