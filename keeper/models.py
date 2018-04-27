@@ -682,6 +682,8 @@ class Edition(db.Model):
 
     def patch_data(self, data):
         """Partial update of the Edition."""
+        logger = get_logger(__name__)
+
         if 'tracked_refs' in data:
             tracked_refs = data['tracked_refs']
             if isinstance(tracked_refs, str):
@@ -700,6 +702,13 @@ class Edition(db.Model):
 
         if 'slug' in data:
             self.update_slug(data['slug'])
+
+        if 'pending_rebuild' in data:
+            logger.warning('Manual reset of Edition.pending_rebuild',
+                           edition=self.get_url(),
+                           prev_pending_rebuild=self.pending_rebuild,
+                           new_pending_rebuild=data['pending_rebuild'])
+            self.pending_rebuild = data['pending_rebuild']
 
     def should_rebuild(self, build_url=None, build=None):
         """Determine whether the edition should be rebuilt to show a certain

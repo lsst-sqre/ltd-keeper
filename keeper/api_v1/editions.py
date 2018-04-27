@@ -332,6 +332,9 @@ def edit_edition(id):
         For multi-package documentation builds this is a list of Git refs that
         are checked out, in order of priority, for each component repository
         (optional).
+    :<json bool pending_rebuild: Semaphore indicating if a rebuild for the
+        edition is currently queued (optional). This should only be set
+        manually if the ``rebuild_edition`` task failed.
 
     :>json string build_url: URL of the build entity this Edition uses.
     :>json string date_created: UTC date time when the edition was created.
