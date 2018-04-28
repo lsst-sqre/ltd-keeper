@@ -54,11 +54,11 @@ class DevelopmentConfig(Config):
         """Initialization hook called during
         `keeper.appfactory.create_flask_app`.
         """
-        logging.basicConfig(
-            format="%(message)s",
-            stream=sys.stdout,
-            level=logging.DEBUG,
-        )
+        stream_handler = logging.StreamHandler(stream=sys.stdout)
+        stream_handler.setFormatter(logging.Formatter('%(message)s'))
+        logger = logging.getLogger('keeper')
+        logger.addHandler(stream_handler)
+        logger.setLevel(logging.DEBUG)
 
         structlog.configure(
             processors=[
@@ -92,11 +92,11 @@ class TestConfig(Config):
         """Initialization hook called during `
         `keeper.appfactory.create_flask_app`.
         """
-        logging.basicConfig(
-            format="%(message)s",
-            stream=sys.stdout,
-            level=logging.DEBUG,
-        )
+        stream_handler = logging.StreamHandler(stream=sys.stdout)
+        stream_handler.setFormatter(logging.Formatter('%(message)s'))
+        logger = logging.getLogger('keeper')
+        logger.addHandler(stream_handler)
+        logger.setLevel(logging.DEBUG)
 
         structlog.configure(
             processors=[
@@ -132,11 +132,11 @@ class ProductionConfig(Config):
         """Initialization hook called during
         `keeper.appfactory.create_flask_app`.
         """
-        logging.basicConfig(
-            format="%(message)s",
-            stream=sys.stdout,
-            level=logging.INFO,
-        )
+        stream_handler = logging.StreamHandler(stream=sys.stdout)
+        stream_handler.setFormatter(logging.Formatter('%(message)s'))
+        logger = logging.getLogger('keeper')
+        logger.addHandler(stream_handler)
+        logger.setLevel(logging.INFO)
 
         structlog.configure(
             processors=[
