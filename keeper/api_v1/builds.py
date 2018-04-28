@@ -2,6 +2,7 @@
 
 import uuid
 from flask import jsonify, request
+from structlog import get_logger
 
 from . import api
 from ..models import db
@@ -127,6 +128,8 @@ def new_build(slug):
     :statuscode 201: No error.
     :statuscode 404: Product not found.
     """
+    logger = get_logger(__name__)
+
     product = Product.query.filter_by(slug=slug).first_or_404()
     product_url = product.get_url()  # load for dashboard build
 
@@ -161,8 +164,19 @@ def new_build(slug):
                  'title': edition_slug})
             db.session.add(edition)
             db.session.commit()
+
+            edition_id = edition.id
+
+            logger.info('Created edition',
+                        url=edition.get_url(),
+                        id=edition.id,
+                        tracked_refs=edition.tracked_refs)
         except Exception:
             db.session.rollback()
+
+        # try to get that edition again
+        edition_test = Edition.query.get(edition_id)
+        logger.debug('Got edition', value=edition_test, id=edition_id)
 
     # Run the task queue
     append_task_to_chain(build_dashboard.si(product_url))
