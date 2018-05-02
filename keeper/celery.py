@@ -22,7 +22,8 @@ def create_celery_app(flask_app):
     global celery_app
     celery_app = Celery(flask_app.import_name,
                         backend=flask_app.config['CELERY_RESULT_URL'],
-                        broker=flask_app.config['CELERY_BROKER_URL'])
+                        broker=flask_app.config['CELERY_BROKER_URL'],
+                        task_track_started=True)
     celery_app.conf.update(flask_app.config)
     TaskBase = celery_app.Task
 
