@@ -1,10 +1,11 @@
 """Convenience APIs for launching Celery task queues.
 """
 
-__all__ = ('append_task_to_chain', 'launch_task_chain')
+__all__ = ('append_task_to_chain', 'launch_task_chain',
+           'insert_task_url_in_response')
 
 import celery
-from flask import g
+from flask import g, url_for
 import structlog
 
 
@@ -38,10 +39,22 @@ def launch_task_chain():
                      ntasks=0)
         return
 
+    chain = celery.chain(*g.tasks).apply_async()
     logger.info('Launching task chain',
                 ntasks=len(g.tasks),
-                tasks=str(g.tasks))
-    celery.chain(*g.tasks).apply_async()
+                tasks=str(g.tasks),
+                task_id=chain.id)
 
     # Reset the queued task signatures
     g.tasks = []
+
+    return chain
+
+
+def insert_task_url_in_response(json_data, task):
+    """Insert the task status URL into the JSON response body.
+    """
+    if task is not None:
+        url = url_for('api.get_task_status', id=task.id, _external=True)
+        json_data['queue_url'] = url
+    return json_data
