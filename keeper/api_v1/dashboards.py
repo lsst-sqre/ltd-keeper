@@ -4,7 +4,8 @@ from flask import jsonify
 from . import api
 from ..auth import token_auth, permission_required
 from ..models import Product, Permission
-from ..taskrunner import launch_task_chain, append_task_to_chain
+from ..taskrunner import (launch_task_chain, append_task_to_chain,
+                          insert_task_url_in_response)
 from ..tasks.dashboardbuild import build_dashboard
 
 
@@ -29,5 +30,6 @@ def rebuild_all_dashboards():
     """
     for product in Product.query.all():
         append_task_to_chain(build_dashboard.si(product.get_url()))
-    launch_task_chain()
-    return jsonify({}), 202, {}
+    task = launch_task_chain()
+    response = insert_task_url_in_response({}, task)
+    return jsonify(response), 202, {}

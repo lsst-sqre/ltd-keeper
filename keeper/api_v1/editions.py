@@ -7,7 +7,8 @@ from ..models import db
 from ..auth import token_auth, permission_required
 from ..models import Product, Edition, Permission
 from ..logutils import log_route
-from ..taskrunner import launch_task_chain, append_task_to_chain
+from ..taskrunner import (launch_task_chain, append_task_to_chain,
+                          insert_task_url_in_response)
 from ..tasks.dashboardbuild import build_dashboard
 
 
@@ -89,11 +90,12 @@ def new_edition(slug):
 
         # Run the task queue
         append_task_to_chain(build_dashboard.si(product.get_url()))
-        launch_task_chain()
+        task = launch_task_chain()
+        response = insert_task_url_in_response({}, task)
     except Exception:
         db.session.rollback()
         raise
-    return jsonify({}), 201, {'Location': edition_url}
+    return jsonify(response), 201, {'Location': edition_url}
 
 
 @api.route('/editions/<int:id>', methods=['DELETE'])
@@ -147,9 +149,10 @@ def deprecate_edition(id):
     db.session.commit()
 
     append_task_to_chain(build_dashboard.si(edition.product.get_url()))
-    launch_task_chain()
+    task = launch_task_chain()
+    response = insert_task_url_in_response({}, task)
 
-    return jsonify({}), 200
+    return jsonify(response), 200
 
 
 @api.route('/products/<slug>/editions/', methods=['GET'])
@@ -380,7 +383,8 @@ def edit_edition(id):
 
         # Run the task queue
         append_task_to_chain(build_dashboard.si(edition.product.get_url()))
-        launch_task_chain()
+        task = launch_task_chain()
+        edition_json = insert_task_url_in_response(edition_json, task)
     except Exception:
         db.session.rollback()
         raise

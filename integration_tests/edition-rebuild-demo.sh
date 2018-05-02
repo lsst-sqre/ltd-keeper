@@ -20,6 +20,8 @@ http --auth $TOKEN: POST :5000/products/ slug="demo" doc_repo="https://example.c
 http --auth $TOKEN: POST :5000/products/demo/builds/ git_refs:='["master"]'
 
 # Confirm the build is uploaded. This also rebuilds the default edition for 'demo'
-http --auth $TOKEN: PATCH :5000/builds/1 uploaded:=true
+QUEUEURL=`http --auth $TOKEN: PATCH :5000/builds/1 uploaded:=true | jq '.queue_url'`
+
+http --auth $TOKEN: GET $QUEUEURL
 
 echo "Done"

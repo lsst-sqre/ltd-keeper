@@ -10,7 +10,8 @@ from ..auth import token_auth, permission_required, is_authorized
 from ..models import Product, Build, Edition, Permission
 from ..utils import auto_slugify_edition
 from ..logutils import log_route
-from ..taskrunner import launch_task_chain, append_task_to_chain
+from ..taskrunner import (launch_task_chain, append_task_to_chain,
+                          insert_task_url_in_response)
 from ..tasks.dashboardbuild import build_dashboard
 
 
@@ -180,7 +181,9 @@ def new_build(slug):
 
     # Run the task queue
     append_task_to_chain(build_dashboard.si(product_url))
-    launch_task_chain()
+    task = launch_task_chain()
+    build_resource_json = insert_task_url_in_response(build_resource_json,
+                                                      task)
 
     return jsonify(build_resource_json), 201, {'Location': build_url}
 
@@ -248,12 +251,14 @@ def patch_build(id):
         db.session.commit()
 
         # Run the task queue
-        append_task_to_chain(build_dashboard.si(build.product.get_url()))
-        launch_task_chain()
+        append_task_to_chain(
+            build_dashboard.si(build.product.get_url()))
+        task = launch_task_chain()
+        response = insert_task_url_in_response({}, task)
     except Exception:
         db.session.rollback()
         raise
-    return jsonify({}), 200, {'Location': build_url}
+    return jsonify(response), 200, {'Location': build_url}
 
 
 @api.route('/builds/<int:id>', methods=['DELETE'])

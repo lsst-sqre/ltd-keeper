@@ -7,7 +7,8 @@ from ..auth import token_auth, permission_required
 from ..models import Product, Permission, Edition
 from ..logutils import log_route
 from ..tasks.dashboardbuild import build_dashboard
-from ..taskrunner import launch_task_chain, append_task_to_chain
+from ..taskrunner import (launch_task_chain, append_task_to_chain,
+                          insert_task_url_in_response)
 
 
 @api.route('/products/', methods=['GET'])
@@ -216,12 +217,13 @@ def new_product():
 
         # Run the task queue
         append_task_to_chain(build_dashboard.si(product.get_url()))
-        launch_task_chain()
+        task = launch_task_chain()
+        response = insert_task_url_in_response({}, task)
     except Exception:
         db.session.rollback()
         raise
 
-    return jsonify({}), 201, {'Location': product.get_url()}
+    return jsonify(response), 201, {'Location': product.get_url()}
 
 
 @api.route('/products/<slug>', methods=['PATCH'])
@@ -291,12 +293,13 @@ def edit_product(slug):
 
         # Run the task queue
         append_task_to_chain(build_dashboard.si(product.get_url()))
-        launch_task_chain()
+        task = launch_task_chain()
+        response = insert_task_url_in_response({}, task)
     except Exception:
         db.session.rollback()
         raise
 
-    return jsonify({}), 200, {'Location': product.get_url()}
+    return jsonify(response), 200, {'Location': product.get_url()}
 
 
 @api.route('/products/<slug>/dashboard', methods=['POST'])
@@ -320,5 +323,6 @@ def rebuild_product_dashboard(slug):
     """
     product = Product.query.filter_by(slug=slug).first_or_404()
     append_task_to_chain(build_dashboard.si(product.get_url()))
-    launch_task_chain()
-    return jsonify({}), 202, {}
+    task = launch_task_chain()
+    response = insert_task_url_in_response({}, task)
+    return jsonify(response), 202, {}
