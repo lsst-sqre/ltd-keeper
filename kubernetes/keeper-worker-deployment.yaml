@@ -31,7 +31,7 @@ spec:
 
         - name: keeper-worker
           imagePullPolicy: "Always"
-          image: "lsstsqre/ltd-keeper:tickets-DM-14122"
+          image: "lsstsqre/ltd-keeper:1.9.0"
           command: ["/bin/bash"]
           args: ["-c", "/ltd-keeper/run-celery-worker.bash"]
           volumeMounts:
