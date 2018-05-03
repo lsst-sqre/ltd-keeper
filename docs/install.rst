@@ -32,20 +32,47 @@ You can invoke the `pytest <http://pytest.org/latest/>`_-based tests by running:
 
    make test
 
-Running for development: run.py runserver
-=========================================
+Running for development
+=======================
 
 The 'development' configuration profile provides useful defaults for running an LTD Keeper instance locally (see :file:`config.py`).
 
 Run LTD Keeper in development mode via:
 
+Running LTD Keeper locally requires three separate terminal sessions.
+
+In the first:
+
 .. code-block:: bash
 
-   ./run.py createdb
-   ./run.py init
-   ./run.py runserver
+   make redis
 
-The ``createdb`` subcommand creates tables in a development database, and the ``init`` command seeds a default user.
+In the second:
+
+.. code-block:: bash
+
+   make db-init
+   make run
+
+In the third:
+
+.. code-block:: bash
+
+   make worker
+
+The ``make db-init`` command creates tables in a development database with a default user.
 This default user has username ``user`` and password ``pass``.
 
-Once the development DB is prepared you can skip the ``createdb`` and ``init`` commands with later instantiations of ``runserver``.
+Using httpie, you can get an auth token by running:
+
+.. code-block:: bash
+
+   http --auth user:pass get :5000/token
+
+Once the development DB is prepared you can skip the ``make db-init`` commands.
+
+Clean up the development DB by running:
+
+.. code-block:: bash
+
+   make db-clean
