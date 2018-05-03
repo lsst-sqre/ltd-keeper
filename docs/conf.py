@@ -56,10 +56,8 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'LTD Keeper'
-copyright = ('2016–2017, Association of Universities '
-             'for Research in Astronomy, Inc.')
-author = ('Association of Universities '
-          'for Research in Astronomy, Inc.')
+copyright = '2016–2018, Association of Universities for Research in Astronomy'
+author = 'Association of Universities for Research in Astronomy'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the

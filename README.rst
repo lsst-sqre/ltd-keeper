@@ -17,7 +17,7 @@ The documentation covers both the REST API consumption and DevOps perspectives.
 
 ****
 
-Copyright 2016–2017 Association of Universities for Research in Astronomy, Inc.
+Copyright 2016–2018 Association of Universities for Research in Astronomy
 
 MIT license. See the LICENSE file. See also licenses/ for licenses of third-party code.
 
