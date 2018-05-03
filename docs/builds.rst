@@ -26,5 +26,5 @@ Methods
 Reference
 =========
 
-.. autoflask:: keeper:create_app(profile='development')
+.. autoflask:: keeper:flask_app
    :endpoints: api.get_build, api.patch_build, api.deprecate_build

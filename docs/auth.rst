@@ -2,5 +2,5 @@
 Authentication - `/token`
 #########################
 
-.. autoflask:: keeper:create_app(profile='development')
-   :endpoints: get_auth_token
+.. autoflask:: keeper:flask_app
+   :endpoints: api.get_auth_token

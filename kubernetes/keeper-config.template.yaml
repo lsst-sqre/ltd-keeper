@@ -9,3 +9,4 @@ data:
   url-scheme: "https"
   # Cluster DNS url to LTD Dasher
   dasher-url: "http://dasher:3031"
+  log-level: "INFO"

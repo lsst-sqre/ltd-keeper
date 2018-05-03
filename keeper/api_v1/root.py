@@ -22,7 +22,7 @@ def get_root():
 
     links = {
         'self': url_for('api.get_root', _external=True),
-        'token': url_for('get_auth_token', _external=True),
+        'token': url_for('api.get_auth_token', _external=True),
         'products': url_for('api.get_products', _external=True),
     }
     return jsonify({

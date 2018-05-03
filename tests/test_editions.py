@@ -1,12 +1,36 @@
-"""Tests for the editions API."""
+"""Tests APIs related to edition resources.
+"""
 
 import pytest
 from werkzeug.exceptions import NotFound
 from keeper.exceptions import ValidationError
 
+from keeper.tasks.dashboardbuild import build_dashboard
+from keeper.tasks.editionrebuild import rebuild_edition
 
-def test_editions(client):
-    # Add a sample product
+
+def test_editions(client, mocker):
+    """Exercise different /edition/ API scenarios.
+    """
+    mocked_product_append_task = mocker.patch(
+        'keeper.api_v1.products.append_task_to_chain')
+    mocked_product_launch_chain = mocker.patch(
+        'keeper.api_v1.products.launch_task_chain')
+    mocked_build_append_task = mocker.patch(
+        'keeper.api_v1.builds.append_task_to_chain')
+    mocked_build_launch_chain = mocker.patch(
+        'keeper.api_v1.builds.launch_task_chain')
+    mocked_models_append_task = mocker.patch(
+        'keeper.models.append_task_to_chain')
+    mocked_edition_append_task = mocker.patch(
+        'keeper.api_v1.editions.append_task_to_chain')
+    mocked_edition_launch_chain = mocker.patch(
+        'keeper.api_v1.editions.launch_task_chain')
+
+    # ========================================================================
+    # Add product /products/ldm-151
+    mocker.resetall()
+
     p = {'slug': 'pipelines',
          'doc_repo': 'https://github.com/lsst/pipelines_docs.git',
          'title': 'LSST Science Pipelines',
@@ -15,22 +39,84 @@ def test_editions(client):
          'bucket_name': 'bucket-name'}
     r = client.post('/products/', p)
     product_url = r.headers['Location']
-    assert r.status == 201
 
-    # Create builds
+    assert r.status == 201
+    mocked_product_append_task.assert_called_with(
+        build_dashboard.si(product_url)
+    )
+    mocked_product_launch_chain.assert_called_once()
+
+    # ========================================================================
+    # Get default edition
+    mocker.resetall()
+
+    edition_urls = client.get('/products/pipelines/editions/').json
+    e0_url = edition_urls['editions'][0]
+    e0 = client.get(e0_url).json
+    assert e0['pending_rebuild'] is False
+
+    # ========================================================================
+    # Create a build of the 'master' branch
+    mocker.resetall()
+
     r = client.post('/products/pipelines/builds/',
                     {'git_refs': ['master']})
-    assert r.status == 201
     b1_url = r.json['self_url']
+    assert r.status == 201
+
+    # ========================================================================
+    # Confirm build of the 'master' branch
+    mocker.resetall()
+
     client.patch(b1_url, {'uploaded': True})
+
+    mocked_models_append_task.assert_called_with(
+        rebuild_edition.si('http://example.test/editions/1', 1)
+    )
+    mocked_build_append_task.assert_called_with(
+        build_dashboard.si(product_url)
+    )
+    mocked_build_launch_chain.assert_called_once()
+
+    # Check pending_rebuild semaphore and manually reset it since the celery
+    # task is mocked.
+    e0 = client.get(e0_url).json
+    assert e0['pending_rebuild'] is True
+    r = client.patch(e0_url, {'pending_rebuild': False})
+
+    # ========================================================================
+    # Create a second build of the 'master' branch
+    mocker.resetall()
 
     r = client.post('/products/pipelines/builds/',
                     {'git_refs': ['master']})
     assert r.status == 201
     b2_url = r.json['self_url']
+
+    # ========================================================================
+    # Confirm second build of the 'master' branch
+    mocker.resetall()
+
     client.patch(b2_url, {'uploaded': True})
 
-    # Setup an edition
+    mocked_models_append_task.assert_called_with(
+        rebuild_edition.si('http://example.test/editions/1', 1)
+    )
+    mocked_build_append_task.assert_called_with(
+        build_dashboard.si(product_url)
+    )
+    mocked_build_launch_chain.assert_called_once()
+
+    # Check pending_rebuild semaphore and manually reset it since the celery
+    # task is mocked.
+    e0 = client.get(e0_url).json
+    assert e0['pending_rebuild'] is True
+    r = client.patch(e0_url, {'pending_rebuild': False})
+
+    # ========================================================================
+    # Setup an edition also tracking master called 'latest'
+    mocker.resetall()
+
     e1 = {'tracked_refs': ['master'],
           'slug': 'latest',
           'title': 'Latest',
@@ -47,24 +133,73 @@ def test_editions(client):
     assert r.json['date_created'] is not None
     assert r.json['date_ended'] is None
     assert r.json['published_url'] == 'https://pipelines.lsst.io/v/latest'
+    assert r.json['pending_rebuild'] is True
 
-    # Re-build the edition
+    mocked_edition_append_task.assert_called_with(
+        build_dashboard.si(product_url)
+    )
+    mocked_models_append_task.assert_called_with(
+        rebuild_edition.si(e1_url, 2)
+    )
+    mocked_edition_launch_chain.assert_called_once()
+
+    # Manually reset pending_rebuild since the rebuild_edition task is mocked
+    r = client.patch(e1_url, {'pending_rebuild': False})
+
+    # ========================================================================
+    # Re-build the edition with the second build
+    mocker.resetall()
+
     r = client.patch(e1_url, {'build_url': b2_url})
+
     assert r.status == 200
     assert r.json['build_url'] == b2_url
 
+    mocked_models_append_task.assert_called_with(
+        rebuild_edition.si(e1_url, 2)
+    )
+    mocked_edition_append_task.assert_called_with(
+        build_dashboard.si(product_url)
+    )
+    mocked_edition_launch_chain.assert_called_once()
+
+    # Manually reset pending_rebuild since the rebuild_edition task is mocked
+    r = client.patch(e1_url, {'pending_rebuild': False})
+
+    # ========================================================================
     # Change the title with PATCH
+    mocker.resetall()
+
     r = client.patch(e1_url, {'title': "Development version"})
     assert r.status == 200
     assert r.json['title'] == 'Development version'
+    assert r.json['pending_rebuild'] is False
 
+    mocked_edition_append_task.assert_called_with(
+        build_dashboard.si(product_url)
+    )
+    mocked_edition_launch_chain.assert_called_once()
+
+    # ========================================================================
     # Change the tracked_refs with PATCH
+    mocker.resetall()
+
     r = client.patch(e1_url, {'tracked_refs': ['tickets/DM-9999', 'master']})
+
     assert r.status == 200
     assert r.json['tracked_refs'][0] == 'tickets/DM-9999'
     assert r.json['tracked_refs'][1] == 'master'
+    assert r.json['pending_rebuild'] is False  # no need to rebuild
 
+    mocked_edition_append_task.assert_called_with(
+        build_dashboard.si(product_url)
+    )
+    mocked_edition_launch_chain.assert_called_once()
+
+    # ========================================================================
     # Deprecate the editon
+    mocker.resetall()
+
     r = client.delete(e1_url)
     assert r.status == 200
 
@@ -75,9 +210,13 @@ def test_editions(client):
     # Deprecated editions no longer in the editions list
     r = client.get(product_url + '/editions/')
     assert r.status == 200
-    assert len(r.json['editions']) == 1  # only default edition (main) remains
+    # only default edition (main) remains
+    assert len(r.json['editions']) == 1
 
+    # ========================================================================
     # Verify we can't make a second 'main' edition
+    mocker.resetall()
+
     with pytest.raises(ValidationError):
         r = client.post('/products/pipelines/editions/',
                         {'slug': 'main',

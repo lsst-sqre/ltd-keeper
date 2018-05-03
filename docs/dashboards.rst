@@ -17,5 +17,5 @@ Method summary
 Reference
 =========
 
-.. autoflask:: keeper:create_app(profile='development')
+.. autoflask:: keeper:flask_app
    :endpoints: api.rebuild_all_dashboards

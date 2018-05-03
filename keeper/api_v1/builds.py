@@ -1,15 +1,18 @@
 """API v1 routes for builds."""
 
 import uuid
-from flask import jsonify, request, current_app
+from flask import jsonify, request
+from structlog import get_logger
 
 from . import api
-from .. import db
+from ..models import db
 from ..auth import token_auth, permission_required, is_authorized
 from ..models import Product, Build, Edition, Permission
 from ..utils import auto_slugify_edition
 from ..logutils import log_route
-from ..dasher import build_dashboard_safely
+from ..taskrunner import (launch_task_chain, append_task_to_chain,
+                          insert_task_url_in_response)
+from ..tasks.dashboardbuild import build_dashboard
 
 
 @api.route('/products/<slug>/builds/', methods=['POST'])
@@ -126,13 +129,23 @@ def new_build(slug):
     :statuscode 201: No error.
     :statuscode 404: Product not found.
     """
+    logger = get_logger(__name__)
+
     product = Product.query.filter_by(slug=slug).first_or_404()
+    product_url = product.get_url()  # load for dashboard build
+
     surrogate_key = uuid.uuid4().hex
     build = Build(product=product, surrogate_key=surrogate_key)
     try:
         build.import_data(request.json)
+
         db.session.add(build)
         db.session.commit()
+
+        # Load for route return. With multiple DB commits, stuff can get
+        # lost from the session.
+        build_resource_json = build.export_data()
+        build_url = build.get_url()
     except Exception:
         db.session.rollback()
         raise
@@ -152,10 +165,27 @@ def new_build(slug):
                  'title': edition_slug})
             db.session.add(edition)
             db.session.commit()
+
+            edition_id = edition.id
+
+            logger.info('Created edition',
+                        url=edition.get_url(),
+                        id=edition.id,
+                        tracked_refs=edition.tracked_refs)
         except Exception:
             db.session.rollback()
 
-    return jsonify(build.export_data()), 201, {'Location': build.get_url()}
+        # try to get that edition again
+        edition_test = Edition.query.get(edition_id)
+        logger.debug('Got edition', value=edition_test, id=edition_id)
+
+    # Run the task queue
+    append_task_to_chain(build_dashboard.si(product_url))
+    task = launch_task_chain()
+    build_resource_json = insert_task_url_in_response(build_resource_json,
+                                                      task)
+
+    return jsonify(build_resource_json), 201, {'Location': build_url}
 
 
 @api.route('/builds/<int:id>', methods=['PATCH'])
@@ -215,10 +245,20 @@ def patch_build(id):
     :statuscode 404: Build not found.
     """
     build = Build.query.get_or_404(id)
-    build.patch_data(request.json)
-    db.session.commit()
-    build_dashboard_safely(current_app, request, build.product)
-    return jsonify({}), 200, {'Location': build.get_url()}
+    try:
+        build.patch_data(request.json)
+        build_url = build.get_url()
+        db.session.commit()
+
+        # Run the task queue
+        append_task_to_chain(
+            build_dashboard.si(build.product.get_url()))
+        task = launch_task_chain()
+        response = insert_task_url_in_response({}, task)
+    except Exception:
+        db.session.rollback()
+        raise
+    return jsonify(response), 200, {'Location': build_url}
 
 
 @api.route('/builds/<int:id>', methods=['DELETE'])

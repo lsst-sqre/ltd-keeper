@@ -41,5 +41,5 @@ Method summary
 Reference
 =========
 
-.. autoflask:: keeper:create_app(profile='development')
+.. autoflask:: keeper:flask_app
    :endpoints: api.get_products, api.get_product, api.new_product, api.edit_product, api.new_build, api.get_product_builds, api.new_edition, api.get_product_editions, api.rebuild_product_dashboard

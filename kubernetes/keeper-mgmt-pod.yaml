@@ -34,7 +34,7 @@ spec:
         mountPath: /etc/ssl/certs
 
     - name: uwsgi
-      image: "lsstsqre/ltd-keeper:tickets-DM-12974"
+      image: "lsstsqre/ltd-keeper:1.9.0"
       imagePullPolicy: "Always"
       # Container should do nothing on start; let the user access it
       # http://kubernetes.io/docs/user-guide/containers/#how-docker-handles-command-and-arguments
@@ -46,6 +46,9 @@ spec:
         - name: cloudsql
           mountPath: /cloudsql
       env:
+        # References the keeper-redis service
+        - name: REDIS_URL
+          value: "redis://keeper-redis:6379"
         - name: LTD_KEEPER_PROFILE
           valueFrom:
             configMapKeyRef:

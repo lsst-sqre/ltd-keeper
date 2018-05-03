@@ -1,13 +1,15 @@
 """API v1 routes for Editions."""
 
-from flask import jsonify, request, current_app
+from flask import jsonify, request
 
 from . import api
-from .. import db
+from ..models import db
 from ..auth import token_auth, permission_required
 from ..models import Product, Edition, Permission
 from ..logutils import log_route
-from ..dasher import build_dashboard_safely
+from ..taskrunner import (launch_task_chain, append_task_to_chain,
+                          insert_task_url_in_response)
+from ..tasks.dashboardbuild import build_dashboard
 
 
 @api.route('/products/<slug>/editions/', methods=['POST'])
@@ -83,11 +85,17 @@ def new_edition(slug):
         edition.import_data(request.json)
         db.session.add(edition)
         db.session.commit()
+
+        edition_url = edition.get_url()
+
+        # Run the task queue
+        append_task_to_chain(build_dashboard.si(product.get_url()))
+        task = launch_task_chain()
+        response = insert_task_url_in_response({}, task)
     except Exception:
         db.session.rollback()
         raise
-    build_dashboard_safely(current_app, request, product)
-    return jsonify({}), 201, {'Location': edition.get_url()}
+    return jsonify(response), 201, {'Location': edition_url}
 
 
 @api.route('/editions/<int:id>', methods=['DELETE'])
@@ -139,8 +147,12 @@ def deprecate_edition(id):
     edition = Edition.query.get_or_404(id)
     edition.deprecate()
     db.session.commit()
-    build_dashboard_safely(current_app, request, edition.product)
-    return jsonify({}), 200
+
+    append_task_to_chain(build_dashboard.si(edition.product.get_url()))
+    task = launch_task_chain()
+    response = insert_task_url_in_response({}, task)
+
+    return jsonify(response), 200
 
 
 @api.route('/products/<slug>/editions/', methods=['GET'])
@@ -332,6 +344,9 @@ def edit_edition(id):
         For multi-package documentation builds this is a list of Git refs that
         are checked out, in order of priority, for each component repository
         (optional).
+    :<json bool pending_rebuild: Semaphore indicating if a rebuild for the
+        edition is currently queued (optional). This should only be set
+        manually if the ``rebuild_edition`` task failed.
 
     :>json string build_url: URL of the build entity this Edition uses.
     :>json string date_created: UTC date time when the edition was created.
@@ -363,8 +378,14 @@ def edit_edition(id):
         edition.patch_data(request.json)
         db.session.add(edition)
         db.session.commit()
+
+        edition_json = edition.export_data()
+
+        # Run the task queue
+        append_task_to_chain(build_dashboard.si(edition.product.get_url()))
+        task = launch_task_chain()
+        edition_json = insert_task_url_in_response(edition_json, task)
     except Exception:
         db.session.rollback()
         raise
-    build_dashboard_safely(current_app, request, edition.product)
-    return jsonify(edition.export_data())
+    return jsonify(edition_json)

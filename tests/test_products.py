@@ -1,16 +1,33 @@
-"""Tests for the product API."""
+"""Tests for the product API.
+"""
 
 import pytest
-from werkzeug.exceptions import NotFound
+import werkzeug.exceptions
 from keeper.exceptions import ValidationError
+from keeper.tasks.dashboardbuild import build_dashboard
 
 
-def test_products(client):
+def test_products(client, mocker):
+    """Test various API operations against Product resources.
+    """
+    mocked_product_append_task = mocker.patch(
+        'keeper.api_v1.products.append_task_to_chain')
+    mocked_product_launch_chain = mocker.patch(
+        'keeper.api_v1.products.launch_task_chain')
+
+    # ========================================================================
+    # Add product /products/ldm-151
+    mocker.resetall()
+
     r = client.get('/products/')
+
     assert r.status == 200
     assert len(r.json['products']) == 0
 
-    # Add first product
+    # ========================================================================
+    # Add first product /products/pipelines
+    mocker.resetall()
+
     p1 = {'slug': 'pipelines',
           'doc_repo': 'https://github.com/lsst/pipelines_docs.git',
           'title': 'LSST Science Pipelines',
@@ -18,20 +35,33 @@ def test_products(client):
           'root_fastly_domain': 'global.ssl.fastly.net',
           'bucket_name': 'bucket-name'}
     r = client.post('/products/', p1)
-    assert r.status == 201
     p1_url = r.headers['Location']
 
+    assert r.status == 201
+
+    mocked_product_append_task.assert_called_with(
+        build_dashboard.si(p1_url)
+    )
+    mocked_product_launch_chain.assert_called_once()
+
+    # ========================================================================
     # Validate that default edition was made
+    mocker.resetall()
+
     r = client.get('/products/pipelines/editions/')
     assert r.status == 200
     default_ed_url = r.json['editions'][0]
+
     r = client.get(default_ed_url)
     assert r.json['slug'] == 'main'
     assert r.json['title'] == 'Latest'
     assert r.json['tracked_refs'] == ['master']
     assert r.json['published_url'] == 'https://pipelines.lsst.io'
 
+    # ========================================================================
     # Add second product
+    mocker.resetall()
+
     p2 = {'slug': 'qserv',
           'doc_repo': 'https://github.com/lsst/qserv_docs.git',
           'title': 'Qserv',
@@ -39,10 +69,18 @@ def test_products(client):
           'root_fastly_domain': 'global.ssl.fastly.net',
           'bucket_name': 'bucket-name'}
     r = client.post('/products/', p2)
-    assert r.status == 201
     p2_url = r.headers['Location']
 
+    assert r.status == 201
+    mocked_product_append_task.assert_called_with(
+        build_dashboard.si(p2_url)
+    )
+    mocked_product_launch_chain.assert_called_once()
+
+    # ========================================================================
     # Add product with slug that will fail validation
+    mocker.resetall()
+
     with pytest.raises(ValidationError):
         client.post('/products/',
                     {'slug': '0qserv',
@@ -68,12 +106,18 @@ def test_products(client):
                      'root_fastly_domain': 'global.ssl.fastly.net',
                      'bucket_name': 'bucket-name'})
 
+    # ========================================================================
     # Test listing of products
+    mocker.resetall()
+
     r = client.get('/products/')
     assert r.status == 200
     assert r.json['products'] == [p1_url, p2_url]
 
-    # Test getting a product
+    # ========================================================================
+    # Test getting first product
+    mocker.resetall()
+
     r = client.get(p1_url)
     for k, v in p1.items():
         assert r.json[k] == v
@@ -83,6 +127,10 @@ def test_products(client):
     assert r.json['published_url'] == 'https://pipelines.lsst.io'
     # Test surrogate key
     assert len(r.json['surrogate_key']) == 32
+
+    # ========================================================================
+    # Test getting second product
+    mocker.resetall()
 
     r = client.get(p2_url)
     for k, v in p2.items():
@@ -94,22 +142,33 @@ def test_products(client):
     # Test surrogate key
     assert len(r.json['surrogate_key']) == 32
 
+    # ========================================================================
+    # Try modifying non-existent product
+    mocker.resetall()
+
     p2v2 = dict(p2)
     p2v2['title'] = 'Qserve Data Access'
 
-    # # Try modifying non-existant product
-    # # Throws werkzeug.exceptions.NotFound rather than emitting 404 response
-    # r = client.put('/products/3', p2v2)
-    # assert r.status == 404
+    # Throws werkzeug.exceptions.NotFound rather than emitting 404 response
+    with pytest.raises(werkzeug.exceptions.NotFound):
+        r = client.patch('/products/3', p2v2)
 
+    # ========================================================================
     # Modify existing product
+    mocker.resetall()
+
     r = client.patch('/products/qserv', p2v2)
     assert r.status == 200
+
     r = client.get('/products/qserv')
     assert r.status == 200
-    print(r.json)
     for k, v in p2v2.items():
         assert r.json[k] == v
+
+    mocked_product_append_task.assert_called_with(
+        build_dashboard.si(p2_url)
+    )
+    mocked_product_launch_chain.assert_called_once()
 
 
 # Authorizion tests: POST /products/ =========================================
@@ -151,7 +210,7 @@ def test_patch_product_auth_anon(anon_client):
 
 
 def test_patch_product_auth_product_client(product_client):
-    with pytest.raises(NotFound):
+    with pytest.raises(werkzeug.exceptions.NotFound):
         product_client.patch('/products/test', {'foo': 'bar'})
 
 
@@ -180,7 +239,7 @@ def test_post_dashboard_auth_anon(anon_client):
 
 
 def test_post_dashboard_auth_product_client(product_client):
-    with pytest.raises(NotFound):
+    with pytest.raises(werkzeug.exceptions.NotFound):
         product_client.post('/products/test/dashboard', {})
 
 

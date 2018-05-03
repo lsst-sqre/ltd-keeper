@@ -50,7 +50,7 @@ Procedure
 
    .. code-block:: bash
 
-      ./run.py db upgrade
+      FLASK_APP=keeper flask db upgrade
    
    When the upgrade is complete, log out of the management pod's shell:
 
@@ -70,7 +70,7 @@ Procedure
 
    .. code-block:: bash
 
-      kubectl create -f keeper-deployment
+      kubectl apply -f keeper-deployment.yaml
 
 .. _gke-migrations-troubleshooting:
 
@@ -80,11 +80,11 @@ Troubleshooting
 Unexpected branched state
 -------------------------
 
-It's possible for Alembic to get into an unexpected branching state, producing an error message during a ``run.py db upgrade`` like::
+It's possible for Alembic to get into an unexpected branching state, producing an error message during a ``flask db upgrade`` like::
 
    alembic.util.exc.CommandError: Requested revision 1ba709663f26 overlaps with other requested revisions 0c0c70d73d4b
 
-The ``run.py db heads`` and ``run.py db branches`` and ``run.py db current`` commands will show a normal, linear version history.
+The ``flask db heads``, ``flask db branches``, and ``flask db current`` commands will show a normal, linear version history.
 A true validation is to inspect the ``alembic_version`` table in the database.
 
 Following :ref:`gke-cloudsql-connect`, log into the database and show the ``alembic_version`` table:
@@ -105,8 +105,8 @@ Then in the management pod, stamp the database version:
 
 .. code-block:: bash
 
-   ./run.py db stamp $VERSION
+   FLASK_APP=keeper flask db stamp $VERSION
 
-where ``$VERSION`` is the ID of the known current migration.
+``$VERSION`` is the ID of the known current migration.
 This creates a new ``alembic_version`` table with a single row specifying the current version.
 Now the database upgrade can be retried.

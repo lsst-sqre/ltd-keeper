@@ -7,7 +7,10 @@ import sys
 
 import structlog
 
-BASEDIR = os.path.abspath(os.path.dirname(__file__))
+BASEDIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+"""Director path at the root of the repository (only for test and development
+profiles).
+"""
 
 
 class Config(object):
@@ -24,6 +27,8 @@ class Config(object):
     FASTLY_KEY = os.environ.get('LTD_KEEPER_FASTLY_KEY')
     FASTLY_SERVICE_ID = os.environ.get('LTD_KEEPER_FASTLY_ID')
     LTD_DASHER_URL = os.getenv('LTD_DASHER_URL', None)
+    CELERY_RESULT_URL = os.getenv('REDIS_URL', 'redis://localhost:6379')
+    CELERY_BROKER_URL = os.getenv('REDIS_URL', 'redis://localhost:6379')
 
     # Suppresses a warning until Flask-SQLAlchemy 3
     # See http://stackoverflow.com/a/33790196
@@ -46,12 +51,14 @@ class DevelopmentConfig(Config):
 
     @classmethod
     def init_app(cls, app):
-        """Initialization hook called during create_app."""
-        logging.basicConfig(
-            format="%(message)s",
-            stream=sys.stdout,
-            level=logging.INFO,
-        )
+        """Initialization hook called during
+        `keeper.appfactory.create_flask_app`.
+        """
+        stream_handler = logging.StreamHandler(stream=sys.stdout)
+        stream_handler.setFormatter(logging.Formatter('%(message)s'))
+        logger = logging.getLogger('keeper')
+        logger.addHandler(stream_handler)
+        logger.setLevel(logging.DEBUG)
 
         structlog.configure(
             processors=[
@@ -82,12 +89,14 @@ class TestConfig(Config):
 
     @classmethod
     def init_app(cls, app):
-        """Initialization hook called during create_app."""
-        logging.basicConfig(
-            format="%(message)s",
-            stream=sys.stdout,
-            level=logging.INFO,
-        )
+        """Initialization hook called during `
+        `keeper.appfactory.create_flask_app`.
+        """
+        stream_handler = logging.StreamHandler(stream=sys.stdout)
+        stream_handler.setFormatter(logging.Formatter('%(message)s'))
+        logger = logging.getLogger('keeper')
+        logger.addHandler(stream_handler)
+        logger.setLevel(logging.DEBUG)
 
         structlog.configure(
             processors=[
@@ -120,12 +129,14 @@ class ProductionConfig(Config):
 
     @classmethod
     def init_app(cls, app):
-        """Initialization hook called during create_app."""
-        logging.basicConfig(
-            format="%(message)s",
-            stream=sys.stdout,
-            level=logging.INFO,
-        )
+        """Initialization hook called during
+        `keeper.appfactory.create_flask_app`.
+        """
+        stream_handler = logging.StreamHandler(stream=sys.stdout)
+        stream_handler.setFormatter(logging.Formatter('%(message)s'))
+        logger = logging.getLogger('keeper')
+        logger.addHandler(stream_handler)
+        logger.setLevel(logging.INFO)
 
         structlog.configure(
             processors=[
