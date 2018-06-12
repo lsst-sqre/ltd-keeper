@@ -21,7 +21,7 @@ from .exceptions import ValidationError
 PRODUCT_SLUG_PATTERN = re.compile('^[a-z]+[-a-z0-9]*[a-z0-9]+$')
 
 # Regular expression to validate url-safe slugs for editions/builds
-PATH_SLUG_PATTERN = re.compile('^[a-zA-Z0-9-]+$')
+PATH_SLUG_PATTERN = re.compile('^[a-zA-Z0-9-\._]+$')
 
 # Regular expression for DM ticket branches (to auto-build slugs)
 TICKET_BRANCH_PATTERN = re.compile('^tickets/([A-Z]+-[0-9]+)$')
@@ -88,8 +88,6 @@ def auto_slugify_edition(git_refs):
         return m.group(1)
 
     slug = slug.replace('/', '-')
-    slug = slug.replace('_', '-')
-    slug = slug.replace('.', '-')
     return slug
 
 
