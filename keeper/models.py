@@ -18,9 +18,9 @@ from structlog import get_logger
 from . import s3
 from . import route53
 from .exceptions import ValidationError
+from .editiontracking import EditionTrackingModes
 from .utils import (split_url, format_utc_datetime, JSONEncodedVARCHAR,
                     MutableList, validate_product_slug, validate_path_slug)
-from .gitrefutils import LsstDocVersionTag
 from .taskrunner import append_task_to_chain
 
 
@@ -34,6 +34,10 @@ migrate = Migrate()
 """Flask-SQLAlchemy extension instance.
 
 This is initialized in `keeper.appfactory.create_flask_app`.
+"""
+
+edition_tracking_modes = EditionTrackingModes()
+"""Tracking modes for editions.
 """
 
 
@@ -449,85 +453,6 @@ class Build(db.Model):
         self.date_ended = datetime.now()
 
 
-class EditionMode(object):
-    """Definitions for `Edition.mode`.
-
-    These modes determine how an edition should be updated with new builds.
-    """
-
-    _modes = {
-        'git_refs': {
-            'id': 1,
-            'doc': ('Default tracking mode where an edition tracks an array '
-                    'of Git refs. This is the default mode if Edition.mode '
-                    'is None.')
-        },
-        'lsst_doc': {
-            'id': 2,
-            'doc': ('LSST document-specific tracking mode where an edition '
-                    'publishes the most recent vN.M tag.')
-        }
-    }
-
-    _reverse_map = {mode['id']: mode_name
-                    for mode_name, mode in _modes.items()}
-
-    @staticmethod
-    def name_to_id(mode):
-        """Convert a mode name (string used by the web API) to a mode ID
-        (integer) used by the DB.
-
-        Parameters
-        ----------
-        mode : `str`
-            Mode name.
-
-        Returns
-        -------
-        mode_id : `int`
-            Mode ID.
-
-        Raises
-        ------
-        ValidationError
-            Raised if ``mode`` is unknown.
-        """
-        try:
-            mode_id = EditionMode._modes[mode]['id']
-        except KeyError:
-            message = 'Edition mode {!r} unknown. Valid values are {!r}'
-            raise ValidationError(message.format(mode, EditionMode.keys()))
-        return mode_id
-
-    @staticmethod
-    def id_to_name(mode_id):
-        """Convert a mode ID (integer used by the DB) to a name used by the
-        web API.
-
-        Parameters
-        ----------
-        mode_id : `int`
-            Mode ID.
-
-        Returns
-        -------
-        mode : `str`
-            Mode name.
-
-        Raises
-        ------
-        ValidationError
-            Raised if ``mode`` is unknown.
-        """
-        try:
-            mode = EditionMode._reverse_map[mode_id]
-        except KeyError:
-            message = 'Edition mode ID {!r} unknown. Valid values are {!r}'
-            raise ValidationError(
-                message.format(mode_id, EditionMode._reverse_map.keys()))
-        return mode
-
-
 class Edition(db.Model):
     """DB model for Editions. Editions are fixed-location publications of the
     docs. Editions are updated by new builds; though not all builds are used
@@ -543,8 +468,8 @@ class Edition(db.Model):
     build_id = db.Column(db.Integer, db.ForeignKey('builds.id'),
                          index=True)
     # Algorithm for updating this edition with a new build.
-    # Integer values are defined in EditionMode.
-    # Null is the default mode: EditionMode.GIT_REFS.
+    # Integer values are defined in EditionTrackingModes.
+    # Null is the default mode: "git_refs".
     mode = db.Column(db.Integer, nullable=True)
     # What product Git refs this Edition tracks and publishes
     tracked_refs = db.Column(MutableList.as_mutable(JSONEncodedVARCHAR(2048)))
@@ -728,6 +653,10 @@ class Edition(db.Model):
             `True` if the edition should be rebuilt using this Build, or
             `False` otherwise.
         """
+        logger = get_logger(__name__)
+
+        logger.debug('Edition {!r} in should_rebuild'.format(self.get_url()))
+
         if build is not None:
             candidate_build = build
         else:
@@ -739,51 +668,15 @@ class Edition(db.Model):
         if candidate_build.uploaded is False:
             return False
 
-        if self.mode == EditionMode.name_to_id('git_refs') \
-                or self.mode is None:
-            # Default tracking mode that follows an array of Git refs.
-            if (candidate_build.product == self.product) \
-                    and (candidate_build.git_refs == self.tracked_refs):
-                return True
+        try:
+            tracking_mode = edition_tracking_modes[self.mode]
+        except (KeyError, ValidationError):
 
-        elif self.mode == EditionMode.name_to_id('lsst_doc'):
-            # LSST document tracking mode.
+            tracking_mode = edition_tracking_modes[self.default_mode_id]
+            logger.warning('Edition {!r} has an unknown tracking'
+                           'mode'.format(self.get_url()))
 
-            # If the edition is unpublished or showing `master`, and the
-            # build is tracking `master`, then allow this rebuild.
-            # This is used in the period before a semantic version is
-            # available.
-            if candidate_build.git_refs[0] == 'master':
-                if self.build_id is None or \
-                        self.build.git_refs[0] == 'master':
-                    return True
-
-            # Does the build have the vN.M tag?
-            try:
-                candidate_version = LsstDocVersionTag(
-                    candidate_build.git_refs[0])
-            except ValueError:
-                return False
-
-            # Does the edition's current build have a LSST document version
-            # as its Git ref?
-            try:
-                current_version = LsstDocVersionTag(
-                    self.build.git_refs[0])
-            except ValueError:
-                # Not currently tracking a version, so automatically accept
-                # the candidate.
-                return True
-
-            # Is the candidate version newer than the existing version?
-            if candidate_version >= current_version:
-                # Accept >= in case a replacement of the same version is
-                # somehow required.
-                return True
-
-        else:
-            # Mode is unknown
-            return False
+        return tracking_mode.should_update(self, candidate_build)
 
     def set_pending_rebuild(self, build_url=None, build=None):
         """Update the build this edition is declared to point to and set it
@@ -875,14 +768,15 @@ class Edition(db.Model):
         Parameters
         ----------
         mode : `int`
-            Mode identifier. Validated to be one in `EditionMode`.
+            Mode identifier. Validated to be one defined in
+            `keeper.editiontracking.EditionTrackingModes`.
 
         Raises
         ------
         ValidationError
             Raised if `mode` is unknown.
         """
-        self.mode = EditionMode.name_to_id(mode)
+        self.mode = edition_tracking_modes.name_to_id(mode)
 
         # TODO set tracked_refs to None if mode is LSST_DOC.
 
@@ -896,7 +790,7 @@ class Edition(db.Model):
     def default_mode_id(self):
         """Default tracking mode ID if ``Edition.mode`` is `None` (`int`).
         """
-        return EditionMode.name_to_id(self.default_mode_name)
+        return edition_tracking_modes.name_to_id(self.default_mode_name)
 
     @property
     def mode_name(self):
@@ -907,7 +801,7 @@ class Edition(db.Model):
         EditionMode
         """
         if self.mode is not None:
-            return EditionMode.id_to_name(self.mode)
+            return edition_tracking_modes.id_to_name(self.mode)
         else:
             return self.default_mode_name
 
