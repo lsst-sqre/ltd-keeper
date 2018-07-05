@@ -8,20 +8,30 @@ For example, the 'latest' documentation might be published to ``docs.project.org
 
 Editions are merely pointers to a :doc:`Build <builds>`; an Edition is updated by pointing to a newer :doc:`Build <builds>` (see :http:patch:`/editions/(int:id)`).
 
+.. _edition-tracking-modes:
+
 Tracking modes
 ==============
 
 Editions track :doc:`Builds <builds>`.
 This means that when a new :doc:`Build <builds>` is uploaded, any Edition for that :doc:`Product <products>` that tracks that *kind* of Build will be updated.
 An Edition's tracking mode is given with the ``mode`` field, and can either be set initially (:http:post:`/products/(slug)/editions/`) or updated on an existing Edition (:http:patch:`/editions/(int:id)`).
-There are two tracking modes, currently:
 
-============ =================================
-mode field   Tracking behavior
-============ =================================
-``git_refs`` Git branches and tags
-``lsst_doc`` Latest LSST document version tags
-============ =================================
+These are the available tracking modes:
+
+.. list-table::
+   :header-rows: 1
+   
+   * - ``mode`` field
+     - Tracking behavior
+
+   * - :ref:`git_refs <git_refs-tracking-mode>`
+     - Git branches and tags
+
+   * - :ref:`lsst_doc <lsst_doc-tracking-mode>`
+     - Latest LSST document version tags
+
+.. _git_refs-tracking-mode:
 
 Git reference mode (``git_refs``, default)
 ------------------------------------------
@@ -41,6 +51,8 @@ As an example, an Edition has these fields:
    }
 
 Then a :doc:`Build <builds>` with ``{"git_refs": ["master"]}`` will be published by the Edition.
+
+.. _lsst_doc-tracking-mode:
 
 LSST document mode (``lsst_doc``)
 ---------------------------------
