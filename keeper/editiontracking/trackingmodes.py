@@ -4,6 +4,7 @@ from ..exceptions import ValidationError
 from .gitrefmode import GitRefTrackingMode
 from .lsstdocmode import LsstDocTrackingMode
 from .eupsmajormode import EupsMajorReleaseTrackingMode
+from .eupsweeklymode import EupsWeeklyReleaseTrackingMode
 
 
 class EditionTrackingModes:
@@ -16,6 +17,7 @@ class EditionTrackingModes:
         1: GitRefTrackingMode(),
         2: LsstDocTrackingMode(),
         3: EupsMajorReleaseTrackingMode(),
+        4: EupsWeeklyReleaseTrackingMode(),
     }
     """Map of tracking mode ID (an integer stored in the DB to the tracking
     mode instance that can evaluate whether an edition should be updated
