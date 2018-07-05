@@ -2,6 +2,14 @@
 Change log
 ##########
 
+1.10.0 (2018-06-12)
+===================
+
+Both ``.`` and ``_`` characters can now appear in edition slugs.
+Previously these characters were automatically converted to ``-`` characters in edition names, but this prevented editions from being named after semantic version tags or EUPS tags.
+
+`DM-14772 <https://jira.lsstcorp.org/browse/DM-14772>`__.
+
 1.9.0 (2018-05-03)
 ==================
 

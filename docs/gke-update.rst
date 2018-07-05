@@ -23,17 +23,19 @@ Procedure
    Travis CI pushes a new Docker image to Docker Hub.
    See :doc:`docker-image`.
 
-3. Update the :file:`keeper-deployment.yaml` and update the name of the ``uwsgi`` container's ``image`` to the new Docker image: ``lsstsqre/ltd-keeper:X.Y.Z``.
+3. In :file:`keeper-deployment.yaml`, :file:`keeper-deployment.yaml`, and :file:`keeper-mgmt-pod.yaml` update the name of the ``uwsgi`` container's ``image`` to the new Docker image: ``lsstsqre/ltd-keeper:X.Y.Z``.
 
 4. Apply the new deployment configuration:
 
    .. code-block:: bash
 
       kubectl apply -f keeper-deployment.yaml
+      kubectl apply -f keeper-worker-deployment.yaml
    
    To follow the upgrade, use these commands:
 
    .. code-block:: bash
 
       kubectl describe deployment keeper-deployment
+      kubectl describe deployment keeper-worker-deployment
       kubectl get pods
