@@ -31,6 +31,15 @@ These are the available tracking modes:
    * - :ref:`lsst_doc <lsst_doc-tracking-mode>`
      - Latest LSST document version tags
 
+   * - :ref:`eups_major_release <eups_major_release-tracking-mode>`
+     - Latest EUPS major release tags
+
+   * - :ref:`eups_weekly_release <eups_weekly_release-tracking-mode>`
+     - Latest EUPS weekly release tags
+
+   * - :ref:`eups_daily_release <eups_daily_release-tracking-mode>`
+     - Latest EUPS daily release tags
+
 .. _git_refs-tracking-mode:
 
 Git reference mode (``git_refs``, default)
@@ -63,6 +72,48 @@ LSST document semantic version tags are formatted as ``v<Major>.<Minor>``.
 Enable this mode by setting the Edition's ``mode`` field to ``lsst_doc``.
 
 Note that until the first :doc:`Build <builds>` with a semantic version tag is published, an Edition with this mode will track the ``master`` Git ref.
+
+.. _eups_major_release-tracking-mode:
+
+EUPS major release tag (``eups_major_release``)
+-----------------------------------------------
+
+This mode makes the edition track the :doc:`Build <builds>` with the most recent EUPS major release tag.
+
+EUPS major release tags have two forms that are both treated interchangeably:
+
+- EUPS tag: ``vX_Y`` (as in ``v15_0``).
+- Git tag: ``X_Y`` (as in ``15.0``).
+
+Enable this mode by setting the Edition's ``mode`` field to ``eups_major_release``.
+
+.. _eups_weekly_release-tracking-mode:
+
+EUPS weekly release tag (``eups_weekly_release``)
+-------------------------------------------------
+
+This mode makes the edition track the :doc:`Build <builds>` with the most recent EUPS weekly release tag.
+
+EUPS weekly release tags have two forms that are both treated interchangeably:
+
+- EUPS tag: ``w_YYYY_WW`` (as in ``w_2018_01``).
+- Git tag: ``w.YYYY.WW`` (as in ``w.2018.01``).
+
+Enable this mode by setting the Edition's ``mode`` field to ``eups_weekly_release``.
+
+.. _eups_daily_release-tracking-mode:
+
+EUPS daily release tag (``eups_daily_release``)
+-----------------------------------------------
+
+This mode makes the edition track the :doc:`Build <builds>` with the most recent EUPS daily release tag.
+
+EUPS daily release tags have two forms that are both treated interchangeably:
+
+- EUPS tag: ``d_YYYY_MM_DD`` (as in ``d_2018_01_01``).
+- Git tag: ``d.YYYY.MM.DD`` (as in ``d.2018.01.01``).
+
+Enable this mode by setting the Edition's ``mode`` field to ``eups_daily_release``.
 
 Methods
 =======
