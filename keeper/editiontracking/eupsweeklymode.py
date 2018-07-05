@@ -12,9 +12,15 @@ TAG_PATTERN = re.compile(r'^w_(?P<year>\d+)_(?P<week>\d+)$')
 ``w_YYYY_WW``.
 """
 
+GIT_TAG_PATTERN = re.compile(r'^w\.(?P<year>\d+)\.(?P<week>\d+)$')
+"""Regular expression for matching the Git variant of an EUPS weekly release
+tag with the format ``w.YYYY.WW``.
+"""
+
 
 class EupsWeeklyReleaseTrackingMode:
-    """Tracking mode for the the newest EUPS weekly release (``w_YYYY_WW``).
+    """Tracking mode for the the newest EUPS weekly release (``w_YYYY_WW``
+    or ``w.YYYY.WW``).
     """
 
     @property
@@ -22,7 +28,7 @@ class EupsWeeklyReleaseTrackingMode:
         return 'eups_weekly_release'
 
     def should_update(self, edition, candidate_build):
-        # Does the build have the w_YYYY_WW tag?
+        # Does the build have the weekly release tag?
         try:
             candidate_version = WeeklyReleaseTag(
                 candidate_build.git_refs[0])
@@ -61,8 +67,11 @@ class WeeklyReleaseTag:
         self.tag = tag
         match = TAG_PATTERN.search(tag)
         if match is None:
-            raise ValueError(
-                '{!r} is not an EUPS weekly release tag '.format(tag))
+            # Fall back to Git tag variant
+            match = GIT_TAG_PATTERN.search(tag)
+            if match is None:
+                raise ValueError(
+                    '{!r} is not an EUPS weekly release tag '.format(tag))
         self.year = int(match.group('year'))
         self.week = int(match.group('week'))
 

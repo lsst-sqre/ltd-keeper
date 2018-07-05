@@ -11,9 +11,15 @@ TAG_PATTERN = re.compile(r'^v(?P<major>\d+)_(?P<minor>\d+)$')
 ``vX_Y``.
 """
 
+GIT_TAG_PATTERN = re.compile(r'^(?P<major>\d+)\.(?P<minor>\d+)$')
+"""Regular expression for matching the Git-version of an EUPS major release tag
+with the format ``X.Y``.
+"""
+
 
 class EupsMajorReleaseTrackingMode:
-    """Tracking mode for the the newest EUPS major release (``vX_Y``).
+    """Tracking mode for the the newest EUPS major release (``vX_Y`` or
+    ``X.Y``).
     """
 
     @property
@@ -21,7 +27,7 @@ class EupsMajorReleaseTrackingMode:
         return 'eups_major_release'
 
     def should_update(self, edition, candidate_build):
-        # Does the build have the vN_M tag?
+        # Does the build have a major release tag?
         try:
             candidate_version = MajorReleaseTag(
                 candidate_build.git_refs[0])
@@ -56,8 +62,11 @@ class MajorReleaseTag:
         self.tag = tag
         match = TAG_PATTERN.search(tag)
         if match is None:
-            raise ValueError(
-                '{!r} is not an EUPS major release tag '.format(tag))
+            # Fall back to git variant
+            match = GIT_TAG_PATTERN.search(tag)
+            if match is None:
+                raise ValueError(
+                    '{!r} is not an EUPS major release tag '.format(tag))
         self.major = int(match.group('major'))
         self.minor = int(match.group('minor'))
 

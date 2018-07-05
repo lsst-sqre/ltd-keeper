@@ -12,6 +12,12 @@ def test_parsing():
     assert tag.month == 2
     assert tag.day == 1
 
+    # Git variant
+    tag = DailyReleaseTag('d.2018.02.01')
+    assert tag.year == 2018
+    assert tag.month == 2
+    assert tag.day == 1
+
     with pytest.raises(ValueError):
         DailyReleaseTag('2018_02_01')
 

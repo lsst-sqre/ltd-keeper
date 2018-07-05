@@ -15,6 +15,16 @@ def test_parsing():
     assert tag.year == 2018
     assert tag.week == 26
 
+    # Git variant
+    tag = WeeklyReleaseTag('w.2018.01')
+    assert tag.year == 2018
+    assert tag.week == 1
+
+    # Git variant
+    tag = WeeklyReleaseTag('w.2018.26')
+    assert tag.year == 2018
+    assert tag.week == 26
+
     with pytest.raises(ValueError):
         WeeklyReleaseTag('v1_0')
     with pytest.raises(ValueError):

@@ -12,9 +12,16 @@ TAG_PATTERN = re.compile(r'^d_(?P<year>\d+)_(?P<month>\d+)_(?P<day>\d+)$')
 ``d_YYYY_MM_DD``.
 """
 
+GIT_TAG_PATTERN = re.compile(
+    r'^d\.(?P<year>\d+)\.(?P<month>\d+)\.(?P<day>\d+)$')
+"""Regular expression for matching the Git variant of an EUPS daily release tag
+with the format ``d.YYYY.MM.DD``.
+"""
+
 
 class EupsDailyReleaseTrackingMode:
-    """Tracking mode for the the newest EUPS daily release (``d_YYYY_MM_DD``).
+    """Tracking mode for the the newest EUPS daily release (``d_YYYY_MM_DD``
+    of ``d.YYYY.MM.DD``).
     """
 
     @property
@@ -22,7 +29,7 @@ class EupsDailyReleaseTrackingMode:
         return 'eups_daily_release'
 
     def should_update(self, edition, candidate_build):
-        # Does the build have the d_YYYY_MM_DD tag?
+        # Does the build have a daily release tag?
         try:
             candidate_version = DailyReleaseTag(
                 candidate_build.git_refs[0])
@@ -61,8 +68,11 @@ class DailyReleaseTag:
         self.tag = tag
         match = TAG_PATTERN.search(tag)
         if match is None:
-            raise ValueError(
-                '{!r} is not an EUPS daily release tag '.format(tag))
+            # Fall back to Git variant pattern
+            match = GIT_TAG_PATTERN.search(tag)
+            if match is None:
+                raise ValueError(
+                    '{!r} is not an EUPS daily release tag '.format(tag))
         self.year = int(match.group('year'))
         self.month = int(match.group('month'))
         self.day = int(match.group('day'))
