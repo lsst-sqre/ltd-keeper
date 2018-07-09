@@ -1,6 +1,7 @@
 """Utilities for parsing Git refs according to LSST format."""
 
-__all__ = ['DOCUSHARE_PATTERN', 'LSST_DOC_V_TAG', 'LsstDocVersionTag']
+__all__ = ('DOCUSHARE_PATTERN', 'LSST_DOC_V_TAG', 'LsstDocVersionTag',
+           'LsstDocTrackingMode')
 
 import re
 
@@ -13,7 +14,53 @@ DOCUSHARE_PATTERN = re.compile(r'docushare-v(?P<version>[\d\.]+)')
 LSST_DOC_V_TAG = re.compile(r'^v(?P<major>[\d+])\.(?P<minor>[\d+])$')
 
 
-class LsstDocVersionTag(object):
+class LsstDocTrackingMode:
+    """LSST document-specific tracking mode where an edition publishes the
+    most recent ``vN.M`` tag.
+    """
+
+    @property
+    def name(self):
+        return 'lsst_doc'
+
+    def should_update(self, edition, candidate_build):
+        # If the edition is unpublished or showing `master`, and the
+        # build is tracking `master`, then allow this rebuild.
+        # This is used in the period before a semantic version is
+        # available.
+        if candidate_build.git_refs[0] == 'master':
+            if edition.build_id is None or \
+                    edition.build.git_refs[0] == 'master':
+                return True
+
+        # Does the build have the vN.M tag?
+        try:
+            candidate_version = LsstDocVersionTag(
+                candidate_build.git_refs[0])
+        except ValueError:
+            return False
+
+        # Does the edition's current build have a LSST document version
+        # as its Git ref?
+        try:
+            current_version = LsstDocVersionTag(
+                edition.build.git_refs[0])
+        except (ValueError, AttributeError):
+            # AttributeError if the current build is None
+            # Not currently tracking a version, so automatically accept
+            # the candidate.
+            return True
+
+        # Is the candidate version newer than the existing version?
+        if candidate_version >= current_version:
+            # Accept >= in case a replacement of the same version is
+            # somehow required.
+            return True
+
+        return False
+
+
+class LsstDocVersionTag:
     """Represent and compare LSST document (``v<major>.<minor>``) version
     tags.
 

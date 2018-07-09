@@ -2,6 +2,22 @@
 Change log
 ##########
 
+1.11.0 (2018-07-09)
+===================
+
+This release improves and expands the system of edition tracking modes.
+
+There are three new tracking modes:
+
+- ``eups_major_release`` tracks an EUPS major release tag (``vX_Y``) and its Git variant (``X.Y``).
+- ``eups_weekly_release`` tracks an EUPS weekly release tag (``w_YYYY_WW``) and its Git variant (``w.YYYY.WW``).
+- ``eups_daily_release`` tracks an EUPS daily release tag (``d_YYYY_MM_DD``) and its Git variant (``d.YYYY.MM.DD``).
+
+In addition, the code for determining whether an edition should rebuild or not given the tracking mode has been refactored out of the ``Edition.should_rebuild`` model method and into a new ``keeper.editiontracking`` subpackage.
+Each tracking mode is now built around a uniform interface.
+
+`DM-15016 <https://jira.lsstcorp.org/browse/DM-15016>`__.
+
 1.10.0 (2018-06-12)
 ===================
 

@@ -1,9 +1,9 @@
-"""Tests for the app.gitrefutils module.
+"""Tests for the keeper.editiontracking.lsstdocmode module.
 """
 
 import pytest
 
-from keeper.gitrefutils import LsstDocVersionTag
+from keeper.editiontracking.lsstdocmode import LsstDocVersionTag
 
 
 def test_lsst_doc_tag():
