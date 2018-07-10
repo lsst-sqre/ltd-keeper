@@ -5,7 +5,7 @@ language: python
 matrix:
   include:
     # This is the ltd-mason documentation deployment build
-    - python: "3.5"
+    - python: "3.6"
       env: LTD_MASON_BUILD=true DEPLOY_DOCKER_IMAGE=true
 install:
   - "make install"
