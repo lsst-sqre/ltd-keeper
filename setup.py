@@ -20,13 +20,12 @@ author = 'Association of Universities for Research in Astronomy, Inc.'
 author_email = 'jsick@lsst.org'
 license = 'MIT'
 classifiers = [
-    'Development Status :: 5 - Production/Stable'
-    'Programming Language :: Python :: 3.5'
-    'Programming Language :: Python :: 3.6'
-    'License :: OSI Approved :: MIT License'
-    'Framework :: Flask'
-    'Intended Audience :: Science/Research'
-    'Topic :: Documentation'
+    'Development Status :: 5 - Production/Stable',
+    'Programming Language :: Python :: 3.6',
+    'License :: OSI Approved :: MIT License',
+    'Framework :: Flask',
+    'Intended Audience :: Science/Research',
+    'Topic :: Documentation',
 ],
 keywords = 'lsst lsst-the-docs'
 
@@ -45,10 +44,10 @@ install_requires = [
     'Flask-HTTPAuth==2.2.1',
     'Flask-Migrate==2.1.1',
     'python-dateutil==2.4.2',
-    'boto3==1.2.3',
+    'boto3==1.7.54',
     'requests==2.18.4',
     'structlog==17.2.0',
-    'celery[redis]==4.1.0'
+    'celery[redis]==4.2.0'
 ]
 
 # Test dependencies

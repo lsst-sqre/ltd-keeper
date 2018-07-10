@@ -1,4 +1,4 @@
-FROM python:3.5.1
+FROM python:3.6.6
 
 MAINTAINER Jonathan Sick <jsick@lsst.org>
 LABEL description="API server for LSST the Docs" \
