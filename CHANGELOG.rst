@@ -2,6 +2,13 @@
 Change log
 ##########
 
+1.12.0 (2017-07-10)
+===================
+
+- Update to Python 3.6.6 (in Docker base image and Travis).
+- Update boto to 1.7.54 (for Python 3.6.6 compatibility).
+- Update Celery to 4.2.0 (to fix a compatibility issue with Kombu 4.2's release).
+
 1.11.0 (2018-07-09)
 ===================
 
