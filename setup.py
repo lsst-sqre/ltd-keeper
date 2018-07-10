@@ -48,7 +48,7 @@ install_requires = [
     'boto3==1.2.3',
     'requests==2.18.4',
     'structlog==17.2.0',
-    'celery[redis]==4.1.0'
+    'celery[redis]==4.2.0'
 ]
 
 # Test dependencies
