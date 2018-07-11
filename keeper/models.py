@@ -53,7 +53,7 @@ class Permission(object):
                     permissions=p.ADMIN_PRODUCT | p.ADMIN_EDITION)
 
     You can give a user permission to do everything with the
-    :meth:`User.full_permissions` helper method:
+    :meth:`User.full_permissions` helper method::
 
         p = Permission
         user = User(username='admin-user',
@@ -61,27 +61,28 @@ class Permission(object):
 
     See :class:`User.has_permission` for how to use these permission
     bits to test user authorization.
-
-    Attributes
-    ----------
-    ADMIN_USER
-        Permission to create a new API user, view API users, and modify
-        API user permissions.
-    ADMIN_PRODUCT
-        Permission to add, modify and deprecate Products.
-    ADMIN_EDITION
-        Permission to add, modify and deprecate Editions.
-    UPLOAD_BUILD
-        Permission to create a new Build.
-    DEPRECATE_BUILD
-        Permission to deprecate a Build.
     """
 
     ADMIN_USER = 0b1
+    """Permission to create a new API user, view API users, and modify API user
+    permissions.
+    """
+
     ADMIN_PRODUCT = 0b10
+    """Permission to add, modify and deprecate Products.
+    """
+
     ADMIN_EDITION = 0b100
+    """Permission to add, modify and deprecate Editions.
+    """
+
     UPLOAD_BUILD = 0b1000
+    """Permission to create a new Build.
+    """
+
     DEPRECATE_BUILD = 0b10000
+    """Permission to deprecate a Build.
+    """
 
     @classmethod
     def full_permissions(self):
@@ -97,13 +98,30 @@ class Permission(object):
 
 
 class User(db.Model):
-    """DB model for authenticated API users."""
+    """DB model for authenticated API users.
+    """
 
     __tablename__ = 'users'
+
     id = db.Column(db.Integer, primary_key=True)
+    """Primary key for this User.
+    """
+
     username = db.Column(db.Unicode(255), index=True, unique=True)
+    """Username (must be unique).
+    """
+
     password_hash = db.Column(db.String(128))
+    """Password hash.
+    """
+
     permissions = db.Column(db.Integer)
+    """Permissions for this user, as a bit.
+
+    See also
+    --------
+    Permission
+    """
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -159,27 +177,49 @@ class Product(db.Model):
     """
 
     __tablename__ = 'products'
-    id = db.Column(db.Integer, primary_key=True)
-    # URL/path-safe identifier for this product
-    slug = db.Column(db.Unicode(255), nullable=False, unique=True)
-    # URL of the Git documentation repo (i.e., on GitHub)
-    doc_repo = db.Column(db.Unicode(255), nullable=False)
-    # Human-readlable product title
-    title = db.Column(db.Unicode(255), nullable=False)
-    # Root domain name serving docs (e.g., lsst.io)
-    root_domain = db.Column(db.Unicode(255), nullable=False)
-    # Fastly CDN domain name (without doc's domain prepended)
-    root_fastly_domain = db.Column(db.Unicode(255), nullable=False)
-    # Name of the S3 bucket hosting builds
-    bucket_name = db.Column(db.Unicode(255), nullable=True)
-    # surrogate_key for Fastly quick purges of dashboards
-    # Editions and Builds have independent surrogate keys.
-    surrogate_key = db.Column(db.String(32))
 
-    # One-to-many relationships to builds and editions
-    # are defined in those classes
+    id = db.Column(db.Integer, primary_key=True)
+    """Primary key for this product.
+    """
+
+    slug = db.Column(db.Unicode(255), nullable=False, unique=True)
+    """URL/path-safe identifier for this product (unique).
+    """
+
+    doc_repo = db.Column(db.Unicode(255), nullable=False)
+    """URL of the Git documentation repo (i.e., on GitHub).
+    """
+
+    title = db.Column(db.Unicode(255), nullable=False)
+    """Title of this product.
+    """
+
+    root_domain = db.Column(db.Unicode(255), nullable=False)
+    """Root domain name serving docs (e.g., lsst.io).
+    """
+
+    root_fastly_domain = db.Column(db.Unicode(255), nullable=False)
+    """Fastly CDN domain name (without doc's domain prepended).
+    """
+
+    bucket_name = db.Column(db.Unicode(255), nullable=True)
+    """Name of the S3 bucket hosting builds.
+    """
+
+    surrogate_key = db.Column(db.String(32))
+    """surrogate_key for Fastly quick purges of dashboards.
+
+    Editions and Builds have independent surrogate keys.
+    """
+
     builds = db.relationship('Build', backref='product', lazy='dynamic')
+    """One-to-many relationship to all `Build` objects related to this Product.
+    """
+
     editions = db.relationship('Edition', backref='product', lazy='dynamic')
+    """One-to-many relationship to all `Edition` objects related to this
+    Product.
+    """
 
     @classmethod
     def from_url(cls, product_url):
@@ -230,16 +270,19 @@ class Product(db.Model):
 
     @property
     def published_url(self):
-        """URL where this product is published to the end-user."""
+        """URL where this product is published to the end-user.
+        """
         parts = ('https', self.domain, '', '', '', '')
         return urllib.parse.urlunparse(parts)
 
     def get_url(self):
-        """API URL for this entity."""
+        """API URL for this entity.
+        """
         return url_for('api.get_product', slug=self.slug, _external=True)
 
     def export_data(self):
-        """Export entity as JSON-compatible dict."""
+        """Export entity as JSON-compatible dict.
+        """
         return {
             'self_url': self.get_url(),
             'slug': self.slug,
@@ -255,7 +298,8 @@ class Product(db.Model):
         }
 
     def import_data(self, data):
-        """Convert a dict `data` into a table row."""
+        """Convert a dict `data` into a table row.
+        """
         try:
             self.slug = data['slug']
             self.doc_repo = data['doc_repo']
@@ -302,24 +346,55 @@ class Build(db.Model):
     """DB model for documentation builds."""
 
     __tablename__ = 'builds'
+
     id = db.Column(db.Integer, primary_key=True)
+    """Primary key of the build.
+    """
+
     product_id = db.Column(db.Integer, db.ForeignKey('products.id'),
                            index=True)
-    # name of build; URL-safe slug used as directory in build bucket
+    """ID of the `Product` this `Build` belongs to.
+    """
+
     slug = db.Column(db.Unicode(255), nullable=False)
-    # auto-assigned date build was created
+    """URL-safe slug for this build.
+
+    This slug is also used as a pseudo-POSIX directory prefix in the S3 bucket.
+    """
+
     date_created = db.Column(db.DateTime, default=datetime.now(),
                              nullable=False)
+    """DateTime when this build was created.
+    """
+
     # set only when the build is deprecated (ready for deletion)
     date_ended = db.Column(db.DateTime, nullable=True)
-    # json-persisted list of Git refs that determine the version of Product
+    """DateTime when this build was marked as deprecated (ready for deletion).
+
+    This field is `None` when the Build is **not** deprecated.
+    """
+
     git_refs = db.Column(MutableList.as_mutable(JSONEncodedVARCHAR(2048)))
-    # github handle of person requesting the build (optional)
+    """List of git ref strings that describe the version of the content.
+
+    A git ref is typically a branch or tag name. For single Git repository
+    documentation projects this field is a list with a single item. Multi-
+    repository products may have multiple git refs.
+
+    This field is encoded as JSON (`JSONEndedVARCHAR`).
+    """
+
     github_requester = db.Column(db.Unicode(255), nullable=True)
-    # Flag to indicate the doc has been uploaded to S3.
+    """github handle of person requesting the build (optional).
+    """
+
     uploaded = db.Column(db.Boolean, default=False)
-    # The surrogate-key header for Fastly (quick purges); 32-char hex
+    """Flag to indicate the doc has been uploaded to S3.
+    """
+
     surrogate_key = db.Column(db.String(32), nullable=False)
+    """surrogate-key header for Fastly (quick purges); 32-char hex.
+    """
 
     # Relationships
     # product - from Product class
@@ -350,12 +425,14 @@ class Build(db.Model):
 
     @property
     def bucket_root_dirname(self):
-        """Directory in the bucket where the build is located."""
+        """Directory in the bucket where the build is located.
+        """
         return '/'.join((self.product.slug, 'builds', self.slug))
 
     @property
     def published_url(self):
-        """URL where this build is published to the end-user."""
+        """URL where this build is published to the end-user.
+        """
         parts = ('https',
                  self.product.domain,
                  '/builds/{0}'.format(self.slug),
@@ -363,11 +440,13 @@ class Build(db.Model):
         return urllib.parse.urlunparse(parts)
 
     def get_url(self):
-        """API URL for this entity."""
+        """API URL for this entity.
+        """
         return url_for('api.get_build', id=self.id, _external=True)
 
     def export_data(self):
-        """Export entity as JSON-compatible dict."""
+        """Export entity as JSON-compatible dict.
+        """
         return {
             'self_url': self.get_url(),
             'product_url': self.product.get_url(),
@@ -384,7 +463,8 @@ class Build(db.Model):
         }
 
     def import_data(self, data):
-        """Convert a dict `data` into a table row."""
+        """Convert a dict `data` into a table row.
+        """
         try:
             git_refs = data['git_refs']
             if isinstance(git_refs, str):
@@ -434,7 +514,8 @@ class Build(db.Model):
                 self.register_uploaded_build()
 
     def register_uploaded_build(self):
-        """Hook for when a build has been uploaded."""
+        """Hook for when a build has been uploaded.
+        """
         self.uploaded = True
 
         editions = Edition.query.autoflush(False)\
@@ -460,38 +541,77 @@ class Edition(db.Model):
     """
 
     __tablename__ = 'editions'
+
     id = db.Column(db.Integer, primary_key=True)
-    # Product that this Edition belongs do
+    """Primary key of this Edition.
+    """
+
     product_id = db.Column(db.Integer, db.ForeignKey('products.id'),
                            index=True)
-    # Build currently used by this Edition
+    """ID of the product being used by this Edition.
+    """
+
     build_id = db.Column(db.Integer, db.ForeignKey('builds.id'),
                          index=True)
-    # Algorithm for updating this edition with a new build.
-    # Integer values are defined in EditionTrackingModes.
-    # Null is the default mode: "git_refs".
+    """ID of the build being used by this edition.
+
+    See also
+    --------
+    Edition.build
+    """
+
     mode = db.Column(db.Integer, nullable=True)
-    # What product Git refs this Edition tracks and publishes
+    """Tracking mode
+
+    Tracking modes are algorithms for updating this Edition when a new build
+    appears for a product.
+
+    Integer values are defined in EditionTrackingModes. Null is the default
+    mode: ``git_refs``.
+    """
+
     tracked_refs = db.Column(MutableList.as_mutable(JSONEncodedVARCHAR(2048)))
-    # url-safe slug for edition
+    """The list of Git refs this Edition tracks and publishes if the tracking
+    mode is ``git_refs``.
+
+    For other tracking modes, this field may be `None`.
+    """
+
     slug = db.Column(db.Unicode(255), nullable=False)
-    # Human-readable title for edition
+    """URL-safe slug for edition.
+    """
+
     title = db.Column(db.Unicode(256), nullable=False)
-    # Date when this edition was initially created
+    """Human-readable title for edition.
+    """
+
     date_created = db.Column(db.DateTime, default=datetime.now(),
                              nullable=False)
-    # Date when the edition was updated (e.g., new build)
+    """DateTime when this edition was initially created.
+    """
+
     date_rebuilt = db.Column(db.DateTime, default=datetime.now(),
                              nullable=False)
-    # set only when the Edition is deprecated (ready for deletion)
+    """DateTime when the Edition was last rebuild.
+    """
+
     date_ended = db.Column(db.DateTime, nullable=True)
-    # The surrogate-key header for Fastly (quick purges); 32-char hex
+    """DateTime when the Edition is deprecated (ready for deletion). Null
+    otherwise.
+    """
+
     surrogate_key = db.Column(db.String(32))
-    # Flag indicating if a rebuild is pending work by the rebuild task
+    """surrogate-key header for Fastly (quick purges); 32-char hex.
+    """
+
     pending_rebuild = db.Column(db.Boolean, default=False, nullable=False)
+    """Flag indicating if a rebuild is pending work by the rebuild task.
+    """
 
     # Relationships
-    build = db.relationship('Build', uselist=False)  # one-to-one
+    build = db.relationship('Build', uselist=False)
+    """One-to-one relationship with the `Build` resource.
+    """
 
     @classmethod
     def from_url(cls, edition_url):
@@ -523,12 +643,14 @@ class Edition(db.Model):
 
     @property
     def bucket_root_dirname(self):
-        """Directory in the bucket where the edition is located."""
+        """Directory in the bucket where the edition is located.
+        """
         return '/'.join((self.product.slug, 'v', self.slug))
 
     @property
     def published_url(self):
-        """URL where this edition is published to the end-user."""
+        """URL where this edition is published to the end-user.
+        """
         if self.slug == 'main':
             # Special case for main; published at product's root
             parts = ('https',
@@ -542,17 +664,19 @@ class Edition(db.Model):
         return urllib.parse.urlunparse(parts)
 
     def get_url(self):
-        """API URL for this entity."""
+        """API URL for this entity.
+        """
         return url_for('api.get_edition', id=self.id, _external=True)
 
     def export_data(self):
-        """Export entity as JSON-compatible dict."""
+        """Export entity as JSON-compatible dict.
+        """
         if self.build is not None:
             build_url = self.build.get_url()
         else:
             build_url = None
 
-        return {
+        data = {
             'self_url': self.get_url(),
             'product_url': self.product.get_url(),
             'build_url': build_url,
@@ -568,28 +692,43 @@ class Edition(db.Model):
             'pending_rebuild': self.pending_rebuild
         }
 
+        if self.mode_name != 'git_refs':
+            # Force tracked_refs to None/null if it is not applicable.
+            data['tracked_refs'] = None
+        else:
+            data['tracked_refs'] = self.tracked_refs
+
+        return data
+
     def import_data(self, data):
         """Initialize the edition on POST.
 
         The Product is set on object initialization.
         """
-        try:
-            tracked_refs = data['tracked_refs']
-            self.slug = data['slug']
-            self.title = data['title']
-        except KeyError as e:
-            raise ValidationError('Invalid Edition: missing ' + e.args[0])
-
-        if isinstance(tracked_refs, str):
-            raise ValidationError('Invalid Edition: tracked_refs must be an '
-                                  'array of strings')
-        self.tracked_refs = tracked_refs
-
         if 'mode' in data:
             self.set_mode(data['mode'])
         else:
             # Set default
             self.set_mode(self.default_mode_name)
+
+        # git_refs is only required for git_refs tracking mode
+        if self.mode == edition_tracking_modes.name_to_id('git_refs'):
+            try:
+                tracked_refs = data['tracked_refs']
+            except KeyError as e:
+                raise ValidationError('Invalid Edition: missing ' + e.args[0])
+
+            if isinstance(tracked_refs, str):
+                raise ValidationError('Invalid Edition: tracked_refs must be '
+                                      'an array of strings')
+
+            self.tracked_refs = tracked_refs
+
+        try:
+            self.slug = data['slug']
+            self.title = data['title']
+        except KeyError as e:
+            raise ValidationError('Invalid Edition: missing ' + e.args[0])
 
         # Validate the slug
         self._validate_slug(data['slug'])
@@ -606,7 +745,8 @@ class Edition(db.Model):
         return self
 
     def patch_data(self, data):
-        """Partial update of the Edition."""
+        """Partial update of the Edition.
+        """
         logger = get_logger(__name__)
 
         if 'tracked_refs' in data:
@@ -740,7 +880,7 @@ class Edition(db.Model):
         self.pending_rebuild = True
 
         # Add the rebuild_edition task
-        # Lazy load the task because it referenes the db/Edition model
+        # Lazy load the task because it references the db/Edition model
         from .tasks.editionrebuild import rebuild_edition
         append_task_to_chain(rebuild_edition.si(self.get_url(), self.id))
 
@@ -806,7 +946,8 @@ class Edition(db.Model):
             return self.default_mode_name
 
     def update_slug(self, new_slug):
-        """Update the edition's slug by migrating files on S3."""
+        """Update the edition's slug by migrating files on S3.
+        """
         # Check that this slug does not already exist
         self._validate_slug(new_slug)
 
@@ -851,5 +992,6 @@ class Edition(db.Model):
         return True
 
     def deprecate(self):
-        """Deprecate the Edition; sets the `date_ended` field."""
+        """Deprecate the Edition; sets the `date_ended` field.
+        """
         self.date_ended = datetime.now()

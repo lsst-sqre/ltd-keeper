@@ -38,6 +38,21 @@ def test_eups_weekly_release_edition(client, mocker):
     assert r.json['mode'] == 'eups_weekly_release'
 
     # ========================================================================
+    # Create an Edition specifically for "weeklies"
+    e2_data = {
+        "slug": "weekly",
+        "mode": "eups_weekly_release",
+        "title": "Weekly"
+    }
+    r = client.post(p1_url + '/editions/', e2_data)
+    e2_url = r.headers['Location']
+
+    # ========================================================================
+    # Ensure that tracked_refs for the 'weekly' edition is None
+    r = client.get(e2_url)
+    assert r.json['tracked_refs'] is None
+
+    # ========================================================================
     # Create a build for 'w_2018_01'
     b1_data = {
         'slug': 'b1',
@@ -55,8 +70,16 @@ def test_eups_weekly_release_edition(client, mocker):
     assert r.json['pending_rebuild'] is True
     r = client.patch(edition_url, {'pending_rebuild': False})
 
+    r = client.get(e2_url)
+    assert r.json['pending_rebuild'] is True
+    r = client.patch(e2_url, {'pending_rebuild': False})
+
     # Test that the main edition updated
     r = client.get(edition_url)
+    assert r.json['build_url'] == b1_url
+    assert r.json['pending_rebuild'] is False
+
+    r = client.get(e2_url)
     assert r.json['build_url'] == b1_url
     assert r.json['pending_rebuild'] is False
 
@@ -94,8 +117,16 @@ def test_eups_weekly_release_edition(client, mocker):
     assert r.json['pending_rebuild'] is True
     r = client.patch(edition_url, {'pending_rebuild': False})
 
+    r = client.get(e2_url)
+    assert r.json['pending_rebuild'] is True
+    r = client.patch(e2_url, {'pending_rebuild': False})
+
     # Test that the main edition updated
     r = client.get(edition_url)
+    assert r.json['build_url'] == b3_url
+    assert r.json['pending_rebuild'] is False
+
+    r = client.get(e2_url)
     assert r.json['build_url'] == b3_url
     assert r.json['pending_rebuild'] is False
 
@@ -111,7 +142,10 @@ def test_eups_weekly_release_edition(client, mocker):
     r = client.patch(b4_url, {'uploaded': True})
 
     # Test that the main edition *did not* update because this build is
-    # neither for master not a semantic version.
+    # neither for master nor a semantic version.
     # with semantic versions
     r = client.get(edition_url)
+    assert r.json['build_url'] == b3_url
+
+    r = client.get(e2_url)
     assert r.json['build_url'] == b3_url
