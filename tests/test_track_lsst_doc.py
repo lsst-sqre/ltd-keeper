@@ -57,6 +57,8 @@ def test_lsst_doc_edition(client, mocker):
     # Get the URL for the default edition
     r = client.get(p1_url + '/editions/')
     edition_url = r.json['editions'][0]
+    print("Editions")
+    print(r.json['editions'])
 
     # ========================================================================
     # Create a build on 'master'
@@ -78,16 +80,26 @@ def test_lsst_doc_edition(client, mocker):
 
     r = client.patch(b1_url, {'uploaded': True})
 
-    mocked_models_append_task.assert_called_with(
+    mocked_models_append_task.assert_any_call(
         rebuild_edition.si('http://example.test/editions/1', 1)
     )
-    mocked_build_launch_chain.assert_called_once()
+
+    # The 'master' edition was also automatically created to track master.
+    mocked_models_append_task.assert_any_call(
+        rebuild_edition.si('http://example.test/editions/2', 2)
+    )
 
     # Manually reset pending_rebuild (the rebuild_edition task would have
     # done this automatically)
     r = client.get(edition_url)
     assert r.json['pending_rebuild'] is True
     r = client.patch(edition_url, {'pending_rebuild': False})
+
+    # And for the master edition
+    r = client.get('http://example.test/editions/2')
+    assert r.json['pending_rebuild'] is True
+    r = client.patch('http://example.test/editions/2',
+                     {'pending_rebuild': False})
 
     # Test that the main edition updated because there are no builds yet
     # with semantic versions
@@ -116,7 +128,7 @@ def test_lsst_doc_edition(client, mocker):
     r = client.patch(b2_url, {'uploaded': True})
 
     mocked_models_append_task.assert_called_with(
-        rebuild_edition.si('http://example.test/editions/2', 2)
+        rebuild_edition.si('http://example.test/editions/3', 3)
     )
     mocked_build_launch_chain.assert_called_once()
 
@@ -159,7 +171,7 @@ def test_lsst_doc_edition(client, mocker):
     mocked_models_append_task.assert_any_call(
         rebuild_edition.si('http://example.test/editions/1', 1))
     mocked_models_append_task.assert_any_call(
-        rebuild_edition.si('http://example.test/editions/3', 3))
+        rebuild_edition.si('http://example.test/editions/4', 4))
 
     # Test that the main edition updated
     r = client.get(edition_url)
@@ -167,14 +179,14 @@ def test_lsst_doc_edition(client, mocker):
     assert r.json['pending_rebuild'] is True
 
     # Test that the v1-0 edition updated
-    r = client.get('http://example.test/editions/3')
+    r = client.get('http://example.test/editions/4')
     assert r.json['build_url'] == b3_url
     assert r.json['pending_rebuild'] is True
 
     # Manually reset the pending_rebuild semaphores
     r = client.patch(edition_url, {'pending_rebuild': False})
     r = client.patch(
-        'http://example.test/editions/3',
+        'http://example.test/editions/4',
         {'pending_rebuild': False})
 
     # ========================================================================
@@ -243,10 +255,10 @@ def test_lsst_doc_edition(client, mocker):
     mocked_models_append_task.assert_any_call(
         rebuild_edition.si('http://example.test/editions/1', 1))
     mocked_models_append_task.assert_any_call(
-        rebuild_edition.si('http://example.test/editions/5', 5))
+        rebuild_edition.si('http://example.test/editions/6', 6))
 
     # Manually reset the pending_rebuild semaphores
     r = client.patch(edition_url, {'pending_rebuild': False})
     r = client.patch(
-        'http://example.test/editions/5',
+        'http://example.test/editions/6',
         {'pending_rebuild': False})

@@ -676,7 +676,7 @@ class Edition(db.Model):
         else:
             build_url = None
 
-        return {
+        data = {
             'self_url': self.get_url(),
             'product_url': self.product.get_url(),
             'build_url': build_url,
@@ -692,28 +692,43 @@ class Edition(db.Model):
             'pending_rebuild': self.pending_rebuild
         }
 
+        if self.mode_name != 'git_refs':
+            # Force tracked_refs to None/null if it is not applicable.
+            data['tracked_refs'] = None
+        else:
+            data['tracked_refs'] = self.tracked_refs
+
+        return data
+
     def import_data(self, data):
         """Initialize the edition on POST.
 
         The Product is set on object initialization.
         """
-        try:
-            tracked_refs = data['tracked_refs']
-            self.slug = data['slug']
-            self.title = data['title']
-        except KeyError as e:
-            raise ValidationError('Invalid Edition: missing ' + e.args[0])
-
-        if isinstance(tracked_refs, str):
-            raise ValidationError('Invalid Edition: tracked_refs must be an '
-                                  'array of strings')
-        self.tracked_refs = tracked_refs
-
         if 'mode' in data:
             self.set_mode(data['mode'])
         else:
             # Set default
             self.set_mode(self.default_mode_name)
+
+        # git_refs is only required for git_refs tracking mode
+        if self.mode == edition_tracking_modes.name_to_id('git_refs'):
+            try:
+                tracked_refs = data['tracked_refs']
+            except KeyError as e:
+                raise ValidationError('Invalid Edition: missing ' + e.args[0])
+
+            if isinstance(tracked_refs, str):
+                raise ValidationError('Invalid Edition: tracked_refs must be '
+                                      'an array of strings')
+
+            self.tracked_refs = tracked_refs
+
+        try:
+            self.slug = data['slug']
+            self.title = data['title']
+        except KeyError as e:
+            raise ValidationError('Invalid Edition: missing ' + e.args[0])
 
         # Validate the slug
         self._validate_slug(data['slug'])
