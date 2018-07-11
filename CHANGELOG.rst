@@ -2,6 +2,14 @@
 Change log
 ##########
 
+1.13.0 (2017-07-11)
+===================
+
+- Make an Edition's ``tracked_refs`` field ``None`` when its tracking mode is not ``git_refs`` (only the ``git_refs`` mode uses ``tracked_refs``).
+- Do not require a ``tracked_refs`` when creating an Edition that does not use the ``git_refs`` tracking mode.
+
+`DM-15075 <https://jira.lsstcorp.org/browse/DM-15075>`__.
+
 1.12.0 (2017-07-10)
 ===================
 
