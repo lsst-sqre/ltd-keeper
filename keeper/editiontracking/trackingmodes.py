@@ -6,6 +6,7 @@ from .lsstdocmode import LsstDocTrackingMode
 from .eupsmajormode import EupsMajorReleaseTrackingMode
 from .eupsweeklymode import EupsWeeklyReleaseTrackingMode
 from .eupsdailymode import EupsDailyReleaseTrackingMode
+from .manualmode import ManualTrackingMode
 
 
 class EditionTrackingModes:
@@ -20,6 +21,7 @@ class EditionTrackingModes:
         3: EupsMajorReleaseTrackingMode(),
         4: EupsWeeklyReleaseTrackingMode(),
         5: EupsDailyReleaseTrackingMode(),
+        6: ManualTrackingMode(),
     }
     """Map of tracking mode ID (an integer stored in the DB to the tracking
     mode instance that can evaluate whether an edition should be updated
