@@ -2,7 +2,21 @@
 Change log
 ##########
 
-1.13.0 (2017-07-11)
+1.14.0 (2018-08-09)
+===================
+
+- New ``autoincrement`` feature for Edition slugs.
+  Now an edition can be created with ``autoincrement=True``.
+  Instead of passing a known slug, this features computes the next available integer slug.
+  This feature is designed for the notebook-based report system to create report instances with monotonically increasing instance numbers.
+
+- New ``manual`` tracking mode.
+  This mode ensures that an edition is *not* updated automatically with a new build.
+  The edition can only be updated with a manual PATCH requrest that modifies the build URL.
+
+`DM-15243 <https://jira.lsstcorp.org/browse/DM-15243>`__.
+
+1.13.0 (2018-07-11)
 ===================
 
 - Make an Edition's ``tracked_refs`` field ``None`` when its tracking mode is not ``git_refs`` (only the ``git_refs`` mode uses ``tracked_refs``).
@@ -10,7 +24,7 @@ Change log
 
 `DM-15075 <https://jira.lsstcorp.org/browse/DM-15075>`__.
 
-1.12.0 (2017-07-10)
+1.12.0 (2018-07-10)
 ===================
 
 - Update to Python 3.6.6 (in Docker base image and Travis).

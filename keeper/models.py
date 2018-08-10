@@ -705,6 +705,20 @@ class Edition(db.Model):
 
         The Product is set on object initialization.
         """
+        # Set up the edition's slug and title (either automatic or manually
+        # set)
+        if 'autoincrement' in data and data['autoincrement']:
+            self.slug = self._compute_autoincremented_slug()
+            self.title = self.slug
+        else:
+            try:
+                self.slug = data['slug']
+                self.title = data['title']
+            except KeyError as e:
+                raise ValidationError('Invalid Product: missing ' + e.args[0])
+        self._validate_slug(self.slug)
+
+        # Set up the edition's build tracking mode
         if 'mode' in data:
             self.set_mode(data['mode'])
         else:
@@ -723,15 +737,6 @@ class Edition(db.Model):
                                       'an array of strings')
 
             self.tracked_refs = tracked_refs
-
-        try:
-            self.slug = data['slug']
-            self.title = data['title']
-        except KeyError as e:
-            raise ValidationError('Invalid Edition: missing ' + e.args[0])
-
-        # Validate the slug
-        self._validate_slug(data['slug'])
 
         if self.surrogate_key is None:
             self.surrogate_key = uuid.uuid4().hex
@@ -968,6 +973,46 @@ class Edition(db.Model):
                                 old_bucket_root_dir,
                                 AWS_ID, AWS_SECRET)
 
+    def _compute_autoincremented_slug(self):
+        """Compute an autoincremented integer slug for this edition.
+
+        Returns
+        -------
+        slug : `str`
+            The next available integer slug for this Edition.
+
+        Notes
+        -----
+        This uses the following algorithm:
+
+        1. Queries all slugs associated with this Edition.
+        2. Converts eligible slugs to integers.
+        3. Computes the maximum existing integer slug.
+        4. Returns the 1+the maximum existing slug, or 1.
+        """
+        # Find existing edition slugs
+        slugs = db.session.query(Edition.slug)\
+            .autoflush(False)\
+            .filter(Edition.product == self.product)\
+            .all()
+
+        # Convert to integers
+        integer_slugs = []
+        for slug in slugs:
+            try:
+                # slugs is actual a sequence of result tuples, hence getting
+                # the first item.
+                int_slug = int(slug[0])
+            except ValueError:
+                # not an integer-like slug, so we can ignore it
+                continue
+            integer_slugs.append(int_slug)
+
+        if len(integer_slugs) == 0:
+            return '1'
+        else:
+            return str(max(integer_slugs) + 1)
+
     def _validate_slug(self, slug):
         """Ensure that the slug is both unique to the product and meets the
         slug format regex.
@@ -978,7 +1023,6 @@ class Edition(db.Model):
         """
         # Check against slug regex
         validate_path_slug(slug)
-        print('Valid slug')
 
         # Check uniqueness
         existing_count = Edition.query.autoflush(False)\

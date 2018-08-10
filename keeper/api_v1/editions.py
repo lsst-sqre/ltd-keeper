@@ -65,7 +65,8 @@ def new_edition(slug):
     :param slug: Product slug.
 
     :<json string build_url: URL of the build entity this Edition uses.
-    :<json string slug: URL-safe name for edition.
+    :<json string slug: URL-safe name for edition. Don't include this field
+        when using ``autoincrement: true``.
     :<json string title: Human-readable name for edition.
     :<json str mode: Tracking mode.
        ``git_refs``: track the Git ref specified by ``tracked_refs``.
@@ -73,6 +74,9 @@ def new_edition(slug):
     :<json array tracked_refs: Git ref(s) that describe the version of the
         Product that this this Edition is intended to point to when using
         the ``git_refs`` tracking mode.
+    :<json bool autoincrement: Instead of providing a ``slug``, the server
+        automatically assigns an integer slug that is one larger than
+        existing slug integers. Starts from ``1``.
 
     :resheader Location: URL of the created Edition resource.
 
