@@ -166,18 +166,12 @@ def new_build(slug):
             db.session.add(edition)
             db.session.commit()
 
-            edition_id = edition.id
-
             logger.info('Created edition',
                         url=edition.get_url(),
                         id=edition.id,
                         tracked_refs=edition.tracked_refs)
         except Exception:
             db.session.rollback()
-
-        # try to get that edition again
-        edition_test = Edition.query.get(edition_id)
-        logger.debug('Got edition', value=edition_test, id=edition_id)
 
     # Run the task queue
     append_task_to_chain(build_dashboard.si(product_url))
