@@ -2,6 +2,13 @@
 Change log
 ##########
 
+1.14.1 (2018-08-12)
+===================
+
+- Removed unneeded code from the ``new_build`` route that was throwing an error if the build corresponded to an edition with a manual tracking mode (as opposed to Git refs).
+
+`DM-15416 <https://jira.lsstcorp.org/browse/DM-15416>`__.
+
 1.14.0 (2018-08-09)
 ===================
 
