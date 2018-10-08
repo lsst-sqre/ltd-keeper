@@ -2,6 +2,17 @@
 Change log
 ##########
 
+1.14.2 (2018-10-08)
+===================
+
+- Fixes a bug in ``keeper.s3.delete_directory`` related to "directories" that have 1000 or more objects.
+  The S3 and Boto APIs for deleting objects cannot handle more than 1000 object keys at once.
+  Now this function internally paginates over objects to bypass this limitation.
+
+- Adds an experimental Kubernetes deployment of Flower_ to help monitor the Celery task queue.
+
+`DM-15518 <https://jira.lsstcorp.org/browse/DM-15518>`__.
+
 1.14.1 (2018-08-12)
 ===================
 
@@ -19,7 +30,7 @@ Change log
 
 - New ``manual`` tracking mode.
   This mode ensures that an edition is *not* updated automatically with a new build.
-  The edition can only be updated with a manual PATCH requrest that modifies the build URL.
+  The edition can only be updated with a manual PATCH request that modifies the build URL.
 
 `DM-15243 <https://jira.lsstcorp.org/browse/DM-15243>`__.
 
@@ -308,3 +319,5 @@ Interaction with AWS S3 and Route53 with product provisioning and build uploads.
 First Flask application prototype and API design documentation.
 
 `DM-5100 <https://jira.lsst.org/ <https://jira.lsstcorp.org/browse/DM-5100>`__.
+
+.. _Flower: https://flower.readthedocs.io/
