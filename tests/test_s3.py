@@ -76,6 +76,12 @@ def test_delete_directory(request):
         else:
             assert bucket_path in bucket_paths
 
+    # Attempt to delete an empty prefix. Ensure it does not raise an exception.
+    delete_directory(os.getenv('LTD_KEEPER_TEST_BUCKET'),
+                     bucket_root + 'empty-prefix/',
+                     os.getenv('LTD_KEEPER_TEST_AWS_ID'),
+                     os.getenv('LTD_KEEPER_TEST_AWS_SECRET'))
+
 
 @pytest.mark.skipif(os.getenv('LTD_KEEPER_TEST_AWS_ID') is None or
                     os.getenv('LTD_KEEPER_TEST_AWS_SECRET') is None or
