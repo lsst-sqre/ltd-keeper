@@ -2,6 +2,13 @@
 Change log
 ##########
 
+1.14.3 (2018-10-09)
+===================
+
+- Fixes a problem with the new ``keeper.s3.delete_directory`` implementation when the S3 prefix has no corresponding objects.
+
+`DM-16061 <https://jira.lsstcorp.org/browse/DM-15518>`_
+
 1.14.2 (2018-10-08)
 ===================
 
