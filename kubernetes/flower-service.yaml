@@ -1,0 +1,17 @@
+# This Services provides a cluster endpoint for the redis pod.
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: flower
+  labels:
+    name: flower
+spec:
+  type: ClusterIP
+  ports:
+    - name: flower
+      protocol: TCP
+      port: 80
+      targetPort: flower
+  selector:
+    name: flower
