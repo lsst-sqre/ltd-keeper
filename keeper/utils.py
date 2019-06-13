@@ -49,7 +49,7 @@ def split_url(url, method='GET'):
                                'You might be able to fix this by setting '
                                'the SERVER_NAME config variable.')
     parsed_url = url_parse(url)
-    if parsed_url.netloc is not '' and \
+    if parsed_url.netloc != '' and \
             parsed_url.netloc != url_adapter.server_name:
         raise ValidationError('Invalid URL: ' + url)
     try:
