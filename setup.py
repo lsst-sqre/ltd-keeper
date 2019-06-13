@@ -46,7 +46,7 @@ install_requires = [
     'Flask-Migrate==2.1.1',
     'python-dateutil==2.4.2',
     'boto3==1.7.54',
-    'requests==2.18.4',
+    'requests==2.22.0',
     'structlog==17.2.0',
     'celery[redis]==4.2.0'
 ]
@@ -56,7 +56,7 @@ tests_require = [
     'pytest==3.6.3',
     'pytest-cov==2.7.1',
     'pytest-flake8==1.0.4',
-    'responses==0.9.0',
+    'responses==0.10.6',
     'pytest-mock==1.10.4',
     'mock==3.0.5',
 ]
