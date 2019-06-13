@@ -37,8 +37,8 @@ setup_requires = [
 
 # Installation (application runtime) requirements
 install_requires = [
-    'Flask==0.12.2',
-    'uWSGI==2.0.17',
+    'Flask==1.0.3',
+    'uWSGI==2.0.18',
     'Flask-SQLAlchemy==2.3.2',
     'SQLAlchemy==1.3.4',
     'PyMySQL==0.8.0',
