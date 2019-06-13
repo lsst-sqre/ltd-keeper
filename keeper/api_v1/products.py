@@ -198,6 +198,7 @@ def new_product():
         request_json = request.json
         product.import_data(request_json)
         db.session.add(product)
+        db.session.flush()  # Because Edition._validate_slug does not autoflush
 
         # Create a default edition for the product
         edition_data = {'tracked_refs': ['master'],

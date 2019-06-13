@@ -1024,7 +1024,8 @@ class Edition(db.Model):
         # Check against slug regex
         validate_path_slug(slug)
 
-        # Check uniqueness
+        # Check uniqueness.
+        # Turning off autoflush so that this object isn't being queried.
         existing_count = Edition.query.autoflush(False)\
             .filter(Edition.product == self.product)\
             .filter(Edition.slug == slug)\

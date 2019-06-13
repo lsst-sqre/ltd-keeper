@@ -18,13 +18,13 @@ from werkzeug.exceptions import NotFound
 from .exceptions import ValidationError
 
 # Regular expression to validate url-safe slugs for products
-PRODUCT_SLUG_PATTERN = re.compile('^[a-z]+[-a-z0-9]*[a-z0-9]+$')
+PRODUCT_SLUG_PATTERN = re.compile(r'^[a-z]+[-a-z0-9]*[a-z0-9]+$')
 
 # Regular expression to validate url-safe slugs for editions/builds
-PATH_SLUG_PATTERN = re.compile('^[a-zA-Z0-9-\._]+$')
+PATH_SLUG_PATTERN = re.compile(r'^[a-zA-Z0-9-\._]+$')
 
 # Regular expression for DM ticket branches (to auto-build slugs)
-TICKET_BRANCH_PATTERN = re.compile('^tickets/([A-Z]+-[0-9]+)$')
+TICKET_BRANCH_PATTERN = re.compile(r'^tickets/([A-Z]+-[0-9]+)$')
 
 
 def split_url(url, method='GET'):
@@ -49,7 +49,7 @@ def split_url(url, method='GET'):
                                'You might be able to fix this by setting '
                                'the SERVER_NAME config variable.')
     parsed_url = url_parse(url)
-    if parsed_url.netloc is not '' and \
+    if parsed_url.netloc != '' and \
             parsed_url.netloc != url_adapter.server_name:
         raise ValidationError('Invalid URL: ' + url)
     try:

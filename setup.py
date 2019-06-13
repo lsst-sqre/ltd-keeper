@@ -32,32 +32,33 @@ keywords = 'lsst lsst-the-docs'
 # Setup-time requirements
 setup_requires = [
     'setuptools_scm==1.15.6',
-    'pytest-runner==4.2',
+    'pytest-runner==5.1',
 ]
 
 # Installation (application runtime) requirements
 install_requires = [
-    'Flask==0.12.2',
-    'uWSGI==2.0.17',
-    'Flask-SQLAlchemy==2.3.2',
-    'PyMySQL==0.8.0',
-    'Flask-HTTPAuth==2.2.1',
-    'Flask-Migrate==2.1.1',
+    'Flask==1.0.3',
+    'uWSGI==2.0.18',
+    'Flask-SQLAlchemy==2.4.0',
+    'SQLAlchemy==1.3.4',
+    'PyMySQL==0.9.3',
+    'Flask-HTTPAuth==3.3.0',
+    'Flask-Migrate==2.5.2',
     'python-dateutil==2.4.2',
-    'boto3==1.7.54',
-    'requests==2.18.4',
+    'boto3==1.9.168',
+    'requests==2.22.0',
     'structlog==17.2.0',
     'celery[redis]==4.2.0'
 ]
 
 # Test dependencies
 tests_require = [
-    'pytest==3.5.0',
-    'pytest-cov==2.5.1',
-    'pytest-flake8==1.0.0',
-    'responses==0.9.0',
-    'pytest-mock==1.9.0',
-    'mock==2.0.0',
+    'pytest==3.6.3',
+    'pytest-cov==2.7.1',
+    'pytest-flake8==1.0.4',
+    'responses==0.10.6',
+    'pytest-mock==1.10.4',
+    'mock==3.0.5',
 ]
 
 # Sphinx documentation requirements

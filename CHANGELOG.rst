@@ -2,6 +2,34 @@
 Change log
 ##########
 
+Unreleased
+==========
+
+- Updates to most dependencies:
+
+  - Flask 0.12.2 to 1.0.3
+  - uWSGI 2.0.17 to 2.0.18
+  - Flask-SQLAlchemy 2.3.2 to 2.4.0
+  - SQLAlchemy 2.3.2 to 1.3.4
+  - PyMySQL 0.8.0 to 0.9.3
+  - Flask-HTTPAuth 2.3.2 to 3.3.0
+  - Flask-Migrate 2.1.1 to 2.5.2
+  - boto3 1.7.54 to 1.9.168
+  - requests 2.18.4 to 2.22.0
+
+- Updates to developer and test dependencies:
+
+  - pytest 3.5.0 to 3.6.3
+  - pytest-cov to 2.5.1 to 2.7.1
+  - pytest-flake8 1.0.0 to 1.0.4
+  - responses 0.9.0 to 0.10.6
+  - pytest-mock 1.9.0 to 1.10.4
+  - mock 2.0.0 to 3.0.5
+
+- Fix a bug during product creation (``POST /products``) where the product object needs to be flushed in the SQLAlchemy session before creating the default edition.
+
+- Minor PEP 8 fixes for regex strings and string comparisons.
+
 1.14.3 (2018-10-09)
 ===================
 
