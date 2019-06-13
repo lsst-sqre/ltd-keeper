@@ -32,7 +32,7 @@ keywords = 'lsst lsst-the-docs'
 # Setup-time requirements
 setup_requires = [
     'setuptools_scm==1.15.6',
-    'pytest-runner==4.2',
+    'pytest-runner==5.1',
 ]
 
 # Installation (application runtime) requirements
@@ -52,12 +52,12 @@ install_requires = [
 
 # Test dependencies
 tests_require = [
-    'pytest==3.5.0',
-    'pytest-cov==2.5.1',
-    'pytest-flake8==1.0.0',
+    'pytest==3.6.3',
+    'pytest-cov==2.7.1',
+    'pytest-flake8==1.0.4',
     'responses==0.9.0',
-    'pytest-mock==1.9.0',
-    'mock==2.0.0',
+    'pytest-mock==1.10.4',
+    'mock==3.0.5',
 ]
 
 # Sphinx documentation requirements
