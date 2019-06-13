@@ -45,7 +45,7 @@ install_requires = [
     'Flask-HTTPAuth==3.3.0',
     'Flask-Migrate==2.5.2',
     'python-dateutil==2.4.2',
-    'boto3==1.7.54',
+    'boto3==1.9.168',
     'requests==2.22.0',
     'structlog==17.2.0',
     'celery[redis]==4.2.0'
