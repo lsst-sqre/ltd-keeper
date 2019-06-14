@@ -11,9 +11,9 @@ def test_products(client, mocker):
     """Test various API operations against Product resources.
     """
     mocked_product_append_task = mocker.patch(
-        'keeper.api_v1.products.append_task_to_chain')
+        'keeper.api.products.append_task_to_chain')
     mocked_product_launch_chain = mocker.patch(
-        'keeper.api_v1.products.launch_task_chain')
+        'keeper.api.products.launch_task_chain')
 
     # ========================================================================
     # Add product /products/ldm-151

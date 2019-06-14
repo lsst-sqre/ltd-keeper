@@ -6,13 +6,13 @@ def test_eups_daily_release_edition(client, mocker):
     """Test an edition that tracks the most recent EUPS daily release.
     """
     # These mocks are needed but not checked
-    mocker.patch('keeper.api_v1.builds.launch_task_chain')
+    mocker.patch('keeper.api.builds.launch_task_chain')
     mocker.patch('keeper.models.append_task_to_chain')
-    mocker.patch('keeper.api_v1.products.append_task_to_chain')
-    mocker.patch('keeper.api_v1.products.launch_task_chain')
-    mocker.patch('keeper.api_v1.builds.append_task_to_chain')
-    mocker.patch('keeper.api_v1.editions.append_task_to_chain')
-    mocker.patch('keeper.api_v1.editions.launch_task_chain')
+    mocker.patch('keeper.api.products.append_task_to_chain')
+    mocker.patch('keeper.api.products.launch_task_chain')
+    mocker.patch('keeper.api.builds.append_task_to_chain')
+    mocker.patch('keeper.api.editions.append_task_to_chain')
+    mocker.patch('keeper.api.editions.launch_task_chain')
 
     # ========================================================================
     # Add product /products/pipelines

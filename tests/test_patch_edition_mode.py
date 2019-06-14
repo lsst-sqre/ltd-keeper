@@ -17,18 +17,18 @@ def test_pach_lsst_doc_edition(client, mocker):
     5. Post a `v1.1` build that is tracked.
     """
     mocked_product_append_task = mocker.patch(
-        'keeper.api_v1.products.append_task_to_chain')
+        'keeper.api.products.append_task_to_chain')
     mocked_product_launch_chain = mocker.patch(
-        'keeper.api_v1.products.launch_task_chain')
+        'keeper.api.products.launch_task_chain')
     mocked_build_append_task = mocker.patch(
-        'keeper.api_v1.builds.append_task_to_chain')
+        'keeper.api.builds.append_task_to_chain')
     mocked_build_launch_chain = mocker.patch(
-        'keeper.api_v1.builds.launch_task_chain')
+        'keeper.api.builds.launch_task_chain')
     mocked_models_append_task = mocker.patch(
         'keeper.models.append_task_to_chain')
     # These mocks are needed but not checked
-    mocker.patch('keeper.api_v1.editions.append_task_to_chain')
-    mocker.patch('keeper.api_v1.editions.launch_task_chain')
+    mocker.patch('keeper.api.editions.append_task_to_chain')
+    mocker.patch('keeper.api.editions.launch_task_chain')
 
     # ========================================================================
     # Add product /products/ldm-151
