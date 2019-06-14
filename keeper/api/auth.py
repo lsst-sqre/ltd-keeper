@@ -2,6 +2,7 @@
 """
 
 from flask import jsonify, g
+from flask_accept import accept_fallback
 
 from . import api
 from ..auth import password_auth
@@ -9,6 +10,7 @@ from ..logutils import log_route
 
 
 @api.route('/token')
+@accept_fallback
 @log_route()
 @password_auth.login_required
 def get_auth_token():

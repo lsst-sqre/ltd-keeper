@@ -2,6 +2,7 @@
 
 import uuid
 from flask import jsonify, request
+from flask_accept import accept_fallback
 from structlog import get_logger
 
 from . import api
@@ -16,6 +17,7 @@ from ..tasks.dashboardbuild import build_dashboard
 
 
 @api.route('/products/<slug>/builds/', methods=['POST'])
+@accept_fallback
 @log_route()
 @token_auth.login_required
 @permission_required(Permission.UPLOAD_BUILD)
@@ -183,6 +185,7 @@ def new_build(slug):
 
 
 @api.route('/builds/<int:id>', methods=['PATCH'])
+@accept_fallback
 @log_route()
 @token_auth.login_required
 @permission_required(Permission.UPLOAD_BUILD)
@@ -256,6 +259,7 @@ def patch_build(id):
 
 
 @api.route('/builds/<int:id>', methods=['DELETE'])
+@accept_fallback
 @log_route()
 @token_auth.login_required
 @permission_required(Permission.DEPRECATE_BUILD)
@@ -305,6 +309,7 @@ def deprecate_build(id):
 
 
 @api.route('/products/<slug>/builds/', methods=['GET'])
+@accept_fallback
 @log_route()
 def get_product_builds(slug):
     """List all builds for a product.
@@ -348,6 +353,7 @@ def get_product_builds(slug):
 
 
 @api.route('/builds/<int:id>', methods=['GET'])
+@accept_fallback
 @log_route()
 def get_build(id):
     """Show metadata for a single build.

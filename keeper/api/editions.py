@@ -1,6 +1,7 @@
 """API v1 routes for Editions."""
 
 from flask import jsonify, request
+from flask_accept import accept_fallback
 
 from . import api
 from ..models import db
@@ -13,6 +14,7 @@ from ..tasks.dashboardbuild import build_dashboard
 
 
 @api.route('/products/<slug>/editions/', methods=['POST'])
+@accept_fallback
 @log_route()
 @token_auth.login_required
 @permission_required(Permission.ADMIN_EDITION)
@@ -103,6 +105,7 @@ def new_edition(slug):
 
 
 @api.route('/editions/<int:id>', methods=['DELETE'])
+@accept_fallback
 @log_route()
 @token_auth.login_required
 @permission_required(Permission.ADMIN_EDITION)
@@ -160,6 +163,7 @@ def deprecate_edition(id):
 
 
 @api.route('/products/<slug>/editions/', methods=['GET'])
+@accept_fallback
 @log_route()
 def get_product_editions(slug):
     """List all editions published for a Product.
@@ -202,6 +206,7 @@ def get_product_editions(slug):
 
 
 @api.route('/editions/<int:id>', methods=['GET'])
+@accept_fallback
 @log_route()
 def get_edition(id):
     """Show metadata for an Edition.
@@ -269,6 +274,7 @@ def get_edition(id):
 
 
 @api.route('/editions/<int:id>', methods=['PATCH'])
+@accept_fallback
 @log_route()
 @token_auth.login_required
 @permission_required(Permission.ADMIN_EDITION)
