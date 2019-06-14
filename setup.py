@@ -44,6 +44,7 @@ install_requires = [
     'PyMySQL==0.9.3',
     'Flask-HTTPAuth==3.3.0',
     'Flask-Migrate==2.5.2',
+    'flask-accept==0.0.6',
     'python-dateutil==2.4.2',
     'boto3==1.9.168',
     'requests==2.22.0',
