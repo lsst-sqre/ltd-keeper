@@ -12,8 +12,15 @@ from ..models import Product, Build, Edition, Permission
 from ..utils import auto_slugify_edition
 from ..logutils import log_route
 from ..taskrunner import (launch_task_chain, append_task_to_chain,
-                          insert_task_url_in_response)
+                          insert_task_url_in_response, mock_registry)
 from ..tasks.dashboardbuild import build_dashboard
+
+
+# Register imports of celery task chain launchers
+mock_registry.extend([
+    'keeper.api.builds.launch_task_chain',
+    'keeper.api.builds.append_task_to_chain',
+])
 
 
 @api.route('/products/<slug>/builds/', methods=['POST'])

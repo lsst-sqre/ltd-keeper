@@ -9,8 +9,15 @@ from ..auth import token_auth, permission_required
 from ..models import Product, Edition, Permission
 from ..logutils import log_route
 from ..taskrunner import (launch_task_chain, append_task_to_chain,
-                          insert_task_url_in_response)
+                          insert_task_url_in_response, mock_registry)
 from ..tasks.dashboardbuild import build_dashboard
+
+
+# Register imports of celery task chain launchers
+mock_registry.extend([
+    'keeper.api.editions.launch_task_chain',
+    'keeper.api.editions.append_task_to_chain',
+])
 
 
 @api.route('/products/<slug>/editions/', methods=['POST'])

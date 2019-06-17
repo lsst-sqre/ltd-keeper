@@ -2,7 +2,9 @@
 """
 
 __all__ = ('append_task_to_chain', 'launch_task_chain',
-           'insert_task_url_in_response')
+           'insert_task_url_in_response', 'mock_registry')
+
+import collections
 
 import celery
 from flask import g, url_for
@@ -58,3 +60,39 @@ def insert_task_url_in_response(json_data, task):
         url = url_for('api.get_task_status', id=task.id, _external=True)
         json_data['queue_url'] = url
     return json_data
+
+
+class MockRegistry(collections.UserList):
+    """Registry of celery task runner API imports that should be mocked.
+    """
+
+    def __init__(self, data=None):
+        if data:
+            self.data = data
+        else:
+            self.data = []
+
+        self._mocks = {}
+
+    def __getitem__(self, name):
+        return self._mocks[name]
+
+    def patch_all(self, mocker):
+        """Apply ``mocker.patch`` to each registered import.
+        """
+        for name in self.data:
+            self._mocks[name] = mocker.patch(name)
+
+
+mock_registry = MockRegistry()
+"""Instance of `MockRegistry`.
+
+All imports of `append_task_to_chain` and `launch_task_chain` need to be
+registed in this instance.
+
+Example for a module named ``mymodule``::
+
+    from keeper.taskrunner import append_task_to_chain, mock_registry
+
+    mock_registry.append('keeper.mymodule.append_task_to_chain')
+"""

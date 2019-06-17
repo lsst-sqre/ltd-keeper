@@ -10,7 +10,14 @@ from ..models import Product, Permission, Edition
 from ..logutils import log_route
 from ..tasks.dashboardbuild import build_dashboard
 from ..taskrunner import (launch_task_chain, append_task_to_chain,
-                          insert_task_url_in_response)
+                          insert_task_url_in_response, mock_registry)
+
+
+# Register imports of celery task chain launchers
+mock_registry.extend([
+    'keeper.api.products.launch_task_chain',
+    'keeper.api.products.append_task_to_chain',
+])
 
 
 @api.route('/products/', methods=['GET'])
