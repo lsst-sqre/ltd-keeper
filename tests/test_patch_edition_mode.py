@@ -4,6 +4,7 @@
 
 from keeper.tasks.dashboardbuild import build_dashboard
 from keeper.tasks.editionrebuild import rebuild_edition
+from keeper.taskrunner import mock_registry
 
 
 def test_pach_lsst_doc_edition(client, mocker):
@@ -16,19 +17,8 @@ def test_pach_lsst_doc_edition(client, mocker):
     4. Patch the main edition to use the LSST_DOC tracking mode.
     5. Post a `v1.1` build that is tracked.
     """
-    mocked_product_append_task = mocker.patch(
-        'keeper.api.products.append_task_to_chain')
-    mocked_product_launch_chain = mocker.patch(
-        'keeper.api.products.launch_task_chain')
-    mocked_build_append_task = mocker.patch(
-        'keeper.api.builds.append_task_to_chain')
-    mocked_build_launch_chain = mocker.patch(
-        'keeper.api.builds.launch_task_chain')
-    mocked_models_append_task = mocker.patch(
-        'keeper.models.append_task_to_chain')
-    # These mocks are needed but not checked
-    mocker.patch('keeper.api.editions.append_task_to_chain')
-    mocker.patch('keeper.api.editions.launch_task_chain')
+    # Mock all celergy-based tasks.
+    mock_registry.patch_all(mocker)
 
     # ========================================================================
     # Add product /products/ldm-151

@@ -3,6 +3,7 @@
 
 from keeper.tasks.dashboardbuild import build_dashboard
 from keeper.tasks.editionrebuild import rebuild_edition
+from keeper.taskrunner import mock_registry
 
 
 def test_lsst_doc_edition(client, mocker):
@@ -17,19 +18,7 @@ def test_lsst_doc_edition(client, mocker):
     5. Create a v0.9 build that is not tracked because it's older.
     6. Create a v1.1 build that **is** tracked because it's newer.
     """
-    mocked_product_append_task = mocker.patch(
-        'keeper.api.products.append_task_to_chain')
-    mocked_product_launch_chain = mocker.patch(
-        'keeper.api.products.launch_task_chain')
-    mocked_build_append_task = mocker.patch(
-        'keeper.api.builds.append_task_to_chain')
-    mocked_build_launch_chain = mocker.patch(
-        'keeper.api.builds.launch_task_chain')
-    mocked_models_append_task = mocker.patch(
-        'keeper.models.append_task_to_chain')
-    # These mocks are needed but not checked
-    mocker.patch('keeper.api.editions.append_task_to_chain')
-    mocker.patch('keeper.api.editions.launch_task_chain')
+    mock_registry.patch_all(mocker)
 
     # ========================================================================
     # Add product /products/ldm-151
@@ -48,10 +37,9 @@ def test_lsst_doc_edition(client, mocker):
     p1_url = r.headers['Location']
 
     assert r.status == 201
-    mocked_product_append_task.assert_called_with(
-        build_dashboard.si(p1_url)
-    )
-    mocked_product_launch_chain.assert_called_once()
+    mock_registry['keeper.api.products.append_task_to_chain']\
+        .assert_called_with(build_dashboard.si(p1_url))
+    mock_registry['keeper.api.products.launch_task_chain'].assert_called_once()
 
     # ========================================================================
     # Get the URL for the default edition
@@ -72,20 +60,18 @@ def test_lsst_doc_edition(client, mocker):
     r = client.post('/products/ldm-151/builds/', b1_data)
     b1_url = r.headers['Location']
 
-    mocked_build_launch_chain.assert_called_once()
-
     # ========================================================================
     # Confirm build on 'master'
     mocker.resetall()
 
     r = client.patch(b1_url, {'uploaded': True})
 
-    mocked_models_append_task.assert_any_call(
+    mock_registry['keeper.models.append_task_to_chain'].assert_any_call(
         rebuild_edition.si('http://example.test/editions/1', 1)
     )
 
     # The 'master' edition was also automatically created to track master.
-    mocked_models_append_task.assert_any_call(
+    mock_registry['keeper.models.append_task_to_chain'].assert_any_call(
         rebuild_edition.si('http://example.test/editions/2', 2)
     )
 
@@ -119,7 +105,7 @@ def test_lsst_doc_edition(client, mocker):
     r = client.post('/products/ldm-151/builds/', b2_data)
     b2_url = r.headers['Location']
 
-    mocked_build_launch_chain.assert_called_once()
+    mock_registry['keeper.api.builds.launch_task_chain'].assert_called_once()
 
     # ========================================================================
     # Confirm ticket branch build
@@ -127,10 +113,10 @@ def test_lsst_doc_edition(client, mocker):
 
     r = client.patch(b2_url, {'uploaded': True})
 
-    mocked_models_append_task.assert_called_with(
+    mock_registry['keeper.models.append_task_to_chain'].assert_called_with(
         rebuild_edition.si('http://example.test/editions/3', 3)
     )
-    mocked_build_launch_chain.assert_called_once()
+    mock_registry['keeper.api.builds.launch_task_chain'].assert_called_once()
 
     # Test that the main edition *did not* update because this build is
     # neither for master not a semantic version.
@@ -150,11 +136,10 @@ def test_lsst_doc_edition(client, mocker):
     r = client.post('/products/ldm-151/builds/', b3_data)
     b3_url = r.headers['Location']
 
-    mocked_build_append_task.assert_called_with(
+    mock_registry['keeper.api.builds.append_task_to_chain'].assert_called_with(
         build_dashboard.si(p1_url)
     )
-    mocked_build_launch_chain.assert_called_once()
-    mocked_build_launch_chain.reset_mock()
+    mock_registry['keeper.api.builds.launch_task_chain'].assert_called_once()
 
     # ========================================================================
     # Confirm v1.0 build
@@ -162,15 +147,15 @@ def test_lsst_doc_edition(client, mocker):
 
     r = client.patch(b3_url, {'uploaded': True})
 
-    mocked_build_append_task.assert_called_with(
+    mock_registry['keeper.api.builds.append_task_to_chain'].assert_called_with(
         build_dashboard.si(p1_url)
     )
-    mocked_build_launch_chain.assert_called_once()
-    mocked_build_launch_chain.reset_mock()
+
+    mock_registry['keeper.api.builds.launch_task_chain'].assert_called_once()
     # Rebuilds for the main and v1-0 editions were triggered
-    mocked_models_append_task.assert_any_call(
+    mock_registry['keeper.models.append_task_to_chain'].assert_any_call(
         rebuild_edition.si('http://example.test/editions/1', 1))
-    mocked_models_append_task.assert_any_call(
+    mock_registry['keeper.models.append_task_to_chain'].assert_any_call(
         rebuild_edition.si('http://example.test/editions/4', 4))
 
     # Test that the main edition updated
@@ -252,9 +237,9 @@ def test_lsst_doc_edition(client, mocker):
     assert r.json['build_url'] == b6_url
 
     # Rebuilds for the main and v1-0 editions were triggered
-    mocked_models_append_task.assert_any_call(
+    mock_registry['keeper.models.append_task_to_chain'].assert_any_call(
         rebuild_edition.si('http://example.test/editions/1', 1))
-    mocked_models_append_task.assert_any_call(
+    mock_registry['keeper.models.append_task_to_chain'].assert_any_call(
         rebuild_edition.si('http://example.test/editions/6', 6))
 
     # Manually reset the pending_rebuild semaphores

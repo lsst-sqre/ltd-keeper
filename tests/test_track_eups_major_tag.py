@@ -1,18 +1,13 @@
 """Test an Edition that tracks eups major releases (`eups_major_release`).
 """
 
+from keeper.taskrunner import mock_registry
+
 
 def test_eups_major_release_edition(client, mocker):
     """Test an edition that tracks the most recent EUPS major release.
     """
-    # These mocks are needed but not checked
-    mocker.patch('keeper.api.builds.launch_task_chain')
-    mocker.patch('keeper.models.append_task_to_chain')
-    mocker.patch('keeper.api.products.append_task_to_chain')
-    mocker.patch('keeper.api.products.launch_task_chain')
-    mocker.patch('keeper.api.builds.append_task_to_chain')
-    mocker.patch('keeper.api.editions.append_task_to_chain')
-    mocker.patch('keeper.api.editions.launch_task_chain')
+    mock_registry.patch_all(mocker)
 
     # ========================================================================
     # Add product /products/pipelines

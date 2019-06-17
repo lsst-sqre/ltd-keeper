@@ -6,22 +6,11 @@ from keeper.exceptions import ValidationError
 
 from keeper.tasks.dashboardbuild import build_dashboard
 from keeper.tasks.editionrebuild import rebuild_edition
+from keeper.taskrunner import mock_registry
 
 
 def test_builds(client, mocker):
-    mocked_product_append_task = mocker.patch(
-        'keeper.api.products.append_task_to_chain')
-    mocked_product_launch_chain = mocker.patch(
-        'keeper.api.products.launch_task_chain')
-    mocked_build_append_task = mocker.patch(
-        'keeper.api.builds.append_task_to_chain')
-    mocked_build_launch_chain = mocker.patch(
-        'keeper.api.builds.launch_task_chain')
-    mocked_models_append_task = mocker.patch(
-        'keeper.models.append_task_to_chain')
-    # These mocks are needed but not checked
-    mocker.patch('keeper.api.editions.append_task_to_chain')
-    mocker.patch('keeper.api.editions.launch_task_chain')
+    mock_registry.patch_all(mocker)
 
     # ========================================================================
     # Add product /products/pipelines
@@ -37,10 +26,9 @@ def test_builds(client, mocker):
     product_url = r.headers['Location']
 
     assert r.status == 201
-    mocked_product_append_task.assert_called_with(
-        build_dashboard.si(product_url)
-    )
-    mocked_product_launch_chain.assert_called_once()
+    mock_registry['keeper.api.products.append_task_to_chain']\
+        .assert_called_with(build_dashboard.si(product_url))
+    mock_registry['keeper.api.products.launch_task_chain'].assert_called_once()
 
     # ========================================================================
     # Add a sample edition
@@ -106,16 +94,16 @@ def test_builds(client, mocker):
     r = client.patch(build_url, {'uploaded': True})
     assert r.status == 200
 
-    mocked_models_append_task.assert_any_call(
+    mock_registry['keeper.models.append_task_to_chain'].assert_any_call(
         rebuild_edition.si('http://example.test/editions/1', 1)
     )
-    mocked_models_append_task.assert_any_call(
+    mock_registry['keeper.models.append_task_to_chain'].assert_any_call(
         rebuild_edition.si('http://example.test/editions/2', 2)
     )
-    mocked_build_append_task.assert_called_with(
+    mock_registry['keeper.api.builds.append_task_to_chain'].assert_called_with(
         build_dashboard.si(product_url)
     )
-    mocked_build_launch_chain.assert_called_once()
+    mock_registry['keeper.api.builds.launch_task_chain'].assert_called_once()
 
     # Check pending_rebuild semaphore and manually reset it since the celery
     # task is mocked.
@@ -147,12 +135,6 @@ def test_builds(client, mocker):
     r = client.delete('/builds/1')
     assert r.status == 200
 
-    # FIXME Maybe this should actually have been called?
-    # mocked_build_append_task.assert_called_with(
-    #     build_dashboard.si(product_url)
-    # )
-    # mocked_build_launch_chain.assert_called_once()
-
     r = client.get('/builds/1')
     assert r.json['product_url'] == product_url
     assert r.json['slug'] == b1['slug']
@@ -174,10 +156,10 @@ def test_builds(client, mocker):
     assert r.status == 201
     assert r.json['slug'] == '1'
 
-    mocked_build_append_task.assert_called_with(
+    mock_registry['keeper.api.builds.append_task_to_chain'].assert_called_with(
         build_dashboard.si(product_url)
     )
-    mocked_build_launch_chain.assert_called_once()
+    mock_registry['keeper.api.builds.launch_task_chain'].assert_called_once()
 
     # ========================================================================
     # Add an auto-slugged build
@@ -189,10 +171,10 @@ def test_builds(client, mocker):
     assert r.status == 201
     assert r.json['slug'] == '2'
 
-    mocked_build_append_task.assert_called_with(
+    mock_registry['keeper.api.builds.append_task_to_chain'].assert_called_with(
         build_dashboard.si(product_url)
     )
-    mocked_build_launch_chain.assert_called_once()
+    mock_registry['keeper.api.builds.launch_task_chain'].assert_called_once()
 
     # ========================================================================
     # Add a build missing 'git_refs'
