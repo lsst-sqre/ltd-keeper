@@ -38,10 +38,9 @@ def test_pach_lsst_doc_edition(client, mocker):
 
     assert r.status == 201
 
-    mocked_product_append_task.assert_called_with(
-        build_dashboard.si(product_url)
-    )
-    mocked_product_launch_chain.assert_called_once()
+    mock_registry['keeper.api.products.append_task_to_chain']\
+        .assert_called_with(build_dashboard.si(product_url))
+    mock_registry['keeper.api.products.launch_task_chain'].assert_called_once()
 
     # ========================================================================
     # Create a build on 'master'
@@ -102,13 +101,13 @@ def test_pach_lsst_doc_edition(client, mocker):
     r = client.get(e1_url)
     assert r.json['build_url'] == b1_url
 
-    mocked_models_append_task.assert_called_with(
+    mock_registry['keeper.models.append_task_to_chain'].assert_called_with(
         rebuild_edition.si(e2_url, 2)
     )
-    mocked_build_append_task.assert_called_with(
+    mock_registry['keeper.api.builds.append_task_to_chain'].assert_called_with(
         build_dashboard.si(product_url)
     )
-    mocked_build_launch_chain.assert_called_once()
+    mock_registry['keeper.api.builds.launch_task_chain'].assert_called_once()
 
     # Check pending_rebuild semaphore and manually reset it since the celery
     # task is mocked.
@@ -155,16 +154,16 @@ def test_pach_lsst_doc_edition(client, mocker):
     r = client.get(e1_url)
     assert r.json['build_url'] == b3_url
 
-    mocked_models_append_task.assert_any_call(
+    mock_registry['keeper.models.append_task_to_chain'].assert_any_call(
         rebuild_edition.si(e1_url, 1)
     )
-    mocked_models_append_task.assert_any_call(
+    mock_registry['keeper.models.append_task_to_chain'].assert_any_call(
         rebuild_edition.si(e3_url, 3)
     )
-    mocked_build_append_task.assert_called_with(
+    mock_registry['keeper.api.builds.append_task_to_chain'].assert_called_with(
         build_dashboard.si(product_url)
     )
-    mocked_build_launch_chain.assert_called_once()
+    mock_registry['keeper.api.builds.launch_task_chain'].assert_called_once()
 
     # Check pending_rebuild semaphore and manually reset it since the celery
     # task is mocked.

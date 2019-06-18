@@ -42,4 +42,4 @@ Reference
 =========
 
 .. autoflask:: keeper:flask_app
-   :endpoints: api.get_products, api.get_product, api.new_product, api.edit_product, api.new_build, api.get_product_builds, api.new_edition, api.get_product_editions, api.rebuild_product_dashboard
+   :endpoints: api.get_products, api.get_product, api.new_product, api.edit_product, api.post_products_builds_v1, api.get_product_builds, api.new_edition, api.get_product_editions, api.rebuild_product_dashboard

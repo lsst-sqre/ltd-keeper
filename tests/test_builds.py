@@ -100,10 +100,10 @@ def test_builds(client, mocker):
     mock_registry['keeper.models.append_task_to_chain'].assert_any_call(
         rebuild_edition.si('http://example.test/editions/2', 2)
     )
-    mock_registry['keeper.api.builds.append_task_to_chain'].assert_called_with(
-        build_dashboard.si(product_url)
-    )
-    mock_registry['keeper.api.builds.launch_task_chain'].assert_called_once()
+    mock_registry['keeper.api.builds.append_task_to_chain']\
+        .assert_called_with(build_dashboard.si(product_url))
+    mock_registry['keeper.api.builds.launch_task_chain']\
+        .assert_called_once()
 
     # Check pending_rebuild semaphore and manually reset it since the celery
     # task is mocked.
@@ -156,10 +156,10 @@ def test_builds(client, mocker):
     assert r.status == 201
     assert r.json['slug'] == '1'
 
-    mock_registry['keeper.api.builds.append_task_to_chain'].assert_called_with(
-        build_dashboard.si(product_url)
-    )
-    mock_registry['keeper.api.builds.launch_task_chain'].assert_called_once()
+    mock_registry['keeper.api.post_products_builds.append_task_to_chain']\
+        .assert_called_with(build_dashboard.si(product_url))
+    mock_registry['keeper.api.post_products_builds.launch_task_chain']\
+        .assert_called_once()
 
     # ========================================================================
     # Add an auto-slugged build
@@ -171,10 +171,10 @@ def test_builds(client, mocker):
     assert r.status == 201
     assert r.json['slug'] == '2'
 
-    mock_registry['keeper.api.builds.append_task_to_chain'].assert_called_with(
-        build_dashboard.si(product_url)
-    )
-    mock_registry['keeper.api.builds.launch_task_chain'].assert_called_once()
+    mock_registry['keeper.api.post_products_builds.append_task_to_chain']\
+        .assert_called_with(build_dashboard.si(product_url))
+    mock_registry['keeper.api.post_products_builds.launch_task_chain']\
+        .assert_called_once()
 
     # ========================================================================
     # Add a build missing 'git_refs'
