@@ -4,15 +4,33 @@ In LSST the Docs, ltd-mason is responsible for uploading documentation
 resources to S3. ltd-keeper deletes resources and copies builds to editions.
 """
 
+__all__ = ('delete_directory', 'copy_directory', 'presign_post_url_prefix')
+
 import os
 import logging
 import boto3
+import botocore.exceptions
 
 from .exceptions import S3Error
 
 
 log = logging.getLogger(__name__)
 log.addHandler(logging.NullHandler())
+
+
+def open_s3_session(*, key_id, access_key):
+    """Create a boto3 S3 session that can be reused by multiple requests.
+
+    Parameters
+    ----------
+    aws_access_key_id : str
+        The access key for your AWS account. Also set `aws_secret_access_key`.
+    aws_secret_access_key : str
+        The secret key for your AWS account.
+    """
+    return boto3.session.Session(
+        aws_access_key_id=key_id,
+        aws_secret_access_key=access_key)
 
 
 def delete_directory(bucket_name, root_path,
@@ -194,3 +212,81 @@ def copy_directory(bucket_name, src_path, dest_path,
                 ACL='public-read',
                 Metadata=metadata,
                 CacheControl=cache_control)
+
+
+def presign_post_url_prefix(*, s3_session, bucket_name, prefix,
+                            fields=None, conditions=None, expiration=3600):
+    """Generate a presigned POST URL for clients to upload objects to S3
+    without additional authentication.
+
+    Parameters
+    ----------
+    s3_session
+        S3 session, typically created with `open_s3_session`.
+    bucket_name : `str`
+        Name of the S3 bucket.
+    prefix : `str`
+        The key prefix in the S3 bucket where objects will be uploaded when
+        the presigned POST URL is used. For example, if the prefix is
+        ``'myprefix/'`` and the client uploads a file named ``'myfile.txt'``,
+        the object will be uploaded with a key of ``myprefix/myfile.txt``.
+
+        .. note::
+
+           Presigned URLs are only useful for uploading files with path
+           directories that correspond to the ``prefix``. The upload client
+           automatically strips subdirectories from file names when files are
+           posted to the presigned URL.
+    fields : `dict`
+        Dictionary of prefilled form fields. Elements that may be included are
+        ``acl``, ``Cache-Control``, ``Content-Type``, ``Content-Disposition``,
+        ``Content-Encoding``, ``Expires``, ``success_action_redirect``,
+        ``redirect``, ``success_action_status``, and ``x-amz-meta-*``.
+
+        Note that if a particular element is included in the fields dictionary
+        it will not be automatically added to the conditions list. You must
+        specify a condition for the element as well.
+    conditions : `list`
+        A list of conditions to include in the policy. For example:
+        ``[{"acl": "public-read"}]``.
+    expiration : `int`
+        The URL's expiration period, in seconds.
+
+    Returns
+    -------
+    response : `dict`
+        A dictionary with keys:
+
+        ``'url'``
+            The presigned POST URL.
+        ``'fields'``
+            A `dict` of key-value pairs that can be passed by clients in the
+            data payload of the post.
+
+    Notes
+    -----
+    For more information, see the boto3 documentation:
+
+    - `S3 Presigned URLs <https://boto3.amazonaws.com/v1/documentation/api/
+      latest/guide/s3-presigned-urls.html#generating-a-presigned-url-to-
+      upload-a-file>`_.
+    - `S3.Client.generate_presigned_post`
+    """
+    if prefix.endswith('/'):
+        key = f'{prefix}${{filename}}'
+    else:
+        key = f'{prefix}/${{filename}}'
+
+    s3_client = s3_session.client('s3')
+    try:
+        response = s3_client.generate_presigned_post(
+            bucket_name,
+            key,
+            Fields=fields,
+            Conditions=conditions,
+            ExpiresIn=expiration)
+    except botocore.exceptions.ClientError:
+        raise S3Error('Error creating presigned POST URL.')
+
+    # The response contains the presigned URL and required fields
+    return response
