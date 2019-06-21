@@ -1,10 +1,11 @@
 """The POST /products/<slug>/builds/ endpoint.
 """
 
-__all__ = ('post_products_builds_v1',)
+__all__ = ('post_products_builds_v1', 'post_products_builds_v2')
 
+import os
 import uuid
-from flask import jsonify, request
+from flask import jsonify, request, current_app
 from flask_accept import accept_fallback
 from structlog import get_logger
 
@@ -17,6 +18,8 @@ from ..logutils import log_route
 from ..taskrunner import (launch_task_chain, append_task_to_chain,
                           insert_task_url_in_response, mock_registry)
 from ..tasks.dashboardbuild import build_dashboard
+from ..mediatypes import v2_json_type
+from ..s3 import presign_post_url_prefix, open_s3_session
 
 
 # Register imports of celery task chain launchers
@@ -147,6 +150,49 @@ def post_products_builds_v1(slug):
     build_url = build.get_url()
     build_resource_json = insert_task_url_in_response(build_resource_json,
                                                       task)
+
+    return jsonify(build_resource_json), 201, {'Location': build_url}
+
+
+@post_products_builds_v1.support(v2_json_type)
+def post_products_builds_v2(slug):
+    """Handle POST /products/../builds/ (version 2).
+    """
+    build, task = _handle_new_build_for_product_slug(slug)
+    build_resource_json = build.export_data()
+    build_url = build.get_url()
+    build_resource_json = insert_task_url_in_response(build_resource_json,
+                                                      task)
+
+    # Create the presigned post URL or URLs for each declared directory
+    # prefix
+    request_data = request.get_json()
+    if 'directories' in request_data:
+        directories = []
+        for d in request_data['directories']:
+            d = d.strip()
+            if not d.endswith('/'):
+                d = f'{d}/'
+            directories.append(d)
+    else:
+        directories = ['/']
+    s3_session = open_s3_session(
+        key_id=current_app.config['AWS_ID'],
+        access_key=current_app.config['AWS_SECRET'])
+    presigned_urls = {}
+    for d in set(directories):
+        bucket_prefix = os.path.join(build.bucket_root_dirname, d)
+        presigned_url = presign_post_url_prefix(
+            s3_session=s3_session,
+            bucket_name=build.product.bucket_name,
+            prefix=bucket_prefix,
+            expiration=3600)
+        presigned_urls[d] = {
+            'url': presigned_url['url'],
+            'fields': presigned_url['fields']
+        }
+
+    build_resource_json['post_urls'] = presigned_urls
 
     return jsonify(build_resource_json), 201, {'Location': build_url}
 
