@@ -3,7 +3,6 @@
 
 __all__ = ('post_products_builds_v1', 'post_products_builds_v2')
 
-import os
 from copy import deepcopy
 import uuid
 from flask import jsonify, request, current_app
@@ -20,7 +19,7 @@ from ..taskrunner import (launch_task_chain, append_task_to_chain,
                           insert_task_url_in_response, mock_registry)
 from ..tasks.dashboardbuild import build_dashboard
 from ..mediatypes import v2_json_type
-from ..s3 import presign_post_url_prefix, open_s3_session
+from ..s3 import presign_post_url_prefix, open_s3_session, format_bucket_prefix
 
 
 # Register imports of celery task chain launchers
@@ -186,7 +185,7 @@ def post_products_builds_v2(slug):
         access_key=current_app.config['AWS_SECRET'])
     presigned_urls = {}
     for d in set(directories):
-        bucket_prefix = os.path.join(build.bucket_root_dirname, d)
+        bucket_prefix = format_bucket_prefix(build.bucket_root_dirname, d)
         # These conditions become part of the URL's presigned policy
         url_conditions = [
             {'acl': 'public-read'},

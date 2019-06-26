@@ -4,7 +4,8 @@ In LSST the Docs, ltd-mason is responsible for uploading documentation
 resources to S3. ltd-keeper deletes resources and copies builds to editions.
 """
 
-__all__ = ('delete_directory', 'copy_directory', 'presign_post_url_prefix')
+__all__ = ('delete_directory', 'copy_directory', 'presign_post_url_prefix',
+           'format_bucket_prefix')
 
 import os
 import logging
@@ -289,3 +290,15 @@ def presign_post_url_prefix(*, s3_session, bucket_name, prefix,
 
     # The response contains the presigned URL and required fields
     return response
+
+
+def format_bucket_prefix(base_prefix, dirname):
+    """Format an S3 bucket key prefix by joining a base prefix with a directory
+    name.
+    """
+    base_prefix = base_prefix.rstrip('/').lstrip('/')
+    dirname = dirname.lstrip('/')
+    prefix = '/'.join((base_prefix, dirname))
+    if not prefix.endswith('/'):
+        prefix = prefix + '/'
+    return prefix
