@@ -8,9 +8,6 @@ import requests
 
 from .exceptions import FastlyError
 
-log = logging.getLogger(__name__)
-log.addHandler(logging.NullHandler())
-
 
 class FastlyService(object):
     """API client for a Fastly service.
@@ -28,6 +25,7 @@ class FastlyService(object):
         self.service_id = service_id
         self.api_key = api_key
         self._api_root = 'https://api.fastly.com'
+        self._logger = logging.getLogger(__name__)
 
     def _url(self, path):
         return self._api_root + path
@@ -41,7 +39,7 @@ class FastlyService(object):
         """
         path = '/service/{service}/purge/{surrogate_key}'.format(
             service=self.service_id, surrogate_key=surrogate_key)
-        log.info('Fastly purge {0}'.format(path))
+        self._logger.info('Fastly purge %s', path)
         r = requests.post(self._url(path),
                           headers={'Fastly-Key': self.api_key,
                                    'Accept': 'application/json'})

@@ -8,14 +8,11 @@ __all__ = ('delete_directory', 'copy_directory', 'presign_post_url_prefix')
 
 import os
 import logging
+
 import boto3
 import botocore.exceptions
 
 from .exceptions import S3Error
-
-
-log = logging.getLogger(__name__)
-log.addHandler(logging.NullHandler())
 
 
 def open_s3_session(*, key_id, access_key):
@@ -54,6 +51,8 @@ def delete_directory(bucket_name, root_path,
     app.exceptions.S3Error
         Thrown by any unexpected faults from the S3 API.
     """
+    log = logging.getLogger(__name__)
+
     session = boto3.session.Session(
         aws_access_key_id=aws_access_key_id,
         aws_secret_access_key=aws_secret_access_key)
