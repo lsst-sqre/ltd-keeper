@@ -4,6 +4,7 @@
 __all__ = ('post_products_builds_v1', 'post_products_builds_v2')
 
 import os
+from copy import deepcopy
 import uuid
 from flask import jsonify, request, current_app
 from flask_accept import accept_fallback
@@ -178,6 +179,7 @@ def post_products_builds_v2(slug):
             directories.append(d)
     else:
         directories = ['/']
+
     logger.info('Creating presigned POST URLs', dirnames=directories)
     s3_session = open_s3_session(
         key_id=current_app.config['AWS_ID'],
@@ -185,11 +187,40 @@ def post_products_builds_v2(slug):
     presigned_urls = {}
     for d in set(directories):
         bucket_prefix = os.path.join(build.bucket_root_dirname, d)
+        # These conditions become part of the URL's presigned policy
+        url_conditions = [
+            {'acl': 'public-read'},
+            {'Cache-Control': 'max-age=31536000'},
+            # Make sure the surrogate-key is always consistent
+            {'x-amz-meta-surrogate-key': build.surrogate_key},
+            # Allow any Content-Type header
+            ['starts-with', '$Content-Type', ''],
+            # This is the default. It means for a success (204), no content
+            # is returned by S3. This is what we want.
+            {'success_action_status': '204'}
+        ]
+        # These fields are pre-populated for clients
+        url_fields = {
+            'acl': "public-read",
+            'Cache-Control': 'max-age=31536000',
+            'x-amz-meta-surrogate-key': build.surrogate_key,
+            'success_action_status': '204',
+            # 'Content-Type': 'application/octet-stream',
+        }
         presigned_url = presign_post_url_prefix(
             s3_session=s3_session,
             bucket_name=build.product.bucket_name,
             prefix=bucket_prefix,
-            expiration=3600)
+            expiration=3600,
+            conditions=url_conditions,
+            fields=url_fields)
+        # Try a deep copy because it seems data may be being overwritten
+        presigned_url = deepcopy(presigned_url)
+        logger.info(
+            'presigned url',
+            dirname=d,
+            prefix=bucket_prefix,
+            key=presigned_url['fields']['key'])
         presigned_urls[d] = {
             'url': presigned_url['url'],
             'fields': presigned_url['fields']
