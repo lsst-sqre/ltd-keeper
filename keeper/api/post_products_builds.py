@@ -158,6 +158,8 @@ def post_products_builds_v1(slug):
 def post_products_builds_v2(slug):
     """Handle POST /products/../builds/ (version 2).
     """
+    logger = get_logger(__name__)
+
     build, task = _handle_new_build_for_product_slug(slug)
     build_resource_json = build.export_data()
     build_url = build.get_url()
@@ -176,6 +178,7 @@ def post_products_builds_v2(slug):
             directories.append(d)
     else:
         directories = ['/']
+    logger.info('Creating presigned POST URLs', dirnames=directories)
     s3_session = open_s3_session(
         key_id=current_app.config['AWS_ID'],
         access_key=current_app.config['AWS_SECRET'])
@@ -193,6 +196,7 @@ def post_products_builds_v2(slug):
         }
 
     build_resource_json['post_urls'] = presigned_urls
+    logger.info('Created presigned POST URLs', post_urls=presigned_urls)
 
     return jsonify(build_resource_json), 201, {'Location': build_url}
 
