@@ -20,7 +20,11 @@ def test_builds_v2(client, mocker):
         'fields': {'key': 'a/b/${filename}'}
     }
     presign_post_mock = mocker.patch(
-        'keeper.api.post_products_builds.presign_post_url_prefix',
+        'keeper.api.post_products_builds.presign_post_url_for_prefix',
+        new=MagicMock(return_value=mock_presigned_url))
+    presign_post_mock = mocker.patch(
+        'keeper.api.post_products_builds'
+        '.presign_post_url_for_directory_object',
         new=MagicMock(return_value=mock_presigned_url))
     s3_session_mock = mocker.patch(
         'keeper.api.post_products_builds.open_s3_session')
@@ -73,7 +77,8 @@ def test_builds_v2(client, mocker):
     assert r.json['date_ended'] is None
     assert r.json['uploaded'] is False
     assert r.json['published_url'] == 'https://pipelines.lsst.io/builds/b1'
-    assert 'post_urls' in r.json
+    assert 'post_prefix_urls' in r.json
+    assert 'post_dir_urls' in r.json
     assert len(r.json['surrogate_key']) == 32  # should be a uuid4 -> hex
     build_url = r.headers['Location']
 

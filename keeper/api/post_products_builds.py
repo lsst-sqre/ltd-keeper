@@ -19,7 +19,9 @@ from ..taskrunner import (launch_task_chain, append_task_to_chain,
                           insert_task_url_in_response, mock_registry)
 from ..tasks.dashboardbuild import build_dashboard
 from ..mediatypes import v2_json_type
-from ..s3 import presign_post_url_prefix, open_s3_session, format_bucket_prefix
+from ..s3 import (
+    presign_post_url_for_prefix, presign_post_url_for_directory_object,
+    open_s3_session, format_bucket_prefix)
 
 
 # Register imports of celery task chain launchers
@@ -183,50 +185,34 @@ def post_products_builds_v2(slug):
     s3_session = open_s3_session(
         key_id=current_app.config['AWS_ID'],
         access_key=current_app.config['AWS_SECRET'])
-    presigned_urls = {}
+    presigned_prefix_urls = {}
+    presigned_dir_urls = {}
     for d in set(directories):
         bucket_prefix = format_bucket_prefix(build.bucket_root_dirname, d)
-        # These conditions become part of the URL's presigned policy
-        url_conditions = [
-            {'acl': 'public-read'},
-            {'Cache-Control': 'max-age=31536000'},
-            # Make sure the surrogate-key is always consistent
-            {'x-amz-meta-surrogate-key': build.surrogate_key},
-            # Allow any Content-Type header
-            ['starts-with', '$Content-Type', ''],
-            # This is the default. It means for a success (204), no content
-            # is returned by S3. This is what we want.
-            {'success_action_status': '204'}
-        ]
-        # These fields are pre-populated for clients
-        url_fields = {
-            'acl': "public-read",
-            'Cache-Control': 'max-age=31536000',
-            'x-amz-meta-surrogate-key': build.surrogate_key,
-            'success_action_status': '204',
-            # 'Content-Type': 'application/octet-stream',
-        }
-        presigned_url = presign_post_url_prefix(
+        dir_key = bucket_prefix.rstrip('/')
+
+        presigned_prefix_url = _create_presigned_url_for_prefix(
             s3_session=s3_session,
             bucket_name=build.product.bucket_name,
             prefix=bucket_prefix,
-            expiration=3600,
-            conditions=url_conditions,
-            fields=url_fields)
-        # Try a deep copy because it seems data may be being overwritten
-        presigned_url = deepcopy(presigned_url)
-        logger.info(
-            'presigned url',
-            dirname=d,
-            prefix=bucket_prefix,
-            key=presigned_url['fields']['key'])
-        presigned_urls[d] = {
-            'url': presigned_url['url'],
-            'fields': presigned_url['fields']
-        }
+            surrogate_key=build_resource_json['surrogate_key']
+        )
+        presigned_prefix_urls[d] = deepcopy(presigned_prefix_url)
 
-    build_resource_json['post_urls'] = presigned_urls
-    logger.info('Created presigned POST URLs', post_urls=presigned_urls)
+        presigned_dir_url = _create_presigned_url_for_directory(
+            s3_session=s3_session,
+            bucket_name=build.product.bucket_name,
+            key=dir_key,
+            surrogate_key=build_resource_json['surrogate_key']
+        )
+        presigned_dir_urls[d] = deepcopy(presigned_dir_url)
+
+    build_resource_json['post_prefix_urls'] = presigned_prefix_urls
+    build_resource_json['post_dir_urls'] = presigned_dir_urls
+    logger.info('Created presigned POST URLs for prefixes',
+                post_urls=presigned_prefix_urls)
+    logger.info('Created presigned POST URLs for dirs',
+                post_urls=presigned_dir_urls)
 
     return jsonify(build_resource_json), 201, {'Location': build_url}
 
@@ -313,3 +299,60 @@ def _create_edition(product, build):
             db.session.rollback()
     if edition:
         return edition
+
+
+def _create_presigned_url_for_prefix(*, s3_session, bucket_name, prefix,
+                                     surrogate_key):
+    # These conditions become part of the URL's presigned policy
+    url_conditions = [
+        {'acl': 'public-read'},
+        {'Cache-Control': 'max-age=31536000'},
+        # Make sure the surrogate-key is always consistent
+        {'x-amz-meta-surrogate-key': surrogate_key},
+        # Allow any Content-Type header
+        ['starts-with', '$Content-Type', ''],
+        # This is the default. It means for a success (204), no content
+        # is returned by S3. This is what we want.
+        {'success_action_status': '204'}
+    ]
+    # These fields are pre-populated for clients
+    url_fields = {
+        'acl': "public-read",
+        'Cache-Control': 'max-age=31536000',
+        'x-amz-meta-surrogate-key': surrogate_key,
+        'success_action_status': '204',
+    }
+    return presign_post_url_for_prefix(
+        s3_session=s3_session,
+        bucket_name=bucket_name,
+        prefix=prefix,
+        expiration=3600,
+        conditions=url_conditions,
+        fields=url_fields)
+
+
+def _create_presigned_url_for_directory(
+        *, s3_session, bucket_name, key, surrogate_key):
+    # These conditions become part of the URL's presigned policy
+    url_conditions = [
+        {'acl': 'public-read'},
+        {'Cache-Control': 'max-age=31536000'},
+        # Make sure the surrogate-key is always consistent
+        {'x-amz-meta-surrogate-key': surrogate_key},
+        # This is the default. It means for a success (204), no content
+        # is returned by S3. This is what we want.
+        {'success_action_status': '204'}
+    ]
+    url_fields = {
+        'acl': "public-read",
+        'Cache-Control': 'max-age=31536000',
+        'x-amz-meta-surrogate-key': surrogate_key,
+        'success_action_status': '204',
+    }
+    return presign_post_url_for_directory_object(
+        s3_session=s3_session,
+        bucket_name=bucket_name,
+        key=key,
+        fields=url_fields,
+        conditions=url_conditions,
+        expiration=3600)

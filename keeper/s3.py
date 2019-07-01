@@ -4,9 +4,10 @@ In LSST the Docs, ltd-mason is responsible for uploading documentation
 resources to S3. ltd-keeper deletes resources and copies builds to editions.
 """
 
-__all__ = ('delete_directory', 'copy_directory', 'presign_post_url_prefix',
-           'format_bucket_prefix')
+__all__ = ('delete_directory', 'copy_directory', 'presign_post_url_for_prefix',
+           'presign_post_url_for_directory_object', 'format_bucket_prefix')
 
+from copy import deepcopy
 import os
 import logging
 
@@ -214,8 +215,8 @@ def copy_directory(bucket_name, src_path, dest_path,
                 CacheControl=cache_control)
 
 
-def presign_post_url_prefix(*, s3_session, bucket_name, prefix,
-                            fields=None, conditions=None, expiration=3600):
+def presign_post_url_for_prefix(*, s3_session, bucket_name, prefix,
+                                fields=None, conditions=None, expiration=3600):
     """Generate a presigned POST URL for clients to upload objects to S3
     without additional authentication.
 
@@ -292,6 +293,87 @@ def presign_post_url_prefix(*, s3_session, bucket_name, prefix,
     return response
 
 
+def presign_post_url_for_directory_object(*, s3_session, bucket_name, key,
+                                          fields=None, conditions=None,
+                                          expiration=3600):
+    """Generate a presigned POST URL for clients to upload directory rediect
+    objects to S3 without additional authentication.
+
+    Directory redirect objects are keyed by directory name, do not have a
+    trailing slash, and have a ``x-amz-meta-dir-redirect`` header that
+    Fastly is configured to redirect a visitor to the corresponding
+    ``index.html`` object.
+
+    Parameters
+    ----------
+    s3_session
+        S3 session, typically created with `open_s3_session`.
+    bucket_name : `str`
+        Name of the S3 bucket.
+    key : `str`
+        The key of the directory object in the S3 bucket. This key must not
+        have a trailing slash.
+    fields : `dict`
+        Dictionary of prefilled form fields. Elements that may be included are
+        ``acl``, ``Cache-Control``, ``Content-Type``, ``Content-Disposition``,
+        ``Content-Encoding``, ``Expires``, ``success_action_redirect``,
+        ``redirect``, ``success_action_status``, and ``x-amz-meta-*``.
+
+        Note that if a particular element is included in the fields dictionary
+        it will not be automatically added to the conditions list. You must
+        specify a condition for the element as well.
+
+        The ``x-amz-meta-dir-redirect`` field is automatically set.
+    conditions : `list`
+        A list of conditions to include in the policy. For example:
+        ``[{"acl": "public-read"}]``.
+    expiration : `int`
+        The URL's expiration period, in seconds.
+
+    Returns
+    -------
+    response : `dict`
+        A dictionary with keys:
+
+        ``'url'``
+            The presigned POST URL.
+        ``'fields'``
+            A `dict` of key-value pairs that can be passed by clients in the
+            data payload of the post.
+    """
+    key = key.rstrip('/')
+
+    if fields is None:
+        fields = {}
+    else:
+        fields = deepcopy(fields)
+    if conditions is None:
+        conditions = []
+    else:
+        conditions = deepcopy(conditions)
+
+    # Apply presets for directory redirect objects
+    fields['x-amz-meta-dir-redirect'] = 'true'
+    conditions = set_condition(
+        conditions=conditions,
+        condition_key='x-amz-meta-dir-redirect',
+        condition={'x-amz-meta-dir-redirect': 'true'})
+
+    s3_client = s3_session.client('s3')
+    try:
+        response = s3_client.generate_presigned_post(
+            bucket_name,
+            key,
+            Fields=fields,
+            Conditions=conditions,
+            ExpiresIn=expiration)
+    except botocore.exceptions.ClientError:
+        raise S3Error('Error creating presigned POST URL.')
+
+    # The response contains the presigned URL and required fields
+    return response
+
+
 def format_bucket_prefix(base_prefix, dirname):
     """Format an S3 bucket key prefix by joining a base prefix with a directory
     name.
@@ -302,3 +384,15 @@ def format_bucket_prefix(base_prefix, dirname):
     if not prefix.endswith('/'):
         prefix = prefix + '/'
     return prefix
+
+
+def set_condition(*, conditions, condition_key, condition):
+    """Set a condition on a presigned URL condition list, overwriting an
+    existing condition on the same field if necessary.
+
+    For more information about S3 presigned URL conditions, see
+    https://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-HTTPPOSTConstructPolicy.html#sigv4-PolicyConditions
+    """
+    new_conditions = [c for c in conditions if condition_key not in c]
+    new_conditions.append(condition)
+    return new_conditions
