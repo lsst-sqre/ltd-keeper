@@ -2,8 +2,20 @@
 Change log
 ##########
 
-Unreleased
-==========
+1.15.0 (2019-07-08)
+===================
+
+- This version introduces a new "v2" endpoint for ``POST products/<product>/builds/`` that returns two new fields: ``post_prefix_urls`` and ``post_dir_urls``.
+  These fields provide a mapping of presigned POST URLs and associated fields for different prefixes/directories in the S3 bucket associated with the registered build.
+  The benefit of using presigned POST URLs is that clients no longer need their own AWS S3 credentials.
+  LTD Keeper exclusively maintains control over S3 credentials and restricts access to S3 resources through these presigned URLs.
+
+  The `LTD Conveyor <https://ltd-conveyor.lsst.io>`_ client, version 0.5.0, now uses this new version of the endpoint.
+  
+  Version 2 endpoints are accessible through a ``application/vnd.ltdkeeper.v2+json`` Accept header.
+  Existing clients are unaffected by this change as the default endpoint will continue to operate for the foreseeable future.
+
+  [`DM-20140 <https://jira.lsst.org/browse/DM-20140>`_]
 
 - Updates to most dependencies:
 
