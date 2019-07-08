@@ -393,6 +393,9 @@ def set_condition(*, conditions, condition_key, condition):
     For more information about S3 presigned URL conditions, see
     https://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-HTTPPOSTConstructPolicy.html#sigv4-PolicyConditions
     """
-    new_conditions = [c for c in conditions if condition_key not in c]
+    condition_var = '$' + condition_key
+    new_conditions = [c for c in conditions
+                      if condition_key not in c
+                      if condition_var not in c]
     new_conditions.append(condition)
     return new_conditions

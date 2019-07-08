@@ -25,7 +25,8 @@ import uuid
 import boto3
 import pytest
 
-from keeper.s3 import delete_directory, copy_directory, format_bucket_prefix
+from keeper.s3 import (delete_directory, copy_directory, format_bucket_prefix,
+                       set_condition)
 
 
 @pytest.mark.skipif(os.getenv('LTD_KEEPER_TEST_AWS_ID') is None or
@@ -191,3 +192,66 @@ def _upload_files(file_paths, bucket, bucket_root,
 )
 def test_format_bucket_prefix(base_prefix, dirname, expected):
     assert expected == format_bucket_prefix(base_prefix, dirname)
+
+
+@pytest.mark.parametrize(
+    'conditions, key, condition, expected',
+    [
+        # Case: overwrite an existing dict condition
+        (
+            [{'acl': 'private'},
+             {'Cache-Control': 'max-age=31536000'},
+             {'x-amz-meta-surrogate-key': '12345'},
+             {'success_action_status': '204'}],
+            'acl',
+            {'acl': 'public-read'},
+            [{'Cache-Control': 'max-age=31536000'},
+             {'x-amz-meta-surrogate-key': '12345'},
+             {'success_action_status': '204'},
+             {'acl': 'public-read'}]
+        ),
+        # Case: add a dict condition
+        (
+            [{'Cache-Control': 'max-age=31536000'},
+             {'x-amz-meta-surrogate-key': '12345'},
+             {'success_action_status': '204'}],
+            'acl',
+            {'acl': 'public-read'},
+            [{'Cache-Control': 'max-age=31536000'},
+             {'x-amz-meta-surrogate-key': '12345'},
+             {'success_action_status': '204'},
+             {'acl': 'public-read'}]
+        ),
+        # Case: add a tuple condition
+        (
+            [{'Cache-Control': 'max-age=31536000'},
+             {'x-amz-meta-surrogate-key': '12345'},
+             {'success_action_status': '204'}],
+            'Content-Type',
+            ['starts-with', '$Content-Type', ''],
+            [{'Cache-Control': 'max-age=31536000'},
+             {'x-amz-meta-surrogate-key': '12345'},
+             {'success_action_status': '204'},
+             ['starts-with', '$Content-Type', '']]
+        ),
+        # Case: overwrite a tuple condition
+        (
+            [['starts-with', '$Content-Type', ''],
+             {'Cache-Control': 'max-age=31536000'},
+             {'x-amz-meta-surrogate-key': '12345'},
+             {'success_action_status': '204'}],
+            'Content-Type',
+            ['starts-with', '$Content-Type', 'application/json'],
+            [{'Cache-Control': 'max-age=31536000'},
+             {'x-amz-meta-surrogate-key': '12345'},
+             {'success_action_status': '204'},
+             ['starts-with', '$Content-Type', 'application/json']]
+        )
+    ]
+)
+def test_set_condition(conditions, key, condition, expected):
+    new_conditions = set_condition(
+        conditions=conditions,
+        condition_key=key,
+        condition=condition)
+    assert new_conditions == expected
