@@ -25,7 +25,7 @@ import uuid
 import boto3
 import pytest
 
-from keeper.s3 import delete_directory, copy_directory
+from keeper.s3 import delete_directory, copy_directory, format_bucket_prefix
 
 
 @pytest.mark.skipif(os.getenv('LTD_KEEPER_TEST_AWS_ID') is None or
@@ -177,3 +177,17 @@ def _upload_files(file_paths, bucket, bucket_root,
                 'CacheControl': cache_control}
             obj = bucket.Object(bucket_root + p)
             obj.upload_file(full_path, ExtraArgs=extra_args)
+
+
+@pytest.mark.parametrize(
+    'base_prefix, dirname, expected',
+    [
+        ('base/prefix', 'a', 'base/prefix/a/'),
+        ('/base/prefix/', 'a/', 'base/prefix/a/'),
+        ('base/prefix', 'a/b', 'base/prefix/a/b/'),
+        ('base/prefix', '/', 'base/prefix/'),
+        ('base/prefix', '', 'base/prefix/')
+    ]
+)
+def test_format_bucket_prefix(base_prefix, dirname, expected):
+    assert expected == format_bucket_prefix(base_prefix, dirname)
