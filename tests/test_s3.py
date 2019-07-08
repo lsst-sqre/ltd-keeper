@@ -25,7 +25,9 @@ import uuid
 import boto3
 import pytest
 
-from keeper.s3 import delete_directory, copy_directory
+from keeper.s3 import (delete_directory, copy_directory, format_bucket_prefix,
+                       set_condition, presign_post_url_for_prefix,
+                       presign_post_url_for_directory_object)
 
 
 @pytest.mark.skipif(os.getenv('LTD_KEEPER_TEST_AWS_ID') is None or
@@ -177,3 +179,202 @@ def _upload_files(file_paths, bucket, bucket_root,
                 'CacheControl': cache_control}
             obj = bucket.Object(bucket_root + p)
             obj.upload_file(full_path, ExtraArgs=extra_args)
+
+
+@pytest.mark.parametrize(
+    'base_prefix, dirname, expected',
+    [
+        ('base/prefix', 'a', 'base/prefix/a/'),
+        ('/base/prefix/', 'a/', 'base/prefix/a/'),
+        ('base/prefix', 'a/b', 'base/prefix/a/b/'),
+        ('base/prefix', '/', 'base/prefix/'),
+        ('base/prefix', '', 'base/prefix/')
+    ]
+)
+def test_format_bucket_prefix(base_prefix, dirname, expected):
+    assert expected == format_bucket_prefix(base_prefix, dirname)
+
+
+@pytest.mark.parametrize(
+    'conditions, key, condition, expected',
+    [
+        # Case: overwrite an existing dict condition
+        (
+            [{'acl': 'private'},
+             {'Cache-Control': 'max-age=31536000'},
+             {'x-amz-meta-surrogate-key': '12345'},
+             {'success_action_status': '204'}],
+            'acl',
+            {'acl': 'public-read'},
+            [{'Cache-Control': 'max-age=31536000'},
+             {'x-amz-meta-surrogate-key': '12345'},
+             {'success_action_status': '204'},
+             {'acl': 'public-read'}]
+        ),
+        # Case: add a dict condition
+        (
+            [{'Cache-Control': 'max-age=31536000'},
+             {'x-amz-meta-surrogate-key': '12345'},
+             {'success_action_status': '204'}],
+            'acl',
+            {'acl': 'public-read'},
+            [{'Cache-Control': 'max-age=31536000'},
+             {'x-amz-meta-surrogate-key': '12345'},
+             {'success_action_status': '204'},
+             {'acl': 'public-read'}]
+        ),
+        # Case: add a tuple condition
+        (
+            [{'Cache-Control': 'max-age=31536000'},
+             {'x-amz-meta-surrogate-key': '12345'},
+             {'success_action_status': '204'}],
+            'Content-Type',
+            ['starts-with', '$Content-Type', ''],
+            [{'Cache-Control': 'max-age=31536000'},
+             {'x-amz-meta-surrogate-key': '12345'},
+             {'success_action_status': '204'},
+             ['starts-with', '$Content-Type', '']]
+        ),
+        # Case: overwrite a tuple condition
+        (
+            [['starts-with', '$Content-Type', ''],
+             {'Cache-Control': 'max-age=31536000'},
+             {'x-amz-meta-surrogate-key': '12345'},
+             {'success_action_status': '204'}],
+            'Content-Type',
+            ['starts-with', '$Content-Type', 'application/json'],
+            [{'Cache-Control': 'max-age=31536000'},
+             {'x-amz-meta-surrogate-key': '12345'},
+             {'success_action_status': '204'},
+             ['starts-with', '$Content-Type', 'application/json']]
+        )
+    ]
+)
+def test_set_condition(conditions, key, condition, expected):
+    new_conditions = set_condition(
+        conditions=conditions,
+        condition_key=key,
+        condition=condition)
+    assert new_conditions == expected
+
+
+def test_presign_post_url_for_prefix(mocker):
+    mock_s3_session = mocker.MagicMock()
+    mock_s3_client = mocker.MagicMock()
+    mock_s3_session.client.return_value = mock_s3_client
+
+    expiration = 3600
+    bucket_name = 'example-bucket'
+    presign_post_url_for_prefix(
+        s3_session=mock_s3_session,
+        bucket_name=bucket_name,
+        prefix='base/prefix',
+        expiration=expiration)
+    mock_s3_client.generate_presigned_post.assert_called_once_with(
+        bucket_name,
+        'base/prefix/${filename}',
+        ExpiresIn=expiration,
+        Fields=None,
+        Conditions=None)
+
+
+def test_presign_post_url_for_prefix_malformed(mocker):
+    """Same test as test_presign_post_url_for_prefix, but prefix has a trailing
+    slash.
+    """
+    mock_s3_session = mocker.MagicMock()
+    mock_s3_client = mocker.MagicMock()
+    mock_s3_session.client.return_value = mock_s3_client
+
+    expiration = 3600
+    bucket_name = 'example-bucket'
+    presign_post_url_for_prefix(
+        s3_session=mock_s3_session,
+        bucket_name=bucket_name,
+        prefix='base/prefix/',
+        expiration=expiration)
+    mock_s3_client.generate_presigned_post.assert_called_once_with(
+        bucket_name,
+        'base/prefix/${filename}',
+        ExpiresIn=expiration,
+        Fields=None,
+        Conditions=None)
+
+
+def test_presign_post_url_for_prefix_with_conditions(mocker):
+    mock_s3_session = mocker.MagicMock()
+    mock_s3_client = mocker.MagicMock()
+    mock_s3_session.client.return_value = mock_s3_client
+
+    url_conditions = [
+        {'acl': 'public-read'},
+        {'Cache-Control': 'max-age=31536000'},
+        {'x-amz-meta-surrogate-key': '12345'},
+        ['starts-with', '$Content-Type', ''],
+        {'success_action_status': '204'}
+    ]
+    url_fields = {
+        'acl': "public-read",
+        'Cache-Control': 'max-age=31536000',
+        'x-amz-meta-surrogate-key': '12345',
+        'success_action_status': '204',
+    }
+
+    expiration = 3600
+    bucket_name = 'example-bucket'
+    presign_post_url_for_prefix(
+        s3_session=mock_s3_session,
+        bucket_name=bucket_name,
+        prefix='base/prefix',
+        expiration=expiration,
+        fields=url_fields,
+        conditions=url_conditions)
+    mock_s3_client.generate_presigned_post.assert_called_once_with(
+        bucket_name,
+        'base/prefix/${filename}',
+        ExpiresIn=expiration,
+        Fields=url_fields,
+        Conditions=url_conditions)
+
+
+def test_presign_post_url_for_directory_objects(mocker):
+    mock_s3_session = mocker.MagicMock()
+    mock_s3_client = mocker.MagicMock()
+    mock_s3_session.client.return_value = mock_s3_client
+
+    expiration = 3600
+    bucket_name = 'example-bucket'
+    presign_post_url_for_directory_object(
+        s3_session=mock_s3_session,
+        bucket_name=bucket_name,
+        key='base/prefix',
+        expiration=expiration)
+    mock_s3_client.generate_presigned_post.assert_called_once_with(
+        bucket_name,
+        'base/prefix',
+        ExpiresIn=expiration,
+        Fields={'x-amz-meta-dir-redirect': 'true'},
+        Conditions=[{'x-amz-meta-dir-redirect': 'true'}])
+
+
+def test_presign_post_url_for_directory_objects_with_conditions(mocker):
+    mock_s3_session = mocker.MagicMock()
+    mock_s3_client = mocker.MagicMock()
+    mock_s3_session.client.return_value = mock_s3_client
+
+    expiration = 3600
+    bucket_name = 'example-bucket'
+    presign_post_url_for_directory_object(
+        s3_session=mock_s3_session,
+        bucket_name=bucket_name,
+        key='base/prefix',
+        expiration=expiration,
+        fields={'acl': 'public-read'},
+        conditions=[{'acl': 'public-read'}])
+    mock_s3_client.generate_presigned_post.assert_called_once_with(
+        bucket_name,
+        'base/prefix',
+        ExpiresIn=expiration,
+        Fields={'acl': 'public-read', 'x-amz-meta-dir-redirect': 'true'},
+        Conditions=[{'acl': 'public-read'},
+                    {'x-amz-meta-dir-redirect': 'true'}])

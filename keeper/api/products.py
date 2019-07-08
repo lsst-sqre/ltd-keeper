@@ -1,6 +1,8 @@
 """API v1 routes for products."""
 
 from flask import jsonify, request
+from flask_accept import accept_fallback
+
 from . import api
 from ..models import db
 from ..auth import token_auth, permission_required
@@ -8,10 +10,18 @@ from ..models import Product, Permission, Edition
 from ..logutils import log_route
 from ..tasks.dashboardbuild import build_dashboard
 from ..taskrunner import (launch_task_chain, append_task_to_chain,
-                          insert_task_url_in_response)
+                          insert_task_url_in_response, mock_registry)
+
+
+# Register imports of celery task chain launchers
+mock_registry.extend([
+    'keeper.api.products.launch_task_chain',
+    'keeper.api.products.append_task_to_chain',
+])
 
 
 @api.route('/products/', methods=['GET'])
+@accept_fallback
 @log_route()
 def get_products():
     """List all documentation products (anonymous access allowed).
@@ -48,6 +58,7 @@ def get_products():
 
 
 @api.route('/products/<slug>', methods=['GET'])
+@accept_fallback
 @log_route()
 def get_product(slug):
     """Get the record of a single documentation product (anonymous access
@@ -119,6 +130,7 @@ def get_product(slug):
 
 
 @api.route('/products/', methods=['POST'])
+@accept_fallback
 @log_route()
 @token_auth.login_required
 @permission_required(Permission.ADMIN_PRODUCT)
@@ -228,6 +240,7 @@ def new_product():
 
 
 @api.route('/products/<slug>', methods=['PATCH'])
+@accept_fallback
 @log_route()
 @token_auth.login_required
 @permission_required(Permission.ADMIN_PRODUCT)
@@ -304,6 +317,7 @@ def edit_product(slug):
 
 
 @api.route('/products/<slug>/dashboard', methods=['POST'])
+@accept_fallback
 @log_route()
 @token_auth.login_required
 @permission_required(Permission.ADMIN_PRODUCT)

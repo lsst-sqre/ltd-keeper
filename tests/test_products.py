@@ -5,15 +5,13 @@ import pytest
 import werkzeug.exceptions
 from keeper.exceptions import ValidationError
 from keeper.tasks.dashboardbuild import build_dashboard
+from keeper.taskrunner import mock_registry
 
 
 def test_products(client, mocker):
     """Test various API operations against Product resources.
     """
-    mocked_product_append_task = mocker.patch(
-        'keeper.api_v1.products.append_task_to_chain')
-    mocked_product_launch_chain = mocker.patch(
-        'keeper.api_v1.products.launch_task_chain')
+    mock_registry.patch_all(mocker)
 
     # ========================================================================
     # Add product /products/ldm-151
@@ -39,10 +37,9 @@ def test_products(client, mocker):
 
     assert r.status == 201
 
-    mocked_product_append_task.assert_called_with(
-        build_dashboard.si(p1_url)
-    )
-    mocked_product_launch_chain.assert_called_once()
+    mock_registry['keeper.api.products.append_task_to_chain']\
+        .assert_called_with(build_dashboard.si(p1_url))
+    mock_registry['keeper.api.products.launch_task_chain'].assert_called_once()
 
     # ========================================================================
     # Validate that default edition was made
@@ -72,10 +69,9 @@ def test_products(client, mocker):
     p2_url = r.headers['Location']
 
     assert r.status == 201
-    mocked_product_append_task.assert_called_with(
-        build_dashboard.si(p2_url)
-    )
-    mocked_product_launch_chain.assert_called_once()
+    mock_registry['keeper.api.products.append_task_to_chain']\
+        .assert_called_with(build_dashboard.si(p2_url))
+    mock_registry['keeper.api.products.launch_task_chain'].assert_called_once()
 
     # ========================================================================
     # Add product with slug that will fail validation
@@ -165,10 +161,9 @@ def test_products(client, mocker):
     for k, v in p2v2.items():
         assert r.json[k] == v
 
-    mocked_product_append_task.assert_called_with(
-        build_dashboard.si(p2_url)
-    )
-    mocked_product_launch_chain.assert_called_once()
+    mock_registry['keeper.api.products.append_task_to_chain']\
+        .assert_called_with(build_dashboard.si(p2_url))
+    mock_registry['keeper.api.products.launch_task_chain'].assert_called_once()
 
 
 # Authorizion tests: POST /products/ =========================================

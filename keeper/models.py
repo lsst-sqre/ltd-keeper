@@ -21,7 +21,13 @@ from .exceptions import ValidationError
 from .editiontracking import EditionTrackingModes
 from .utils import (split_url, format_utc_datetime, JSONEncodedVARCHAR,
                     MutableList, validate_product_slug, validate_path_slug)
-from .taskrunner import append_task_to_chain
+from .taskrunner import append_task_to_chain, mock_registry
+
+
+# Register imports of celery task chain launchers
+mock_registry.extend([
+    'keeper.models.append_task_to_chain',
+])
 
 
 db = SQLAlchemy()

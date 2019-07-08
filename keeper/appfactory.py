@@ -41,7 +41,7 @@ def create_flask_app(profile=None):
         render_as_batch=True)  # for sqlite; safe for other servers
 
     # Register blueprints
-    from .api_v1 import api as api_blueprint
+    from .api import api as api_blueprint
     app.register_blueprint(api_blueprint, url_prefix=None)
 
     # Add custom Flask CLI subcommands

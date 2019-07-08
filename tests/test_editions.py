@@ -7,25 +7,13 @@ from keeper.exceptions import ValidationError
 
 from keeper.tasks.dashboardbuild import build_dashboard
 from keeper.tasks.editionrebuild import rebuild_edition
+from keeper.taskrunner import mock_registry
 
 
 def test_editions(client, mocker):
     """Exercise different /edition/ API scenarios.
     """
-    mocked_product_append_task = mocker.patch(
-        'keeper.api_v1.products.append_task_to_chain')
-    mocked_product_launch_chain = mocker.patch(
-        'keeper.api_v1.products.launch_task_chain')
-    mocked_build_append_task = mocker.patch(
-        'keeper.api_v1.builds.append_task_to_chain')
-    mocked_build_launch_chain = mocker.patch(
-        'keeper.api_v1.builds.launch_task_chain')
-    mocked_models_append_task = mocker.patch(
-        'keeper.models.append_task_to_chain')
-    mocked_edition_append_task = mocker.patch(
-        'keeper.api_v1.editions.append_task_to_chain')
-    mocked_edition_launch_chain = mocker.patch(
-        'keeper.api_v1.editions.launch_task_chain')
+    mock_registry.patch_all(mocker)
 
     # ========================================================================
     # Add product /products/ldm-151
@@ -41,10 +29,9 @@ def test_editions(client, mocker):
     product_url = r.headers['Location']
 
     assert r.status == 201
-    mocked_product_append_task.assert_called_with(
-        build_dashboard.si(product_url)
-    )
-    mocked_product_launch_chain.assert_called_once()
+    mock_registry['keeper.api.products.append_task_to_chain']\
+        .assert_called_with(build_dashboard.si(product_url))
+    mock_registry['keeper.api.products.launch_task_chain'].assert_called_once()
 
     # ========================================================================
     # Get default edition
@@ -70,13 +57,13 @@ def test_editions(client, mocker):
 
     client.patch(b1_url, {'uploaded': True})
 
-    mocked_models_append_task.assert_called_with(
+    mock_registry['keeper.models.append_task_to_chain'].assert_called_with(
         rebuild_edition.si('http://example.test/editions/1', 1)
     )
-    mocked_build_append_task.assert_called_with(
+    mock_registry['keeper.api.builds.append_task_to_chain'].assert_called_with(
         build_dashboard.si(product_url)
     )
-    mocked_build_launch_chain.assert_called_once()
+    mock_registry['keeper.api.builds.launch_task_chain'].assert_called_once()
 
     # Check pending_rebuild semaphore and manually reset it since the celery
     # task is mocked.
@@ -99,13 +86,13 @@ def test_editions(client, mocker):
 
     client.patch(b2_url, {'uploaded': True})
 
-    mocked_models_append_task.assert_called_with(
+    mock_registry['keeper.models.append_task_to_chain'].assert_called_with(
         rebuild_edition.si('http://example.test/editions/1', 1)
     )
-    mocked_build_append_task.assert_called_with(
+    mock_registry['keeper.api.builds.append_task_to_chain'].assert_called_with(
         build_dashboard.si(product_url)
     )
-    mocked_build_launch_chain.assert_called_once()
+    mock_registry['keeper.api.builds.launch_task_chain'].assert_called_once()
 
     # Check pending_rebuild semaphore and manually reset it since the celery
     # task is mocked.
@@ -135,13 +122,12 @@ def test_editions(client, mocker):
     assert r.json['published_url'] == 'https://pipelines.lsst.io/v/latest'
     assert r.json['pending_rebuild'] is True
 
-    mocked_edition_append_task.assert_called_with(
-        build_dashboard.si(product_url)
-    )
-    mocked_models_append_task.assert_called_with(
+    mock_registry['keeper.api.editions.append_task_to_chain']\
+        .assert_called_with(build_dashboard.si(product_url))
+    mock_registry['keeper.models.append_task_to_chain'].assert_called_with(
         rebuild_edition.si(e1_url, 2)
     )
-    mocked_edition_launch_chain.assert_called_once()
+    mock_registry['keeper.api.editions.launch_task_chain'].assert_called_once()
 
     # Manually reset pending_rebuild since the rebuild_edition task is mocked
     r = client.patch(e1_url, {'pending_rebuild': False})
@@ -155,13 +141,12 @@ def test_editions(client, mocker):
     assert r.status == 200
     assert r.json['build_url'] == b2_url
 
-    mocked_models_append_task.assert_called_with(
+    mock_registry['keeper.models.append_task_to_chain'].assert_called_with(
         rebuild_edition.si(e1_url, 2)
     )
-    mocked_edition_append_task.assert_called_with(
-        build_dashboard.si(product_url)
-    )
-    mocked_edition_launch_chain.assert_called_once()
+    mock_registry['keeper.api.editions.append_task_to_chain']\
+        .assert_called_with(build_dashboard.si(product_url))
+    mock_registry['keeper.api.editions.launch_task_chain'].assert_called_once()
 
     # Manually reset pending_rebuild since the rebuild_edition task is mocked
     r = client.patch(e1_url, {'pending_rebuild': False})
@@ -175,10 +160,9 @@ def test_editions(client, mocker):
     assert r.json['title'] == 'Development version'
     assert r.json['pending_rebuild'] is False
 
-    mocked_edition_append_task.assert_called_with(
-        build_dashboard.si(product_url)
-    )
-    mocked_edition_launch_chain.assert_called_once()
+    mock_registry['keeper.api.editions.append_task_to_chain']\
+        .assert_called_with(build_dashboard.si(product_url))
+    mock_registry['keeper.api.editions.launch_task_chain'].assert_called_once()
 
     # ========================================================================
     # Change the tracked_refs with PATCH
@@ -191,10 +175,9 @@ def test_editions(client, mocker):
     assert r.json['tracked_refs'][1] == 'master'
     assert r.json['pending_rebuild'] is False  # no need to rebuild
 
-    mocked_edition_append_task.assert_called_with(
-        build_dashboard.si(product_url)
-    )
-    mocked_edition_launch_chain.assert_called_once()
+    mock_registry['keeper.api.editions.append_task_to_chain']\
+        .assert_called_with(build_dashboard.si(product_url))
+    mock_registry['keeper.api.editions.launch_task_chain'].assert_called_once()
 
     # ========================================================================
     # Deprecate the editon

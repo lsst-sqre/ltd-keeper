@@ -2,6 +2,8 @@
 """
 
 from flask import jsonify, abort, url_for
+from flask_accept import accept_fallback
+
 from ..celery import celery_app
 
 from . import api
@@ -9,6 +11,7 @@ from ..logutils import log_route
 
 
 @api.route('/queue/<id>', methods=['GET'])
+@accept_fallback
 @log_route()
 def get_task_status(id):
     try:

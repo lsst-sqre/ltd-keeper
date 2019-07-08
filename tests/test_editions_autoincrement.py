@@ -2,25 +2,13 @@
 using the autoincrement=True feature.
 """
 
+from keeper.taskrunner import mock_registry
+
 
 def test_editions_autoincrement(client, mocker):
     """Test creating editions with autoincrement=True.
     """
-    mocks = {}
-    mocks['product_append_task'] = mocker.patch(
-        'keeper.api_v1.products.append_task_to_chain')
-    mocks['product_launch_chain'] = mocker.patch(
-        'keeper.api_v1.products.launch_task_chain')
-    mocks['mocked_build_append_task'] = mocker.patch(
-        'keeper.api_v1.builds.append_task_to_chain')
-    mocks['mocked_build_launch_chain'] = mocker.patch(
-        'keeper.api_v1.builds.launch_task_chain')
-    mocks['mocked_models_append_task'] = mocker.patch(
-        'keeper.models.append_task_to_chain')
-    mocks['mocked_edition_append_task'] = mocker.patch(
-        'keeper.api_v1.editions.append_task_to_chain')
-    mocks['mocked_edition_launch_chain'] = mocker.patch(
-        'keeper.api_v1.editions.launch_task_chain')
+    mock_registry.patch_all(mocker)
 
     # ========================================================================
     # Add product /products/testr-000

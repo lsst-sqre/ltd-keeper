@@ -1,15 +1,24 @@
 """API v1 route for dashboard building."""
 
 from flask import jsonify
+from flask_accept import accept_fallback
 from . import api
 from ..auth import token_auth, permission_required
 from ..models import Product, Permission
 from ..taskrunner import (launch_task_chain, append_task_to_chain,
-                          insert_task_url_in_response)
+                          insert_task_url_in_response, mock_registry)
 from ..tasks.dashboardbuild import build_dashboard
 
 
+# Register imports of celery task chain launchers
+mock_registry.extend([
+    'keeper.api.dashboards.launch_task_chain',
+    'keeper.api.dashboards.append_task_to_chain',
+])
+
+
 @api.route('/dashboards', methods=['POST'])
+@accept_fallback
 @token_auth.login_required
 @permission_required(Permission.ADMIN_PRODUCT)
 def rebuild_all_dashboards():

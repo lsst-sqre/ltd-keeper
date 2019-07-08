@@ -1,18 +1,14 @@
 """Test an Edition that tracks an eups daily release (`eups_daily_release`).
 """
 
+from keeper.taskrunner import mock_registry
+
 
 def test_eups_daily_release_edition(client, mocker):
     """Test an edition that tracks the most recent EUPS daily release.
     """
-    # These mocks are needed but not checked
-    mocker.patch('keeper.api_v1.builds.launch_task_chain')
-    mocker.patch('keeper.models.append_task_to_chain')
-    mocker.patch('keeper.api_v1.products.append_task_to_chain')
-    mocker.patch('keeper.api_v1.products.launch_task_chain')
-    mocker.patch('keeper.api_v1.builds.append_task_to_chain')
-    mocker.patch('keeper.api_v1.editions.append_task_to_chain')
-    mocker.patch('keeper.api_v1.editions.launch_task_chain')
+    # The celery tasks need to be mocked, but are not checked.
+    mock_registry.patch_all(mocker)
 
     # ========================================================================
     # Add product /products/pipelines

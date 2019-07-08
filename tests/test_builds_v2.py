@@ -1,16 +1,33 @@
-"""Tests for the builds API."""
+"""Test v2 APIs for build resources.
+"""
 
 import pytest
-from werkzeug.exceptions import NotFound
+from mock import MagicMock
+# from werkzeug.exceptions import NotFound
 from keeper.exceptions import ValidationError
 
 from keeper.tasks.dashboardbuild import build_dashboard
 from keeper.tasks.editionrebuild import rebuild_edition
 from keeper.taskrunner import mock_registry
+from keeper.mediatypes import v2_json_type
 
 
-def test_builds(client, mocker):
+def test_builds_v2(client, mocker):
     mock_registry.patch_all(mocker)
+
+    mock_presigned_url = {
+        'url': 'https://example.com',
+        'fields': {'key': 'a/b/${filename}'}
+    }
+    presign_post_mock = mocker.patch(
+        'keeper.api.post_products_builds.presign_post_url_for_prefix',
+        new=MagicMock(return_value=mock_presigned_url))
+    presign_post_mock = mocker.patch(
+        'keeper.api.post_products_builds'
+        '.presign_post_url_for_directory_object',
+        new=MagicMock(return_value=mock_presigned_url))
+    s3_session_mock = mocker.patch(
+        'keeper.api.post_products_builds.open_s3_session')
 
     # ========================================================================
     # Add product /products/pipelines
@@ -26,9 +43,6 @@ def test_builds(client, mocker):
     product_url = r.headers['Location']
 
     assert r.status == 201
-    mock_registry['keeper.api.products.append_task_to_chain']\
-        .assert_called_with(build_dashboard.si(product_url))
-    mock_registry['keeper.api.products.launch_task_chain'].assert_called_once()
 
     # ========================================================================
     # Add a sample edition
@@ -46,13 +60,16 @@ def test_builds(client, mocker):
     assert len(r.json['builds']) == 0
 
     # ========================================================================
-    # Add a build
+    # Add a build (using v2 api)
     mocker.resetall()
 
     b1 = {'slug': 'b1',
           'github_requester': 'jonathansick',
           'git_refs': ['master']}
-    r = client.post('/products/pipelines/builds/', b1)
+    r = client.post(
+        '/products/pipelines/builds/', b1, headers={'Accept': v2_json_type})
+    s3_session_mock.assert_called_once()
+    presign_post_mock.assert_called_once()
     assert r.status == 201
     assert r.json['product_url'] == product_url
     assert r.json['slug'] == b1['slug']
@@ -60,6 +77,8 @@ def test_builds(client, mocker):
     assert r.json['date_ended'] is None
     assert r.json['uploaded'] is False
     assert r.json['published_url'] == 'https://pipelines.lsst.io/builds/b1'
+    assert 'post_prefix_urls' in r.json
+    assert 'post_dir_urls' in r.json
     assert len(r.json['surrogate_key']) == 32  # should be a uuid4 -> hex
     build_url = r.headers['Location']
 
@@ -68,7 +87,8 @@ def test_builds(client, mocker):
     mocker.resetall()
 
     with pytest.raises(ValidationError):
-        r = client.post('/products/pipelines/builds/', b1)
+        r = client.post('/products/pipelines/builds/', b1,
+                        headers={'Accept': v2_json_type})
 
     # ========================================================================
     # List builds
@@ -166,7 +186,8 @@ def test_builds(client, mocker):
     mocker.resetall()
 
     b3 = {'git_refs': ['master']}
-    r = client.post('/products/pipelines/builds/', b3)
+    r = client.post('/products/pipelines/builds/', b3,
+                    headers={'Accept': v2_json_type})
 
     assert r.status == 201
     assert r.json['slug'] == '2'
@@ -191,104 +212,19 @@ def test_builds(client, mocker):
     b5 = {'slug': 'another-bad-build',
           'git_refs': 'master'}
     with pytest.raises(ValidationError):
-        r = client.post('/products/pipelines/builds/', b5)
+        r = client.post('/products/pipelines/builds/', b5,
+                        headers={'Accept': v2_json_type})
 
     # ========================================================================
     # Add a build and see if an edition was automatically created
     mocker.resetall()
 
     b6 = {'git_refs': ['tickets/DM-1234']}
-    r = client.post('/products/pipelines/builds/', b6)
+    r = client.post('/products/pipelines/builds/', b6,
+                    headers={'Accept': v2_json_type})
     assert r.status == 201
     r = client.get('/products/pipelines/editions/')
     assert len(r.json['editions']) == 3
     auto_edition_url = r.json['editions'][-1]
     r = client.get(auto_edition_url)
     assert r.json['slug'] == 'DM-1234'
-
-
-# Authorizion tests: POST /products/<slug>/builds/ ===========================
-# Only the build-upload auth'd client should get in
-
-
-def test_post_build_auth_anon(anon_client):
-    r = anon_client.post('/products/test/builds/', {'foo': 'bar'})
-    assert r.status == 401
-
-
-def test_post_build_auth_product_client(product_client):
-    r = product_client.post('/products/test/builds/', {'foo': 'bar'})
-    assert r.status == 403
-
-
-def test_post_build_auth_edition_client(edition_client):
-    r = edition_client.post('/products/test/builds/', {'foo': 'bar'})
-    assert r.status == 403
-
-
-def test_post_build_auth_builduploader_client(upload_build_client):
-    with pytest.raises(NotFound):
-        upload_build_client.post('/products/test/builds/', {'foo': 'bar'})
-
-
-def test_post_build_auth_builddeprecator_client(deprecate_build_client):
-    r = deprecate_build_client.post('/products/test/builds/', {'foo': 'bar'})
-    assert r.status == 403
-
-
-# Authorizion tests: PATCH /products/<slug>/builds/ ==========================
-# Only the build-upload auth'd client should get in
-
-
-def test_patch_build_auth_anon(anon_client):
-    r = anon_client.patch('/builds/1', {'foo': 'bar'})
-    assert r.status == 401
-
-
-def test_patch_build_auth_product_client(product_client):
-    r = product_client.patch('/builds/1', {'foo': 'bar'})
-    assert r.status == 403
-
-
-def test_patch_build_auth_edition_client(edition_client):
-    r = edition_client.patch('/builds/1', {'foo': 'bar'})
-    assert r.status == 403
-
-
-def test_patch_build_auth_builduploader_client(upload_build_client):
-    with pytest.raises(NotFound):
-        upload_build_client.patch('/builds/1', {'foo': 'bar'})
-
-
-def test_patch_build_auth_builddeprecator_client(deprecate_build_client):
-    r = deprecate_build_client.patch('/builds/1', {'foo': 'bar'})
-    assert r.status == 403
-
-
-# Authorizion tests: DELETE /products/<slug>/builds/ =========================
-# Only the build-deprecator auth'd client should get in
-
-
-def test_delete_build_auth_anon(anon_client):
-    r = anon_client.delete('/builds/1')
-    assert r.status == 401
-
-
-def test_delete_build_auth_product_client(product_client):
-    r = product_client.delete('/builds/1')
-    assert r.status == 403
-
-
-def test_delete_build_auth_edition_client(edition_client):
-    r = edition_client.delete('/builds/1')
-    assert r.status == 403
-
-
-def test_delete_build_auth_builduploader_client(upload_build_client):
-    r = upload_build_client.delete('/builds/1')
-    assert r.status == 403
-
-
-def test_delete_build_auth_builddeprecator_client(deprecate_build_client):
-    with pytest.raises(NotFound):
-        deprecate_build_client.delete('/builds/1', {'foo': 'bar'})
