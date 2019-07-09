@@ -17,8 +17,6 @@ The documentation covers both the REST API consumption and DevOps perspectives.
 
 ****
 
-Copyright 2016–2018 Association of Universities for Research in Astronomy
-
 MIT license. See the LICENSE file. See also licenses/ for licenses of third-party code.
 
 .. _SQR-006: https://sqr-006.lsst.io

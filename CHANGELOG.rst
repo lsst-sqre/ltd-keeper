@@ -2,6 +2,13 @@
 Change log
 ##########
 
+Unreleased
+==========
+
+- Added additional tests to ensure that editions tracking ``master`` branches were automatically being created for documents using the ``lsst_doc`` tracking mode for the main edition.
+  No application fixes were required.
+  [`DM-20487 <https://jira.lsst.org/browse/DM-20487>`_]
+
 1.15.0 (2019-07-08)
 ===================
 
