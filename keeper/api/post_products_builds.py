@@ -291,12 +291,17 @@ def _create_edition(product, build):
             db.session.add(edition)
             db.session.commit()
 
-            logger.info('Created edition',
+            logger.info('Created edition because of a build',
                         url=edition.get_url(),
                         id=edition.id,
                         tracked_refs=edition.tracked_refs)
         except Exception:
+            logger.exception('Error while automatically creating an edition')
             db.session.rollback()
+    else:
+        logger.info('Did not create a new edition because of a build',
+                    authorized=is_authorized(Permission.ADMIN_EDITION),
+                    edition_count=edition_count)
     if edition:
         return edition
 
