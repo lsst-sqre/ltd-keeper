@@ -157,6 +157,9 @@ def post_products_builds_v1(slug):
 
 
 @post_products_builds_v1.support(v2_json_type)
+@log_route()
+@token_auth.login_required
+@permission_required(Permission.UPLOAD_BUILD)
 def post_products_builds_v2(slug):
     """Handle POST /products/../builds/ (version 2).
     """
