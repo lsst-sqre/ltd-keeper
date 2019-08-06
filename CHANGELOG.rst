@@ -2,8 +2,11 @@
 Change log
 ##########
 
-Unreleased
-==========
+1.15.1 (2019-08-06)
+===================
+
+- Fixed a bug that prevented logging configuration and authorization tests with the "v2" endpoint for ``POST products/<product>/builds/``.
+  [`DM-20768 <https://jira.lsst.org/browse/DM-20768>`_]
 
 - Added additional tests to ensure that editions tracking ``master`` branches were automatically being created for documents using the ``lsst_doc`` tracking mode for the main edition.
   No application fixes were required.
