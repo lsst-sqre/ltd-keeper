@@ -3,7 +3,7 @@
 
 import pytest
 from mock import MagicMock
-# from werkzeug.exceptions import NotFound
+from werkzeug.exceptions import NotFound
 from keeper.exceptions import ValidationError
 
 from keeper.tasks.dashboardbuild import build_dashboard
@@ -228,3 +228,37 @@ def test_builds_v2(client, mocker):
     auto_edition_url = r.json['editions'][-1]
     r = client.get(auto_edition_url)
     assert r.json['slug'] == 'DM-1234'
+
+
+# Authorizion tests: POST /products/<slug>/builds/ (v2) ======================
+# Only the build-upload auth'd client should get in
+
+
+def test_post_build_auth_anon(anon_client):
+    r = anon_client.post('/products/test/builds/', {'foo': 'bar'},
+                         headers={'Accept': v2_json_type})
+    assert r.status == 401
+
+
+def test_post_build_auth_product_client(product_client):
+    r = product_client.post('/products/test/builds/', {'foo': 'bar'},
+                            headers={'Accept': v2_json_type})
+    assert r.status == 403
+
+
+def test_post_build_auth_edition_client(edition_client):
+    r = edition_client.post('/products/test/builds/', {'foo': 'bar'},
+                            headers={'Accept': v2_json_type})
+    assert r.status == 403
+
+
+def test_post_build_auth_builduploader_client(upload_build_client):
+    with pytest.raises(NotFound):
+        upload_build_client.post('/products/test/builds/', {'foo': 'bar'},
+                                 headers={'Accept': v2_json_type})
+
+
+def test_post_build_auth_builddeprecator_client(deprecate_build_client):
+    r = deprecate_build_client.post('/products/test/builds/', {'foo': 'bar'},
+                                    headers={'Accept': v2_json_type})
+    assert r.status == 403
