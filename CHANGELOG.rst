@@ -2,6 +2,20 @@
 Change log
 ##########
 
+1.16.0 (2019-10-06)
+===================
+
+- Introduced a new Kustomize-based deployment for LTD Keeper in the ``/manifests/`` repository directory.
+  This deployment is designed to work with the Roundtable application platform.
+  See LSST the Docs's deployment on Roundtable at https://github.com/lsst-sqre/roundtable/tree/master/deployments/lsst-the-docs.
+
+- Dropped the Nginx pod from the ``keeper`` pod.
+  Now we assume that LTD Keeper is being deployed behind a solid reverse proxy, such as ``nginx-ingress``, and that we don't need to introduce yet another webserver into the stack.
+
+- Since nginx is no longer in the application pod, we switch uWSGI to use the ``http-socket`` mode instead of ``socket``.
+
+[`DM-21494 <https://jira.lsst.org/browse/DM-21494>`_]
+
 1.15.1 (2019-08-06)
 ===================
 
