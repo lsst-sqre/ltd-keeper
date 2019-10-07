@@ -1,0 +1,229 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: keeper-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      name: keeper-api
+  template:
+    metadata:
+      labels:
+        name: keeper-api
+    spec:
+      containers:
+
+        - name: cloudsql-proxy
+          image: b.gcr.io/cloudsql-docker/gce-proxy:1.05
+          command: ["/cloud_sql_proxy", "-dir=/cloudsql", "-credential_file=/secret/file.json", "-instances=$(CLOUD_SQL_INSTANCE)"]
+          env:
+          - name: CLOUD_SQL_INSTANCE
+            valueFrom:
+              configMapKeyRef:
+                name: keeper
+                key: cloud-sql-instance
+          volumeMounts:
+          - name: cloudsql
+            mountPath: /cloudsql
+          - name: cloudsql-secret-volume
+            mountPath: /secret/
+          - name: cloudsql-ssl-certs
+            mountPath: /etc/ssl/certs
+
+        - name: app
+          imagePullPolicy: "Always"
+          image: "lsstsqre/ltd-keeper:1.16.0"
+          ports:
+            - containerPort: 3031
+              name: keeper-uwsgi
+          volumeMounts:
+            - name: cloudsql
+              mountPath: /cloudsql
+          env:
+            # References the keeper-redis service
+            - name: REDIS_URL
+              value: "redis://keeper-redis:6379"
+            # Environment variables from the keeper configmap
+            - name: LTD_KEEPER_PROFILE
+              valueFrom:
+                configMapKeyRef:
+                  name: keeper
+                  key: profile
+            - name: LTD_KEEPER_URL_SCHEME
+              valueFrom:
+                configMapKeyRef:
+                  name: keeper
+                  key: url-scheme
+            - name: LTD_DASHER_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: keeper
+                  key: dasher-url
+            # Environment variables from the keeper secret
+            - name: LTD_KEEPER_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: keeper
+                  key: secret-key
+            - name: LTD_KEEPER_AWS_ID
+              valueFrom:
+                secretKeyRef:
+                  name: keeper
+                  key: aws-id
+            - name: LTD_KEEPER_AWS_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: keeper
+                  key: aws-secret
+            - name: LTD_KEEPER_FASTLY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: keeper
+                  key: fastly-id
+            - name: LTD_KEEPER_FASTLY_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: keeper
+                  key: fastly-key
+            - name: LTD_KEEPER_BOOTSTRAP_USER
+              valueFrom:
+                secretKeyRef:
+                  name: keeper
+                  key: default-user
+            - name: LTD_KEEPER_BOOTSTRAP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: keeper
+                  key: default-password
+            - name: LTD_KEEPER_DB_URL
+              valueFrom:
+                secretKeyRef:
+                  name: keeper
+                  key: db-url
+
+      volumes:
+        - name: cloudsql-secret-volume
+          secret:
+            secretName: cloudsql
+        - name: cloudsql-ssl-certs
+          hostPath:
+            path: /etc/ssl/certs
+        - name: cloudsql
+          emptyDir: {}
+
+---
+# Deployment of celery workers for keeper
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: keeper-worker-deployment
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      name: keeper-worker
+  template:
+    metadata:
+      labels:
+        name: keeper-worker
+    spec:
+      containers:
+
+        - name: cloudsql-proxy
+          image: b.gcr.io/cloudsql-docker/gce-proxy:1.05
+          command: ["/cloud_sql_proxy", "-dir=/cloudsql", "-credential_file=/secret/file.json", "-instances=$(CLOUD_SQL_INSTANCE)"]
+          env:
+          - name: CLOUD_SQL_INSTANCE
+            valueFrom:
+              configMapKeyRef:
+                name: keeper
+                key: cloud-sql-instance
+          volumeMounts:
+          - name: cloudsql
+            mountPath: /cloudsql
+          - name: cloudsql-secret-volume
+            mountPath: /secret/
+          - name: cloudsql-ssl-certs
+            mountPath: /etc/ssl/certs
+
+        - name: app
+          imagePullPolicy: "Always"
+          image: "lsstsqre/ltd-keeper:1.16.0"
+          command: ["/bin/bash"]
+          args: ["-c", "/ltd-keeper/run-celery-worker.bash"]
+          volumeMounts:
+            - name: cloudsql
+              mountPath: /cloudsql
+          env:
+            # References the keeper-redis service
+            - name: REDIS_URL
+              value: "redis://keeper-redis:6379"
+            # Environment variables from the keeper configmap
+            - name: LTD_KEEPER_PROFILE
+              valueFrom:
+                configMapKeyRef:
+                  name: keeper
+                  key: profile
+            - name: LTD_KEEPER_URL_SCHEME
+              valueFrom:
+                configMapKeyRef:
+                  name: keeper
+                  key: url-scheme
+            - name: LTD_DASHER_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: keeper
+                  key: dasher-url
+            # Environment variables from the keeper secret
+            - name: LTD_KEEPER_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: keeper
+                  key: secret-key
+            - name: LTD_KEEPER_AWS_ID
+              valueFrom:
+                secretKeyRef:
+                  name: keeper
+                  key: aws-id
+            - name: LTD_KEEPER_AWS_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: keeper
+                  key: aws-secret
+            - name: LTD_KEEPER_FASTLY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: keeper
+                  key: fastly-id
+            - name: LTD_KEEPER_FASTLY_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: keeper
+                  key: fastly-key
+            - name: LTD_KEEPER_BOOTSTRAP_USER
+              valueFrom:
+                secretKeyRef:
+                  name: keeper
+                  key: default-user
+            - name: LTD_KEEPER_BOOTSTRAP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: keeper
+                  key: default-password
+            - name: LTD_KEEPER_DB_URL
+              valueFrom:
+                secretKeyRef:
+                  name: keeper
+                  key: db-url
+
+      volumes:
+        - name: cloudsql-secret-volume
+          secret:
+            secretName: cloudsql
+        - name: cloudsql-ssl-certs
+          hostPath:
+            path: /etc/ssl/certs
+        - name: cloudsql
+          emptyDir: {}

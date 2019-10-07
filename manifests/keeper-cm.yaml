@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: keeper
+data:
+  profile: "production"
+  # <project>.<region>.<instance_name>
+  cloud-sql-instance: "plasma-geode-127520:us-central1:ltd-sql-1"
+  url-scheme: "https"
+  # Cluster DNS url to LTD Dasher
+  dasher-url: "http://dasher:3031"
+  log-level: "INFO"
