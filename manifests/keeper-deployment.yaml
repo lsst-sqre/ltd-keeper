@@ -34,7 +34,7 @@ spec:
 
         - name: app
           imagePullPolicy: "Always"
-          image: "lsstsqre/ltd-keeper:1.16.0"
+          image: "lsstsqre/ltd-keeper:1.17.0"
           ports:
             - containerPort: 3031
               name: keeper-uwsgi
@@ -150,7 +150,7 @@ spec:
 
         - name: app
           imagePullPolicy: "Always"
-          image: "lsstsqre/ltd-keeper:1.16.0"
+          image: "lsstsqre/ltd-keeper:1.17.0"
           command: ["/bin/bash"]
           args: ["-c", "/ltd-keeper/run-celery-worker.bash"]
           volumeMounts:

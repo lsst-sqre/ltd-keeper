@@ -2,6 +2,13 @@
 Change log
 ##########
 
+1.17.0 (2019-11-14)
+===================
+
+- Upgrade to Google Cloud SQL Proxy 1.16. 
+
+[`DM-11760 <https://jira.lsst.org/browse/DM-11760>`_]
+
 1.16.0 (2019-10-06)
 ===================
 
