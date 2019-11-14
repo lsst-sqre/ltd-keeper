@@ -16,7 +16,7 @@ spec:
       containers:
 
         - name: cloudsql-proxy
-          image: b.gcr.io/cloudsql-docker/gce-proxy:1.05
+          image: gcr.io/cloudsql-docker/gce-proxy:1.16
           command: ["/cloud_sql_proxy", "-dir=/cloudsql", "-credential_file=/secret/file.json", "-instances=$(CLOUD_SQL_INSTANCE)"]
           env:
           - name: CLOUD_SQL_INSTANCE
@@ -132,7 +132,7 @@ spec:
       containers:
 
         - name: cloudsql-proxy
-          image: b.gcr.io/cloudsql-docker/gce-proxy:1.05
+          image: gcr.io/cloudsql-docker/gce-proxy:1.16
           command: ["/cloud_sql_proxy", "-dir=/cloudsql", "-credential_file=/secret/file.json", "-instances=$(CLOUD_SQL_INSTANCE)"]
           env:
           - name: CLOUD_SQL_INSTANCE
