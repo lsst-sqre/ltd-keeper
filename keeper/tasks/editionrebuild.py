@@ -3,13 +3,17 @@
 
 __all__ = ('rebuild_edition',)
 
+from urllib.parse import urljoin, urlsplit, urlunsplit
+
 from celery.utils.log import get_task_logger
 from flask import current_app
+import requests
 
 from ..celery import celery_app
 from ..models import db, Edition
 from .. import s3
 from .. import fastly
+from keeper.utils import format_utc_datetime
 
 
 logger = get_task_logger(__name__)
@@ -32,9 +36,19 @@ def rebuild_edition(self, edition_url, edition_id):
 
     1. Copies the new build into the edition's directory in the S3 bucket.
     2. Purge Fastly's cache for this edition.
+    2. Send a ``edition.updated`` payload to LTD Events (if configured).
     """
     logger.info('Starting rebuild edition URL=%s retry=%d',
                 edition_url, self.request.retries)
+
+    api_url_parts = urlsplit(edition_url)
+    api_root = urlunsplit((
+        api_url_parts[0],
+        api_url_parts[1],
+        "",
+        "",
+        ""
+    ))
 
     # edition = Edition.from_url(edition_url)
     edition = Edition.query.get(edition_id)
@@ -44,6 +58,7 @@ def rebuild_edition(self, edition_url, edition_id):
     FASTLY_KEY = current_app.config['FASTLY_KEY']
     AWS_ID = current_app.config['AWS_ID']
     AWS_SECRET = current_app.config['AWS_SECRET']
+    LTD_EVENTS_URL = current_app.config['LTD_EVENTS_URL']
 
     if AWS_ID is not None and AWS_SECRET is not None:
         logger.info('Starting copy_directory')
@@ -75,4 +90,41 @@ def rebuild_edition(self, edition_url, edition_id):
     edition.set_rebuild_complete()
     db.session.commit()
 
+    if LTD_EVENTS_URL is not None:
+        send_edition_updated_event(edition, LTD_EVENTS_URL, api_root)
+
     logger.info('Finished rebuild_edition')
+
+
+def send_edition_updated_event(edition, events_url, api_url):
+    """Send the ``edition.updated`` event to the LTD Events webhook endpoint.
+    """
+    product_info = {
+        "url": urljoin(api_url, '/products/{}'.format(edition.product.slug)),
+        "published_url": edition.product.published_url,
+        "title": edition.product.title,
+        "slug": edition.product.slug,
+    }
+    edition_info = {
+        "url": urljoin(api_url, '/editions/{}'.format(edition.id)),
+        "published_url": edition.published_url,
+        "title": edition.title,
+        "slug": edition.slug,
+        "build_url": urljoin(api_url, '/builds/{}'.format(edition.build.id)),
+    }
+    event_info = {
+        "event_type": "edition.updated",
+        "event_timestamp": format_utc_datetime(edition.date_rebuilt),
+        "edition": edition_info,
+        "product": product_info,
+    }
+
+    response = requests.post(events_url, json=event_info)
+    logger.info("Sent edition.updated event to %s", events_url)
+    if response.status_code != 200:
+        message = (
+            'Failure posting edition.updated event to %s. Got status %d. '
+            'Reponse content: %s'
+        )
+        logger.warning(
+            message, events_url, response.status_code, response.text)
