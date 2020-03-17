@@ -29,6 +29,7 @@ class Config(object):
     LTD_DASHER_URL = os.getenv('LTD_DASHER_URL', None)
     CELERY_RESULT_URL = os.getenv('REDIS_URL', 'redis://localhost:6379')
     CELERY_BROKER_URL = os.getenv('REDIS_URL', 'redis://localhost:6379')
+    LTD_EVENTS_URL = os.getenv('LTD_EVENTS_URL', None)
 
     # Suppresses a warning until Flask-SQLAlchemy 3
     # See http://stackoverflow.com/a/33790196
