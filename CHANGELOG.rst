@@ -2,6 +2,19 @@
 Change log
 ##########
 
+1.18.0 (2020-03-20)
+===================
+
+- This version adds initial support for `LTD Events <https://github.com/lsst-sqre/ltd-events>`_, which acts as an adapter between LSST the Docs and the SQuaRE Events (Kafka) messaging system in the `Roundtable <https://roundtable.lsst.io>`_ platform.
+  Now, when an edition is updated, LTD Keeper sends an ``edition.updated`` payload to the LTD Events webhook endpoint.
+
+  More event types will be added in the future.
+
+  The LTD Events webhook endpoint is configured through the ``LTD_EVENTS_URL`` environment variable.
+  If this environment variable is left unset, a webhook request isn't sent.
+
+[`DM-23899 <https://jira.lsst.org/browse/DM-23899>`__]
+
 1.17.0 (2019-11-14)
 ===================
 
