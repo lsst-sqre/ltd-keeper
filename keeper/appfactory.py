@@ -6,6 +6,7 @@ __all__ = ('create_flask_app',)
 import os
 
 from flask import Flask
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from .config import config
 from .cli import add_app_commands
@@ -26,6 +27,17 @@ def create_flask_app(profile=None):
         profile = os.getenv('LTD_KEEPER_PROFILE', 'development')
     app.config.from_object(config[profile])
     config[profile].init_app(app)
+
+    # Add the middleware to respect headers forwarded from the proxy server
+    if app.config['PROXY_FIX']:
+        app.wsgi_app = ProxyFix(
+            app.wsgi_app,
+            x_for=app.config['TRUST_X_FOR'],
+            x_proto=app.config['TRUST_X_PROTO'],
+            x_host=app.config['TRUST_X_HOST'],
+            x_port=app.config['TRUST_X_PORT'],
+            x_prefix=app.config['TRUST_X_PREFIX'],
+        )
 
     # Initialize the celery app
     from .celery import create_celery_app
