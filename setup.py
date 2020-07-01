@@ -37,7 +37,7 @@ setup_requires = [
 
 # Installation (application runtime) requirements
 install_requires = [
-    'Flask==1.0.3',
+    'Flask==1.1.2',
     'uWSGI==2.0.18',
     'Flask-SQLAlchemy==2.4.0',
     'SQLAlchemy==1.3.4',
@@ -54,12 +54,12 @@ install_requires = [
 
 # Test dependencies
 tests_require = [
-    'pytest==3.6.3',
-    'pytest-cov==2.7.1',
-    'pytest-flake8==1.0.4',
+    'pytest==5.4.3',
+    'pytest-cov==2.10.0',
+    'pytest-flake8==1.0.6',
     'responses==0.10.6',
-    'pytest-mock==1.10.4',
-    'mock==3.0.5',
+    'pytest-mock==3.1.1',
+    'mock==4.0.2',
 ]
 
 # Sphinx documentation requirements

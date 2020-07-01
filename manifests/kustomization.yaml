@@ -7,3 +7,7 @@ resources:
   - redis-service.yaml
   - keeper-deployment.yaml
   - keeper-service.yaml
+
+images:
+  - name: lsstsqre/ltd-keeper
+    newTag: tickets-DM-25740

@@ -2,6 +2,13 @@
 Change log
 ##########
 
+1.19.0 (2020-07-01)
+===================
+
+- ``LTD_KEEPER_PROXY_FIX`` environment lets you toggle the Werkzeug ProxyFix middleware trust the ``X-Forwarded-`` headers from proxy servers (default is "0", or "off").
+  The ``LTD_KEEPER_TRUST_X_FOR``, ``LTD_KEEPER_TRUST_X_PROTO``, ``LTD_KEEPER_TRUST_X_HOST``, ``LTD_KEEPER_TRUST_X_PORT``, and ``LTD_KEEPER_TRUST_X_PREFIX`` environment variable settings specify the number of proxies to trust for the given the header when ``LTD_KEEPER_PROXY_FIX`` is enabled.
+
+
 1.18.0 (2020-03-20)
 ===================
 

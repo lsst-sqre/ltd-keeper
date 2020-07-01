@@ -35,6 +35,36 @@ class Config(object):
     # See http://stackoverflow.com/a/33790196
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
+    PROXY_FIX = bool(int(os.getenv("LTD_KEEPER_PROXY_FIX", "0")))
+    """Activate the Werkzeug ProxyFix middleware by setting to 1.
+
+    Only activate this middleware when LTD Keeper is deployed behind a
+    trusted proxy.
+
+    Related configurations:
+
+    - ``TRUST_X_FOR``
+    - ``TRUST_X_PROTO``
+    - ``TRUST_X_HOST``
+    - ``TRUST_X_PORT``
+    - ``TRUST_X_PREFIX``
+    """
+
+    TRUST_X_FOR = int(os.getenv("LTD_KEEPER_X_FOR", "1"))
+    """Number of values to trust for X-Forwarded-For."""
+
+    TRUST_X_PROTO = int(os.getenv("LTD_KEEPER_X_PROTO", "1"))
+    """Number of values to trust for X-Forwarded-Proto."""
+
+    TRUST_X_HOST = int(os.getenv("LTD_KEEPER_X_HOST", "1"))
+    """Number of values to trust for X-Forwarded-Host."""
+
+    TRUST_X_PORT = int(os.getenv("LTD_KEEPER_X_PORT", "0"))
+    """Number of values to trust for X-Forwarded-Port."""
+
+    TRUST_X_PREFIX = int(os.getenv("LTD_KEEPER_X_PREFIX", "0"))
+    """Number of values to trust for X-Forwarded-Prefix."""
+
     @abc.abstractclassmethod
     def init_app(cls, app):
         pass
