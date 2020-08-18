@@ -7,3 +7,72 @@ requires = [
 build-backend = 'setuptools.build_meta'
 
 [tool.setuptools_scm]
+
+[tool.tox]
+legacy_tox_ini = """
+[tox]
+envlist = py37,coverage-report,lint
+isolated_build = True
+
+[testenv]
+description = Run pytest against {envname}.
+deps =
+    -r{toxinidir}/requirements/main.txt
+    -r{toxinidir}/requirements/dev.txt
+commands =
+    coverage run -m pytest {posargs}
+
+[testenv:coverage-report]
+description = Compile coverage from each test run.
+skip_install = true
+deps = coverage[toml]>=5.0.2
+depends =
+    py37
+commands =
+    coverage combine
+    coverage report
+
+[testenv:lint]
+description = Lint codebase by running pre-commit (Black, isort, Flake8).
+skip_install = true
+deps =
+    pre-commit
+commands = pre-commit run --all-files
+
+[testenv:run]
+description = Run the development server with auto-reload for code changes.
+usedevelop = true
+setenv =
+    FLASK_APP=keeper
+    LTD_KEEPER_PROFILE=development
+commands = flask run
+"""
+
+[tool.pytest.ini_options]
+norecursedirs = [
+    "venv",
+    ".eggs"
+]
+mock_use_standalone_module = true
+
+[tool.coverage.run]
+parallel = true
+branch = true
+source = ["keeper"]
+
+[tool.coverage.paths]
+source = ["src", ".tox/*/site-packages"]
+
+[tool.coverage.report]
+show_missing = true
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:"
+]
