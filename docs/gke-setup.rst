@@ -24,7 +24,7 @@ Follow `Google's Getting Started instructions <https://cloud.google.com/containe
 4. Set your ``gcloud`` defaults to use the project's ID and set a default zone. For example:
 
    .. code-block:: bash
-   
+
       gcloud config set project plasma-geode-127520
       gcloud config set compute/zone us-central1-b
 

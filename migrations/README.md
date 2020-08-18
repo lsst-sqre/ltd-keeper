@@ -21,7 +21,7 @@ This will upgrade the DB to the state specified in the app's Git repository.
 
 * * * *
 
-This directory was originally created with 
+This directory was originally created with
 
 ```
 ./run.py db init

@@ -17,8 +17,8 @@ logging.basicConfig(level=logging.INFO)
 logging.getLogger('keeper.route53').level = logging.DEBUG
 
 
-@pytest.mark.skipif(os.getenv('LTD_KEEPER_TEST_AWS_ID') is None or
-                    os.getenv('LTD_KEEPER_TEST_AWS_SECRET') is None,
+@pytest.mark.skipif(os.getenv('LTD_KEEPER_TEST_AWS_ID') is None
+                    or os.getenv('LTD_KEEPER_TEST_AWS_SECRET') is None,
                     reason='Set LTD_KEEPER_TEST_AWS_ID and '
                            'LTD_KEEPER_TEST_AWS_SECRET')
 def test_route53():

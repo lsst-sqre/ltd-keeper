@@ -30,9 +30,9 @@ from keeper.s3 import (delete_directory, copy_directory, format_bucket_prefix,
                        presign_post_url_for_directory_object)
 
 
-@pytest.mark.skipif(os.getenv('LTD_KEEPER_TEST_AWS_ID') is None or
-                    os.getenv('LTD_KEEPER_TEST_AWS_SECRET') is None or
-                    os.getenv('LTD_KEEPER_TEST_BUCKET') is None,
+@pytest.mark.skipif(os.getenv('LTD_KEEPER_TEST_AWS_ID') is None
+                    or os.getenv('LTD_KEEPER_TEST_AWS_SECRET') is None
+                    or os.getenv('LTD_KEEPER_TEST_BUCKET') is None,
                     reason='Set LTD_KEEPER_TEST_AWS_ID, '
                            'LTD_KEEPER_TEST_AWS_SECRET and '
                            'LTD_KEEPER_TEST_BUCKET')
@@ -85,9 +85,9 @@ def test_delete_directory(request):
                      os.getenv('LTD_KEEPER_TEST_AWS_SECRET'))
 
 
-@pytest.mark.skipif(os.getenv('LTD_KEEPER_TEST_AWS_ID') is None or
-                    os.getenv('LTD_KEEPER_TEST_AWS_SECRET') is None or
-                    os.getenv('LTD_KEEPER_TEST_BUCKET') is None,
+@pytest.mark.skipif(os.getenv('LTD_KEEPER_TEST_AWS_ID') is None
+                    or os.getenv('LTD_KEEPER_TEST_AWS_SECRET') is None
+                    or os.getenv('LTD_KEEPER_TEST_BUCKET') is None,
                     reason='Set LTD_KEEPER_TEST_AWS_ID, '
                            'LTD_KEEPER_TEST_AWS_SECRET and '
                            'LTD_KEEPER_TEST_BUCKET')

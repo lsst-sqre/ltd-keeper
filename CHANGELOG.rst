@@ -25,7 +25,7 @@ Change log
 1.17.0 (2019-11-14)
 ===================
 
-- Upgrade to Google Cloud SQL Proxy 1.16. 
+- Upgrade to Google Cloud SQL Proxy 1.16.
 
 [`DM-11760 <https://jira.lsst.org/browse/DM-11760>`_]
 
@@ -62,7 +62,7 @@ Change log
   LTD Keeper exclusively maintains control over S3 credentials and restricts access to S3 resources through these presigned URLs.
 
   The `LTD Conveyor <https://ltd-conveyor.lsst.io>`_ client, version 0.5.0, now uses this new version of the endpoint.
-  
+
   Version 2 endpoints are accessible through a ``application/vnd.ltdkeeper.v2+json`` Accept header.
   Existing clients are unaffected by this change as the default endpoint will continue to operate for the foreseeable future.
 
