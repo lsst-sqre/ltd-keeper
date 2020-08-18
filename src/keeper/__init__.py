@@ -1,11 +1,10 @@
 """Application initialization.
 """
 
-__all__ = ('__version__', 'flask_app')
+__all__ = ("__version__", "flask_app")
 
-from .version import get_version
 from .appfactory import create_flask_app
-
+from .version import get_version
 
 __version__ = get_version()
 

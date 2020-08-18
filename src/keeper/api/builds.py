@@ -3,24 +3,28 @@
 from flask import jsonify, request
 from flask_accept import accept_fallback
 
-from . import api
-from ..models import db
-from ..auth import token_auth, permission_required
-from ..models import Product, Build, Permission
+from ..auth import permission_required, token_auth
 from ..logutils import log_route
-from ..taskrunner import (launch_task_chain, append_task_to_chain,
-                          insert_task_url_in_response, mock_registry)
+from ..models import Build, Permission, Product, db
+from ..taskrunner import (
+    append_task_to_chain,
+    insert_task_url_in_response,
+    launch_task_chain,
+    mock_registry,
+)
 from ..tasks.dashboardbuild import build_dashboard
-
+from . import api
 
 # Register imports of celery task chain launchers
-mock_registry.extend([
-    'keeper.api.builds.launch_task_chain',
-    'keeper.api.builds.append_task_to_chain',
-])
+mock_registry.extend(
+    [
+        "keeper.api.builds.launch_task_chain",
+        "keeper.api.builds.append_task_to_chain",
+    ]
+)
 
 
-@api.route('/builds/<int:id>', methods=['PATCH'])
+@api.route("/builds/<int:id>", methods=["PATCH"])
 @accept_fallback
 @log_route()
 @token_auth.login_required
@@ -84,17 +88,16 @@ def patch_build(id):
         db.session.commit()
 
         # Run the task queue
-        append_task_to_chain(
-            build_dashboard.si(build.product.get_url()))
+        append_task_to_chain(build_dashboard.si(build.product.get_url()))
         task = launch_task_chain()
         response = insert_task_url_in_response({}, task)
     except Exception:
         db.session.rollback()
         raise
-    return jsonify(response), 200, {'Location': build_url}
+    return jsonify(response), 200, {"Location": build_url}
 
 
-@api.route('/builds/<int:id>', methods=['DELETE'])
+@api.route("/builds/<int:id>", methods=["DELETE"])
 @accept_fallback
 @log_route()
 @token_auth.login_required
@@ -144,7 +147,7 @@ def deprecate_build(id):
     return jsonify({}), 200
 
 
-@api.route('/products/<slug>/builds/', methods=['GET'])
+@api.route("/products/<slug>/builds/", methods=["GET"])
 @accept_fallback
 @log_route()
 def get_product_builds(slug):
@@ -180,15 +183,17 @@ def get_product_builds(slug):
     :statuscode 200: No error.
     :statuscode 404: Product not found.
     """
-    build_urls = [build.get_url() for build in
-                  Build.query.join(Product,
-                                   Product.id == Build.product_id)
-                  .filter(Product.slug == slug)
-                  .filter(Build.date_ended == None).all()]  # NOQA
-    return jsonify({'builds': build_urls})
+    build_urls = [
+        build.get_url()
+        for build in Build.query.join(Product, Product.id == Build.product_id)
+        .filter(Product.slug == slug)
+        .filter(Build.date_ended is None)
+        .all()
+    ]  # NOQA
+    return jsonify({"builds": build_urls})
 
 
-@api.route('/builds/<int:id>', methods=['GET'])
+@api.route("/builds/<int:id>", methods=["GET"])
 @accept_fallback
 @log_route()
 def get_build(id):

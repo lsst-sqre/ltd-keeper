@@ -76,3 +76,27 @@ exclude_lines = [
     "if __name__ == .__main__.:",
     "if TYPE_CHECKING:"
 ]
+
+[tool.black]
+line-length = 79
+target-version = ['py37']
+exclude = '''
+/(
+    \.eggs
+  | \.git
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | build
+  | dist
+)/
+'''
+# Use single-quoted strings so TOML treats the string like a Python r-string
+# Multi-line strings are implicitly treated by black as regular expressions
+
+[tool.isort]
+include_trailing_comma = true
+multi_line_output = 3
+known_first_part = ["keeper"]
+known_third_party = ["alembic", "boto3", "botocore", "celery", "click", "dateutil", "flask", "flask_accept", "flask_httpauth", "flask_migrate", "flask_sqlalchemy", "itsdangerous", "mock", "pkg_resources", "pytest", "requests", "responses", "setuptools", "sqlalchemy", "structlog", "werkzeug"]

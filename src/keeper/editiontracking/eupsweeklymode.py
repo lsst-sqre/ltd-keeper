@@ -1,18 +1,18 @@
 """Implement the "eups_weekly_release" Edition tracking mode.
 """
 
-__all__ = ('EupsWeeklyReleaseTrackingMode',)
+__all__ = ("EupsWeeklyReleaseTrackingMode",)
 
 import re
+
 from structlog import get_logger
 
-
-TAG_PATTERN = re.compile(r'^w_(?P<year>\d+)_(?P<week>\d+)$')
+TAG_PATTERN = re.compile(r"^w_(?P<year>\d+)_(?P<week>\d+)$")
 """Regular expression for matching an EUPS weekly release tag with the format
 ``w_YYYY_WW``.
 """
 
-GIT_TAG_PATTERN = re.compile(r'^w\.(?P<year>\d+)\.(?P<week>\d+)$')
+GIT_TAG_PATTERN = re.compile(r"^w\.(?P<year>\d+)\.(?P<week>\d+)$")
 """Regular expression for matching the Git variant of an EUPS weekly release
 tag with the format ``w.YYYY.WW``.
 """
@@ -25,21 +25,19 @@ class EupsWeeklyReleaseTrackingMode:
 
     @property
     def name(self):
-        return 'eups_weekly_release'
+        return "eups_weekly_release"
 
     def should_update(self, edition, candidate_build):
         # Does the build have the weekly release tag?
         try:
-            candidate_version = WeeklyReleaseTag(
-                candidate_build.git_refs[0])
+            candidate_version = WeeklyReleaseTag(candidate_build.git_refs[0])
         except ValueError:
             return False
 
         # Does the edition's current build have a weekly release
         # as its Git ref?
         try:
-            current_version = WeeklyReleaseTag(
-                edition.build.git_refs[0])
+            current_version = WeeklyReleaseTag(edition.build.git_refs[0])
         except (ValueError, AttributeError):
             # Attribute error if current build is None
             # Not currently tracking a version, so automatically accept
@@ -62,7 +60,7 @@ class WeeklyReleaseTag:
     def __init__(self, tag):
         self.logger = get_logger(__name__)
 
-        self.logger.debug('WeeklyReleaseTag', tag=tag)
+        self.logger.debug("WeeklyReleaseTag", tag=tag)
 
         self.tag = tag
         match = TAG_PATTERN.search(tag)
@@ -71,12 +69,14 @@ class WeeklyReleaseTag:
             match = GIT_TAG_PATTERN.search(tag)
             if match is None:
                 raise ValueError(
-                    '{!r} is not an EUPS weekly release tag '.format(tag))
-        self.year = int(match.group('year'))
-        self.week = int(match.group('week'))
+                    "{!r} is not an EUPS weekly release tag ".format(tag)
+                )
+        self.year = int(match.group("year"))
+        self.week = int(match.group("week"))
 
-        self.logger.debug('WeeklyReleaseTag',
-                          tag=tag, year=self.year, week=self.week)
+        self.logger.debug(
+            "WeeklyReleaseTag", tag=tag, year=self.year, week=self.week
+        )
 
     @property
     def parts(self):

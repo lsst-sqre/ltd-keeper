@@ -3,24 +3,28 @@
 from flask import jsonify, request
 from flask_accept import accept_fallback
 
-from . import api
-from ..models import db
-from ..auth import token_auth, permission_required
-from ..models import Product, Permission, Edition
+from ..auth import permission_required, token_auth
 from ..logutils import log_route
+from ..models import Edition, Permission, Product, db
+from ..taskrunner import (
+    append_task_to_chain,
+    insert_task_url_in_response,
+    launch_task_chain,
+    mock_registry,
+)
 from ..tasks.dashboardbuild import build_dashboard
-from ..taskrunner import (launch_task_chain, append_task_to_chain,
-                          insert_task_url_in_response, mock_registry)
-
+from . import api
 
 # Register imports of celery task chain launchers
-mock_registry.extend([
-    'keeper.api.products.launch_task_chain',
-    'keeper.api.products.append_task_to_chain',
-])
+mock_registry.extend(
+    [
+        "keeper.api.products.launch_task_chain",
+        "keeper.api.products.append_task_to_chain",
+    ]
+)
 
 
-@api.route('/products/', methods=['GET'])
+@api.route("/products/", methods=["GET"])
 @accept_fallback
 @log_route()
 def get_products():
@@ -53,11 +57,12 @@ def get_products():
 
     :statuscode 200: No error.
     """
-    return jsonify({'products': [product.get_url() for product in
-                                 Product.query.all()]})
+    return jsonify(
+        {"products": [product.get_url() for product in Product.query.all()]}
+    )
 
 
-@api.route('/products/<slug>', methods=['GET'])
+@api.route("/products/<slug>", methods=["GET"])
 @accept_fallback
 @log_route()
 def get_product(slug):
@@ -129,7 +134,7 @@ def get_product(slug):
     return jsonify(product.export_data())
 
 
-@api.route('/products/', methods=['POST'])
+@api.route("/products/", methods=["POST"])
 @accept_fallback
 @log_route()
 @token_auth.login_required
@@ -213,14 +218,16 @@ def new_product():
         db.session.flush()  # Because Edition._validate_slug does not autoflush
 
         # Create a default edition for the product
-        edition_data = {'tracked_refs': ['master'],
-                        'slug': 'main',
-                        'title': 'Latest'}
-        if 'main_mode' in request_json:
-            edition_data['mode'] = request_json['main_mode']
+        edition_data = {
+            "tracked_refs": ["master"],
+            "slug": "main",
+            "title": "Latest",
+        }
+        if "main_mode" in request_json:
+            edition_data["mode"] = request_json["main_mode"]
         else:
             # Default tracking mode
-            edition_data['mode'] = 'git_refs'
+            edition_data["mode"] = "git_refs"
 
         edition = Edition(product=product)
         edition.import_data(edition_data)
@@ -236,10 +243,10 @@ def new_product():
         db.session.rollback()
         raise
 
-    return jsonify(response), 201, {'Location': product.get_url()}
+    return jsonify(response), 201, {"Location": product.get_url()}
 
 
-@api.route('/products/<slug>', methods=['PATCH'])
+@api.route("/products/<slug>", methods=["PATCH"])
 @accept_fallback
 @log_route()
 @token_auth.login_required
@@ -313,10 +320,10 @@ def edit_product(slug):
         db.session.rollback()
         raise
 
-    return jsonify(response), 200, {'Location': product.get_url()}
+    return jsonify(response), 200, {"Location": product.get_url()}
 
 
-@api.route('/products/<slug>/dashboard', methods=['POST'])
+@api.route("/products/<slug>/dashboard", methods=["POST"])
 @accept_fallback
 @log_route()
 @token_auth.login_required

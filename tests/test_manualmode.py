@@ -9,9 +9,9 @@ def test_manual_mode():
     """
     modes = EditionTrackingModes()
 
-    mode = modes['manual']
+    mode = modes["manual"]
 
-    assert mode.name == 'manual'
+    assert mode.name == "manual"
 
     # Never returns True, by definition
     assert mode.should_update(None, None) is False

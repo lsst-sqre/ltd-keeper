@@ -1,10 +1,9 @@
 """Factory for the Celery application.
 """
 
-__all__ = ('celery_app', 'create_celery_app')
+__all__ = ("celery_app", "create_celery_app")
 
 from celery import Celery
-
 
 celery_app = None
 """Celery app instance, initialized by `create_celery_app` via
@@ -20,10 +19,12 @@ def create_celery_app(flask_app):
     Flask config to also configure Celery.
     """
     global celery_app
-    celery_app = Celery(flask_app.import_name,
-                        backend=flask_app.config['CELERY_RESULT_URL'],
-                        broker=flask_app.config['CELERY_BROKER_URL'],
-                        task_track_started=True)
+    celery_app = Celery(
+        flask_app.import_name,
+        backend=flask_app.config["CELERY_RESULT_URL"],
+        broker=flask_app.config["CELERY_BROKER_URL"],
+        task_track_started=True,
+    )
     celery_app.conf.update(flask_app.config)
     TaskBase = celery_app.Task
 

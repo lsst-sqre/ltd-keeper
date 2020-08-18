@@ -1,17 +1,20 @@
 """Utilities for parsing Git refs according to LSST format."""
 
-__all__ = ('DOCUSHARE_PATTERN', 'LSST_DOC_V_TAG', 'LsstDocVersionTag',
-           'LsstDocTrackingMode')
+__all__ = (
+    "DOCUSHARE_PATTERN",
+    "LSST_DOC_V_TAG",
+    "LsstDocVersionTag",
+    "LsstDocTrackingMode",
+)
 
 import re
 
-
 # The RFC-401 format for tagged docushare releases.
-DOCUSHARE_PATTERN = re.compile(r'docushare-v(?P<version>[\d\.]+)')
+DOCUSHARE_PATTERN = re.compile(r"docushare-v(?P<version>[\d\.]+)")
 
 # The RFC-405/LPM-51 format for LSST semantic document versions.
 # v<minor>.<major>
-LSST_DOC_V_TAG = re.compile(r'^v(?P<major>[\d+])\.(?P<minor>[\d+])$')
+LSST_DOC_V_TAG = re.compile(r"^v(?P<major>[\d+])\.(?P<minor>[\d+])$")
 
 
 class LsstDocTrackingMode:
@@ -21,30 +24,30 @@ class LsstDocTrackingMode:
 
     @property
     def name(self):
-        return 'lsst_doc'
+        return "lsst_doc"
 
     def should_update(self, edition, candidate_build):
         # If the edition is unpublished or showing `master`, and the
         # build is tracking `master`, then allow this rebuild.
         # This is used in the period before a semantic version is
         # available.
-        if candidate_build.git_refs[0] == 'master':
-            if edition.build_id is None or \
-                    edition.build.git_refs[0] == 'master':
+        if candidate_build.git_refs[0] == "master":
+            if (
+                edition.build_id is None
+                or edition.build.git_refs[0] == "master"
+            ):
                 return True
 
         # Does the build have the vN.M tag?
         try:
-            candidate_version = LsstDocVersionTag(
-                candidate_build.git_refs[0])
+            candidate_version = LsstDocVersionTag(candidate_build.git_refs[0])
         except ValueError:
             return False
 
         # Does the edition's current build have a LSST document version
         # as its Git ref?
         try:
-            current_version = LsstDocVersionTag(
-                edition.build.git_refs[0])
+            current_version = LsstDocVersionTag(edition.build.git_refs[0])
         except (ValueError, AttributeError):
             # AttributeError if the current build is None
             # Not currently tracking a version, so automatically accept
@@ -85,15 +88,16 @@ class LsstDocVersionTag:
         match = LSST_DOC_V_TAG.match(version_str)
         if match is None:
             raise ValueError(
-                '{:r} is not a LSST document version tag'.format(version_str))
-        self.major = int(match.group('major'))
-        self.minor = int(match.group('minor'))
+                "{:r} is not a LSST document version tag".format(version_str)
+            )
+        self.major = int(match.group("major"))
+        self.minor = int(match.group("minor"))
 
     def __repr__(self):
-        return 'LsstDocVersion({:r})'.format(self.version_str)
+        return "LsstDocVersion({:r})".format(self.version_str)
 
     def __str__(self):
-        return '{0:d}.{1:d}'.format(self.major, self.minor)
+        return "{0:d}.{1:d}".format(self.major, self.minor)
 
     def __eq__(self, other):
         return self.major == other.major and self.minor == other.minor
