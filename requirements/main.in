@@ -1,0 +1,20 @@
+# Editable runtime dependencies (equivalent to install_requires)
+# Add direct runtime dependencies here, as well as implicit dependencies
+# with constrained versions.
+#
+# After editing, update requirements/main.txt by running:
+#     make update-deps
+
+Flask
+uWSGI
+Flask-SQLAlchemy
+SQLAlchemy
+PyMySQL
+Flask-HTTPAuth
+Flask-Migrate
+flask-accept
+python-dateutil
+boto3
+requests
+structlog
+celery[redis]
