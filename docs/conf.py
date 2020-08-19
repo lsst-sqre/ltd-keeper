@@ -66,7 +66,7 @@ author = "Association of Universities for Research in Astronomy, Inc. (AURA)"
 # built documents.
 #
 # The full version, including alpha/beta/rc tags.
-release = get_distribution("lsst-the-docs-keeper").version
+release = get_distribution("ltd-keeper").version
 version = release
 
 
