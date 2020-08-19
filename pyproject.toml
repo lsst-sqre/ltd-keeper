@@ -41,6 +41,8 @@ commands = pre-commit run --all-files
 
 [testenv:docs]
 description = Compile Sphinx docs.
+allowlist_externals =
+    make
 commands = make -C docs html
 
 [testenv:run]
