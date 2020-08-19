@@ -81,10 +81,6 @@ docs-clean:
 image:
 	docker build -t lsstsqre/ltd-keeper:build .
 
-.PHONY: travis-docker-deploy
-travis-docker-deploy:
-	./bin/travis-docker-deploy.sh lsstsqre/ltd-keeper build
-
 .PHONY: version
 version:
 	FLASK_APP=keeper LTD_KEEPER_PROFILE=development flask version

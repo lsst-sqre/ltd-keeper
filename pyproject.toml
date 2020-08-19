@@ -39,6 +39,10 @@ deps =
     pre-commit
 commands = pre-commit run --all-files
 
+[testenv:docs]
+description = Compile Sphinx docs.
+commands = make -C docs html
+
 [testenv:run]
 description = Run the development server with auto-reload for code changes.
 usedevelop = true
