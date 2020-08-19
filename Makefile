@@ -79,8 +79,7 @@ docs-clean:
 
 .PHONY: image
 image:
-	python setup.py sdist
-	docker build --build-arg VERSION=$(VERSION) -t lsstsqre/ltd-keeper:build .
+	docker build -t lsstsqre/ltd-keeper:build .
 
 .PHONY: travis-docker-deploy
 travis-docker-deploy:

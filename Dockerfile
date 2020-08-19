@@ -1,37 +1,63 @@
-FROM python:3.6.6
+# This Dockerfile has four stages:
+#
+# base-image
+#   Updates the base Python image with security patches and common system
+#   packages. This image becomes the base of all other images.
+# dependencies-image
+#   Installs third-party dependencies (requirements/main.txt) into a virtual
+#   environment. This virtual environment is ideal for copying across build
+#   stages.
+# install-image
+#   Installs the app into the virtual environment.
+# runtime-image
+#   - Copies the virtual environment into place.
+#   - Runs a non-root user.
+#   - Sets up the entrypoint and port.
 
-MAINTAINER Jonathan Sick <jsick@lsst.org>
-LABEL description="API server for LSST the Docs" \
-      name="lsstsqre/ltd-keeper"
+FROM python:3.7-slim-buster AS base-image
 
-ENV APPDIR /ltd-keeper
+# Update system packages
+COPY bin/install-base-packages.sh .
+RUN ./install-base-packages.sh
 
-# Supply on CL as --build-arg VERSION=<version> (or run `make image`).
-ARG VERSION
-LABEL version="$VERSION"
+FROM base-image AS dependencies-image
 
-# Must run python setup.py sdist first before building the Docker image.
-# RUN mkdir -p $APPDIR
-COPY migrations \
-     uwsgi.ini \
-     dist/lsst-the-docs-keeper-$VERSION.tar.gz \
-     bin/run-celery-worker.bash \
-     $APPDIR/
-# Recreate the directory structure of alembic's migrations directory
-COPY migrations/alembic.ini \
-     migrations/env.py \
-     migrations/script.py.mako \
-     $APPDIR/migrations/
-COPY migrations/versions/* $APPDIR/migrations/versions/
+# Create a Python virtual environment
+ENV VIRTUAL_ENV=/opt/venv
+RUN python -m venv $VIRTUAL_ENV
+# Make sure we use the virtualenv
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+# Put the latest pip and setuptools in the virtualenv
+RUN pip install --upgrade --no-cache-dir pip setuptools wheel
 
-WORKDIR $APPDIR
+# Install the app's Python runtime dependencies
+COPY requirements/main.txt ./requirements.txt
+RUN pip install --quiet --no-cache-dir -r requirements.txt
 
-RUN pip install lsst-the-docs-keeper-$VERSION.tar.gz && \
-    rm lsst-the-docs-keeper-$VERSION.tar.gz && \
-    groupadd -r uwsgi_grp && useradd -r -g uwsgi_grp uwsgi && \
-    chown -R uwsgi:uwsgi_grp $APPDIR
+FROM base-image AS install-image
 
-USER uwsgi
+# Use the virtualenv
+COPY --from=dependencies-image /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+COPY . /app
+WORKDIR /app
+RUN pip install --no-cache-dir .
+
+FROM base-image AS runtime-image
+
+# Create a non-root user
+RUN useradd --create-home appuser
+WORKDIR /home/appuser
+
+# Make sure we use the virtualenv
+ENV PATH="/opt/venv/bin:$PATH"
+
+COPY --from=install-image /opt/venv /opt/venv
+COPY uwsgi.ini bin migrations ./
+
+# Switch to non-root user
+USER appuser
 
 EXPOSE 3031
 
