@@ -82,9 +82,9 @@ And run the proxy:
    Alternatively, a Service Account credential can be used:
 
    .. code-block:: bash
-   
+
       $GOPATH/bin/cloud_sql_proxy -dir=cloudsql -instances=PROJECT:REGION:ltd-sql-1 --credential_file=service_account.json
-   
+
    Replace ``PROJECT`` and ``REGION`` with the Google Cloud project's name and default region (specified previously in :doc:`gke-setup`).
 
    ``service_account.json`` is the path to the service account JSON credentials file that was downloaded previously.
@@ -110,7 +110,7 @@ While logged into the database, create a DB specifically for LTD Keeper:
 
    mysql> create database keeper;
    Query OK, 1 row affected (0.10 sec)
-   
+
    mysql> show databases;
    +--------------------+
    | Database           |

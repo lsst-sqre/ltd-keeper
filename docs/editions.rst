@@ -21,7 +21,7 @@ These are the available tracking modes:
 
 .. list-table::
    :header-rows: 1
-   
+
    * - ``mode`` field
      - Tracking behavior
 
