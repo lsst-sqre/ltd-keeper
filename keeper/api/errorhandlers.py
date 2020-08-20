@@ -5,8 +5,8 @@ exceptions are emitted. These handlers provide a JSON response rather
 than the default HMTL header response.
 """
 
-from flask import jsonify
 import structlog
+from flask import jsonify
 
 from ..exceptions import ValidationError
 from . import api
@@ -18,8 +18,9 @@ def bad_request(e):
     logger = structlog.get_logger()
     logger.error(status=400, message=e.args[0])
 
-    response = jsonify({'status': 400, 'error': 'bad request',
-                        'message': e.args[0]})
+    response = jsonify(
+        {"status": 400, "error": "bad request", "message": e.args[0]}
+    )
     response.status_code = 400
     return response
 
@@ -30,8 +31,13 @@ def not_found(e):
     logger = structlog.get_logger()
     logger.error(status=400)
 
-    response = jsonify({'status': 404, 'error': 'not found',
-                        'message': 'invalid resource URI'})
+    response = jsonify(
+        {
+            "status": 404,
+            "error": "not found",
+            "message": "invalid resource URI",
+        }
+    )
     response.status_code = 404
     return response
 
@@ -42,8 +48,13 @@ def method_not_supported(e):
     logger = structlog.get_logger()
     logger.error(status=405)
 
-    response = jsonify({'status': 405, 'error': 'method not supported',
-                        'message': 'the method is not supported'})
+    response = jsonify(
+        {
+            "status": 405,
+            "error": "method not supported",
+            "message": "the method is not supported",
+        }
+    )
     response.status_code = 405
     return response
 
@@ -54,7 +65,8 @@ def internal_server_error(e):
     logger = structlog.get_logger()
     logger.error(status=500, message=e.args[0])
 
-    response = jsonify({'status': 500, 'error': 'internal server error',
-                        'message': e.args[0]})
+    response = jsonify(
+        {"status": 500, "error": "internal server error", "message": e.args[0]}
+    )
     response.status_code = 500
     return response

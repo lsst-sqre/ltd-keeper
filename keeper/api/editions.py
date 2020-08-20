@@ -3,24 +3,28 @@
 from flask import jsonify, request
 from flask_accept import accept_fallback
 
-from . import api
-from ..models import db
-from ..auth import token_auth, permission_required
-from ..models import Product, Edition, Permission
+from ..auth import permission_required, token_auth
 from ..logutils import log_route
-from ..taskrunner import (launch_task_chain, append_task_to_chain,
-                          insert_task_url_in_response, mock_registry)
+from ..models import Edition, Permission, Product, db
+from ..taskrunner import (
+    append_task_to_chain,
+    insert_task_url_in_response,
+    launch_task_chain,
+    mock_registry,
+)
 from ..tasks.dashboardbuild import build_dashboard
-
+from . import api
 
 # Register imports of celery task chain launchers
-mock_registry.extend([
-    'keeper.api.editions.launch_task_chain',
-    'keeper.api.editions.append_task_to_chain',
-])
+mock_registry.extend(
+    [
+        "keeper.api.editions.launch_task_chain",
+        "keeper.api.editions.append_task_to_chain",
+    ]
+)
 
 
-@api.route('/products/<slug>/editions/', methods=['POST'])
+@api.route("/products/<slug>/editions/", methods=["POST"])
 @accept_fallback
 @log_route()
 @token_auth.login_required
@@ -108,10 +112,10 @@ def new_edition(slug):
     except Exception:
         db.session.rollback()
         raise
-    return jsonify(response), 201, {'Location': edition_url}
+    return jsonify(response), 201, {"Location": edition_url}
 
 
-@api.route('/editions/<int:id>', methods=['DELETE'])
+@api.route("/editions/<int:id>", methods=["DELETE"])
 @accept_fallback
 @log_route()
 @token_auth.login_required
@@ -169,7 +173,7 @@ def deprecate_edition(id):
     return jsonify(response), 200
 
 
-@api.route('/products/<slug>/editions/', methods=['GET'])
+@api.route("/products/<slug>/editions/", methods=["GET"])
 @accept_fallback
 @log_route()
 def get_product_editions(slug):
@@ -204,15 +208,19 @@ def get_product_editions(slug):
     :statuscode 200: No errors.
     :statuscode 404: Product not found.
     """
-    edition_urls = [edition.get_url() for edition in
-                    Edition.query.join(Product,
-                                       Product.id == Edition.product_id)
-                    .filter(Product.slug == slug)
-                    .filter(Edition.date_ended == None).all()]  # NOQA
-    return jsonify({'editions': edition_urls})
+    edition_urls = [
+        edition.get_url()
+        for edition in Edition.query.join(
+            Product, Product.id == Edition.product_id
+        )
+        .filter(Product.slug == slug)
+        .filter(Edition.date_ended == None)  # noqa: E711
+        .all()
+    ]
+    return jsonify({"editions": edition_urls})
 
 
-@api.route('/editions/<int:id>', methods=['GET'])
+@api.route("/editions/<int:id>", methods=["GET"])
 @accept_fallback
 @log_route()
 def get_edition(id):
@@ -280,7 +288,7 @@ def get_edition(id):
     return jsonify(Edition.query.get_or_404(id).export_data())
 
 
-@api.route('/editions/<int:id>', methods=['PATCH'])
+@api.route("/editions/<int:id>", methods=["PATCH"])
 @accept_fallback
 @log_route()
 @token_auth.login_required

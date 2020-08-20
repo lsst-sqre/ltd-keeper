@@ -4,6 +4,6 @@ username+password.
 
 
 def test_get_token(basic_client):
-    r = basic_client.get('/token')
+    r = basic_client.get("/token")
     assert r.status == 200
-    assert 'token' in r.json
+    assert "token" in r.json

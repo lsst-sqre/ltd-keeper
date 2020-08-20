@@ -1,17 +1,16 @@
 """Implement the "eups_major_release" Edition tracking mode.
 """
 
-__all__ = ('EupsMajorReleaseTrackingMode',)
+__all__ = ("EupsMajorReleaseTrackingMode",)
 
 import re
 
-
-TAG_PATTERN = re.compile(r'^v(?P<major>\d+)_(?P<minor>\d+)$')
+TAG_PATTERN = re.compile(r"^v(?P<major>\d+)_(?P<minor>\d+)$")
 """Regular expression for matching an EUPS major release tag with the format
 ``vX_Y``.
 """
 
-GIT_TAG_PATTERN = re.compile(r'^(?P<major>\d+)\.(?P<minor>\d+)$')
+GIT_TAG_PATTERN = re.compile(r"^(?P<major>\d+)\.(?P<minor>\d+)$")
 """Regular expression for matching the Git-version of an EUPS major release tag
 with the format ``X.Y``.
 """
@@ -24,21 +23,19 @@ class EupsMajorReleaseTrackingMode:
 
     @property
     def name(self):
-        return 'eups_major_release'
+        return "eups_major_release"
 
     def should_update(self, edition, candidate_build):
         # Does the build have a major release tag?
         try:
-            candidate_version = MajorReleaseTag(
-                candidate_build.git_refs[0])
+            candidate_version = MajorReleaseTag(candidate_build.git_refs[0])
         except ValueError:
             return False
 
         # Does the edition's current build have a major release?
         # as its Git ref?
         try:
-            current_version = MajorReleaseTag(
-                edition.build.git_refs[0])
+            current_version = MajorReleaseTag(edition.build.git_refs[0])
         except (ValueError, AttributeError):
             # Attribute error if current build is None
             # Not currently tracking a version, so automatically accept
@@ -66,9 +63,10 @@ class MajorReleaseTag:
             match = GIT_TAG_PATTERN.search(tag)
             if match is None:
                 raise ValueError(
-                    '{!r} is not an EUPS major release tag '.format(tag))
-        self.major = int(match.group('major'))
-        self.minor = int(match.group('minor'))
+                    "{!r} is not an EUPS major release tag ".format(tag)
+                )
+        self.major = int(match.group("major"))
+        self.minor = int(match.group("minor"))
 
     @property
     def parts(self):

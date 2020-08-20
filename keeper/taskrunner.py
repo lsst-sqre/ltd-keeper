@@ -1,14 +1,18 @@
 """Convenience APIs for launching Celery task queues.
 """
 
-__all__ = ('append_task_to_chain', 'launch_task_chain',
-           'insert_task_url_in_response', 'mock_registry')
+__all__ = (
+    "append_task_to_chain",
+    "launch_task_chain",
+    "insert_task_url_in_response",
+    "mock_registry",
+)
 
 import collections
 
 import celery
-from flask import g, url_for
 import structlog
+from flask import g, url_for
 
 
 def append_task_to_chain(task_signature):
@@ -22,12 +26,12 @@ def append_task_to_chain(task_signature):
     """
     logger = structlog.get_logger(__name__)
 
-    if 'tasks' not in g:
+    if "tasks" not in g:
         g.tasks = []
 
     g.tasks.append(task_signature)
 
-    logger.info('Queued celery task', task=str(task_signature))
+    logger.info("Queued celery task", task=str(task_signature))
 
 
 def launch_task_chain():
@@ -36,16 +40,17 @@ def launch_task_chain():
     """
     logger = structlog.get_logger(__name__)
 
-    if 'tasks' not in g or len(g.tasks) == 0:
-        logger.debug('Did not launch any tasks',
-                     ntasks=0)
+    if "tasks" not in g or len(g.tasks) == 0:
+        logger.debug("Did not launch any tasks", ntasks=0)
         return
 
     chain = celery.chain(*g.tasks).apply_async()
-    logger.info('Launching task chain',
-                ntasks=len(g.tasks),
-                tasks=str(g.tasks),
-                task_id=chain.id)
+    logger.info(
+        "Launching task chain",
+        ntasks=len(g.tasks),
+        tasks=str(g.tasks),
+        task_id=chain.id,
+    )
 
     # Reset the queued task signatures
     g.tasks = []
@@ -57,8 +62,8 @@ def insert_task_url_in_response(json_data, task):
     """Insert the task status URL into the JSON response body.
     """
     if task is not None:
-        url = url_for('api.get_task_status', id=task.id, _external=True)
-        json_data['queue_url'] = url
+        url = url_for("api.get_task_status", id=task.id, _external=True)
+        json_data["queue_url"] = url
     return json_data
 
 

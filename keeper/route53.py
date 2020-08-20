@@ -5,17 +5,18 @@ AWS Route 53.
 """
 
 from pprint import pformat
-from structlog import get_logger
 
 import boto3
+from structlog import get_logger
 
 from .exceptions import Route53Error
 
-__all__ = ['create_cname', 'delete_cname']
+__all__ = ["create_cname", "delete_cname"]
 
 
-def create_cname(cname_domain, origin_domain,
-                 aws_access_key_id, aws_secret_access_key):
+def create_cname(
+    cname_domain, origin_domain, aws_access_key_id, aws_secret_access_key
+):
     """Create a CNAME `cname_domain` that points to resources at
     `origin_domain`.
 
@@ -51,18 +52,19 @@ def create_cname(cname_domain, origin_domain,
     """
     logger = get_logger(__name__)
     logger.info(
-        'create_cname',
-        cname_domain=cname_domain, origin_domain=origin_domain)
+        "create_cname", cname_domain=cname_domain, origin_domain=origin_domain
+    )
 
-    if not cname_domain.endswith('.'):
-        cname_domain = cname_domain + '.'
-    if origin_domain.endswith('.'):
-        origin_domain = origin_domain.lstrip('.')
+    if not cname_domain.endswith("."):
+        cname_domain = cname_domain + "."
+    if origin_domain.endswith("."):
+        origin_domain = origin_domain.lstrip(".")
 
     session = boto3.session.Session(
         aws_access_key_id=aws_access_key_id,
-        aws_secret_access_key=aws_secret_access_key)
-    client = session.client('route53')
+        aws_secret_access_key=aws_secret_access_key,
+    )
+    client = session.client("route53")
     zone_id = _get_zone_id(client, cname_domain)
     _upsert_cname_record(client, zone_id, cname_domain, origin_domain)
 
@@ -93,15 +95,16 @@ def delete_cname(cname_domain, aws_access_key_id, aws_secret_access_key):
         Any error with Route 53 usage.
     """
     logger = get_logger(__name__)
-    logger.info('delete_cname', cname_domain=cname_domain)
+    logger.info("delete_cname", cname_domain=cname_domain)
 
-    if not cname_domain.endswith('.'):
-        cname_domain = cname_domain + '.'
+    if not cname_domain.endswith("."):
+        cname_domain = cname_domain + "."
 
     session = boto3.session.Session(
         aws_access_key_id=aws_access_key_id,
-        aws_secret_access_key=aws_secret_access_key)
-    client = session.client('route53')
+        aws_secret_access_key=aws_secret_access_key,
+    )
+    client = session.client("route53")
 
     zone_id = _get_zone_id(client, cname_domain)
     record = _find_cname_record(client, zone_id, cname_domain)
@@ -111,31 +114,32 @@ def delete_cname(cname_domain, aws_access_key_id, aws_secret_access_key):
     # we only use single records.
     # http://docs.aws.amazon.com/Route53/latest/APIReference/API_ChangeResourceRecordSets.html
     change = {
-        'Action': 'DELETE',
-        'ResourceRecordSet': {
-            'Name': cname_domain,
-            'Type': 'CNAME',
-            'ResourceRecords': record['ResourceRecords']
-        }
+        "Action": "DELETE",
+        "ResourceRecordSet": {
+            "Name": cname_domain,
+            "Type": "CNAME",
+            "ResourceRecords": record["ResourceRecords"],
+        },
     }
-    if 'TTL' in record:
-        change['ResourceRecordSet']['TTL'] = record['TTL']
-    if 'SetIdentifier' in record:
-        change['ResourceRecordSet']['SetIdentifier'] = record['SetIdentifier']
+    if "TTL" in record:
+        change["ResourceRecordSet"]["TTL"] = record["TTL"]
+    if "SetIdentifier" in record:
+        change["ResourceRecordSet"]["SetIdentifier"] = record["SetIdentifier"]
 
     change_batch = {
-        'Comment': 'DELETE {0}'.format(cname_domain),
-        'Changes': [change],
+        "Comment": "DELETE {0}".format(cname_domain),
+        "Changes": [change],
     }
     logger.info(
-        'Created change batch for cname delete', change_batch=change_batch)
+        "Created change batch for cname delete", change_batch=change_batch
+    )
 
     r = client.change_resource_record_sets(
-        HostedZoneId=zone_id,
-        ChangeBatch=change_batch)
-    logger.info('cname delete response', response=r, change_batch=change_batch)
-    if r['ResponseMetadata']['HTTPStatusCode'] == 400:
-        msg = 'delete_cname failed with:\n' + pformat(change)
+        HostedZoneId=zone_id, ChangeBatch=change_batch
+    )
+    logger.info("cname delete response", response=r, change_batch=change_batch)
+    if r["ResponseMetadata"]["HTTPStatusCode"] == 400:
+        msg = "delete_cname failed with:\n" + pformat(change)
         raise Route53Error(msg)
 
 
@@ -157,25 +161,25 @@ def _get_zone_id(client, domain):
         Route 53 Hosted Zone ID that services the domain.
     """
     logger = get_logger(__name__)
-    assert domain.endswith('.')
+    assert domain.endswith(".")
 
     # Filter out sub-domains; leaves domains intact
-    fsd = '.'.join(domain.split('.')[-3:])
+    fsd = ".".join(domain.split(".")[-3:])
 
     # Find zone from Route 53 api
     zones = client.list_hosted_zones()
     zone_id = None
-    for z in zones['HostedZones']:
-        if fsd == z['Name']:
-            zone_id = z['Id']
+    for z in zones["HostedZones"]:
+        if fsd == z["Name"]:
+            zone_id = z["Id"]
 
     if zone_id is None:
-        msg = 'Could not find hosted zone for fully specified domain'
+        msg = "Could not find hosted zone for fully specified domain"
         logger.error(msg, domain=fsd, zones=zones)
         logger.error(pformat(zones))
         raise Route53Error(msg)
 
-    logger.info('Got HostedZoneId', zone_id=zone_id)
+    logger.info("Got HostedZoneId", zone_id=zone_id)
     return zone_id
 
 
@@ -215,26 +219,24 @@ def _find_cname_record(client, zone_id, cname_domain):
     # despite their docs.
     # name = _lexicographic_order_domain(cname_url)
 
-    if not cname_domain.endswith('.'):
-        cname_domain = cname_domain + '.'
+    if not cname_domain.endswith("."):
+        cname_domain = cname_domain + "."
 
     r = client.list_resource_record_sets(
         HostedZoneId=zone_id,
         StartRecordName=cname_domain,
-        StartRecordType='CNAME'
+        StartRecordType="CNAME",
     )
-    if r['ResponseMetadata']['HTTPStatusCode'] != 200:
-        msg = 'list_resource_record_sets failed'
+    if r["ResponseMetadata"]["HTTPStatusCode"] != 200:
+        msg = "list_resource_record_sets failed"
         logger.error(msg, response=r)
         raise Route53Error(msg)
-    for record in r['ResourceRecordSets']:
-        if record['Name'] == cname_domain:
-            logger.info(
-                'Got Resource Record Set',
-                record=record)
+    for record in r["ResourceRecordSets"]:
+        if record["Name"] == cname_domain:
+            logger.info("Got Resource Record Set", record=record)
             return record
 
-    logger.info('No existing CNAME record found', cname_domain=cname_domain)
+    logger.info("No existing CNAME record found", cname_domain=cname_domain)
 
 
 def _upsert_cname_record(client, zone_id, cname_domain, origin_domain):
@@ -243,28 +245,25 @@ def _upsert_cname_record(client, zone_id, cname_domain, origin_domain):
     logger = get_logger(__name__)
 
     change = {
-        'Action': 'UPSERT',
-        'ResourceRecordSet': {
-            'Name': cname_domain,
-            'Type': 'CNAME',
-            'TTL': 900,
-            'ResourceRecords': [
-                {
-                    'Value': origin_domain
-                },
-            ],
-        }
+        "Action": "UPSERT",
+        "ResourceRecordSet": {
+            "Name": cname_domain,
+            "Type": "CNAME",
+            "TTL": 900,
+            "ResourceRecords": [{"Value": origin_domain}],
+        },
     }
     change_batch = {
-        'Comment': 'Upsert {0} -> {1}'.format(cname_domain, origin_domain),
-        'Changes': [change]}
-    logger.info('Created cname record change batch', change_batch=change_batch)
+        "Comment": "Upsert {0} -> {1}".format(cname_domain, origin_domain),
+        "Changes": [change],
+    }
+    logger.info("Created cname record change batch", change_batch=change_batch)
 
     r = client.change_resource_record_sets(
-        HostedZoneId=zone_id,
-        ChangeBatch=change_batch)
-    logger.info('Change resource record set', response=r)
-    if r['ResponseMetadata']['HTTPStatusCode'] != 200:
-        msg = 'change_resource_record_sets failed',
+        HostedZoneId=zone_id, ChangeBatch=change_batch
+    )
+    logger.info("Change resource record set", response=r)
+    if r["ResponseMetadata"]["HTTPStatusCode"] != 200:
+        msg = ("change_resource_record_sets failed",)
         logger.error(msg, change=change, response=r)
         raise Route53Error(msg)

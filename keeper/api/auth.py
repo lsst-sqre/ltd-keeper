@@ -1,15 +1,15 @@
 """Authentication routes.
 """
 
-from flask import jsonify, g
+from flask import g, jsonify
 from flask_accept import accept_fallback
 
-from . import api
 from ..auth import password_auth
 from ..logutils import log_route
+from . import api
 
 
-@api.route('/token')
+@api.route("/token")
 @accept_fallback
 @log_route()
 @password_auth.login_required
@@ -50,4 +50,4 @@ def get_auth_token():
     :statuscode 200: No errors.
     :statuscode 401: Not authenticated.
     """
-    return jsonify({'token': g.user.generate_auth_token()})
+    return jsonify({"token": g.user.generate_auth_token()})

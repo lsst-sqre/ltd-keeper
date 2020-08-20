@@ -4,8 +4,12 @@ Flask CLI subcommands are implemented with Click. The application factory
 (`keeper.appfactory`) registers these
 """
 
-__all__ = ('add_app_commands', 'createdb_command', 'init_command',
-           'version_command')
+__all__ = (
+    "add_app_commands",
+    "createdb_command",
+    "init_command",
+    "version_command",
+)
 
 import os
 
@@ -14,7 +18,7 @@ import click
 from flask import current_app
 from flask.cli import with_appcontext
 
-from .models import db, User, Permission
+from .models import Permission, User, db
 from .version import get_version
 
 
@@ -28,7 +32,7 @@ def add_app_commands(app):
     app.cli.add_command(version_command)
 
 
-@click.command('createdb')
+@click.command("createdb")
 @with_appcontext
 def createdb_command():
     """Deploy the current schema in a new database.
@@ -48,14 +52,13 @@ def createdb_command():
 
     # stamp tables with latest schema version
     config_path = os.path.abspath(
-        os.path.join(os.path.dirname(__file__),
-                     '..',
-                     'migrations/alembic.ini'))
+        os.path.join(os.path.dirname(__file__), "..", "migrations/alembic.ini")
+    )
     alembic_cfg = alembic.config.Config(config_path)
     alembic.command.stamp(alembic_cfg, "head")
 
 
-@click.command('init')
+@click.command("init")
 @with_appcontext
 def init_command():
     """Initialize the application DB.
@@ -66,14 +69,16 @@ def init_command():
     - ``LTD_KEEPER_BOOTSTRAP_PASSWORD``
     """
     if User.query.get(1) is None:
-        u = User(username=current_app.config['DEFAULT_USER'],
-                 permissions=Permission.full_permissions())
-        u.set_password(current_app.config['DEFAULT_PASSWORD'])
+        u = User(
+            username=current_app.config["DEFAULT_USER"],
+            permissions=Permission.full_permissions(),
+        )
+        u.set_password(current_app.config["DEFAULT_PASSWORD"])
         db.session.add(u)
         db.session.commit()
 
 
-@click.command('version')
+@click.command("version")
 @with_appcontext
 def version_command():
     """Print the LTD Keeper application version.

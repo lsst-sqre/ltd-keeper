@@ -2,22 +2,28 @@
 
 from flask import jsonify
 from flask_accept import accept_fallback
-from . import api
-from ..auth import token_auth, permission_required
-from ..models import Product, Permission
-from ..taskrunner import (launch_task_chain, append_task_to_chain,
-                          insert_task_url_in_response, mock_registry)
-from ..tasks.dashboardbuild import build_dashboard
 
+from ..auth import permission_required, token_auth
+from ..models import Permission, Product
+from ..taskrunner import (
+    append_task_to_chain,
+    insert_task_url_in_response,
+    launch_task_chain,
+    mock_registry,
+)
+from ..tasks.dashboardbuild import build_dashboard
+from . import api
 
 # Register imports of celery task chain launchers
-mock_registry.extend([
-    'keeper.api.dashboards.launch_task_chain',
-    'keeper.api.dashboards.append_task_to_chain',
-])
+mock_registry.extend(
+    [
+        "keeper.api.dashboards.launch_task_chain",
+        "keeper.api.dashboards.append_task_to_chain",
+    ]
+)
 
 
-@api.route('/dashboards', methods=['POST'])
+@api.route("/dashboards", methods=["POST"])
 @accept_fallback
 @token_auth.login_required
 @permission_required(Permission.ADMIN_PRODUCT)

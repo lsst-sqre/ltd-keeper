@@ -3,8 +3,8 @@
 See https://docs.fastly.com/api/ for more information about the Fastly API.
 """
 
-from structlog import get_logger
 import requests
+from structlog import get_logger
 
 from .exceptions import FastlyError
 
@@ -24,7 +24,7 @@ class FastlyService(object):
         super(FastlyService, self).__init__()
         self.service_id = service_id
         self.api_key = api_key
-        self._api_root = 'https://api.fastly.com'
+        self._api_root = "https://api.fastly.com"
         self._logger = get_logger(__name__)
 
     def _url(self, path):
@@ -37,13 +37,15 @@ class FastlyService(object):
         https://docs.fastly.com/api/purge#purge_077dfb4aa07f49792b13c87647415537
         for more information.
         """
-        path = '/service/{service}/purge/{surrogate_key}'.format(
-            service=self.service_id, surrogate_key=surrogate_key)
+        path = "/service/{service}/purge/{surrogate_key}".format(
+            service=self.service_id, surrogate_key=surrogate_key
+        )
         self._logger.info(
-            'Fastly key purge',
-            path=path, surrogate_key=surrogate_key)
-        r = requests.post(self._url(path),
-                          headers={'Fastly-Key': self.api_key,
-                                   'Accept': 'application/json'})
+            "Fastly key purge", path=path, surrogate_key=surrogate_key
+        )
+        r = requests.post(
+            self._url(path),
+            headers={"Fastly-Key": self.api_key, "Accept": "application/json"},
+        )
         if r.status_code != 200:
             raise FastlyError(r.json)

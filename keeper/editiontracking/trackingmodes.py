@@ -1,11 +1,11 @@
-__all__ = ('EditionTrackingModes',)
+__all__ = ("EditionTrackingModes",)
 
 from ..exceptions import ValidationError
-from .gitrefmode import GitRefTrackingMode
-from .lsstdocmode import LsstDocTrackingMode
+from .eupsdailymode import EupsDailyReleaseTrackingMode
 from .eupsmajormode import EupsMajorReleaseTrackingMode
 from .eupsweeklymode import EupsWeeklyReleaseTrackingMode
-from .eupsdailymode import EupsDailyReleaseTrackingMode
+from .gitrefmode import GitRefTrackingMode
+from .lsstdocmode import LsstDocTrackingMode
 from .manualmode import ManualTrackingMode
 
 
@@ -28,8 +28,7 @@ class EditionTrackingModes:
     based on its own logic.
     """
 
-    _name_map = {mode.name: _id
-                 for _id, mode in _modes.items()}
+    _name_map = {mode.name: _id for _id, mode in _modes.items()}
     """Map of mode names to DB IDs.
 
     This is the inverse of ``_modes``.
@@ -62,8 +61,9 @@ class EditionTrackingModes:
         try:
             mode_id = self._name_map[mode]
         except KeyError:
-            message = ('Edition tracking mode {!r} unknown. Valid values '
-                       'are {!r}')
+            message = (
+                "Edition tracking mode {!r} unknown. Valid values " "are {!r}"
+            )
             raise ValidationError(message.format(mode, self._name_map.keys()))
         return mode_id
 
@@ -89,8 +89,9 @@ class EditionTrackingModes:
         try:
             mode = self._modes[mode_id]
         except KeyError:
-            message = ('Edition tracking mode ID {!r} unknown. Valid values '
-                       'are {!r}')
-            raise ValidationError(
-                message.format(mode_id, self._modes.keys()))
+            message = (
+                "Edition tracking mode ID {!r} unknown. Valid values "
+                "are {!r}"
+            )
+            raise ValidationError(message.format(mode_id, self._modes.keys()))
         return mode.name

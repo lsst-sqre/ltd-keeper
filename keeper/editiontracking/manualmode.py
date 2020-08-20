@@ -1,7 +1,7 @@
 """Mode that does not automatically update an edition.
 """
 
-__all__ = ('ManualTrackingMode',)
+__all__ = ("ManualTrackingMode",)
 
 
 class ManualTrackingMode:
@@ -14,7 +14,7 @@ class ManualTrackingMode:
 
     @property
     def name(self):
-        return 'manual'
+        return "manual"
 
     def should_update(self, edition, candidate_build):
         return False
