@@ -1,3 +1,40 @@
+[build-system]
+requires = [
+    "setuptools>=42",
+    "wheel",
+    "setuptools_scm[toml]>=3.4"
+]
+build-backend = 'setuptools.build_meta'
+
+[tool.setuptools_scm]
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+norecursedirs = ["venv", ".eggs"]
+mock_use_standalone_module = true
+
+[tool.coverage.run]
+parallel = true
+branch = true
+source = ["keeper"]
+
+[tool.coverage.paths]
+source = ["keeper", ".tox/*/site-packages"]
+
+[tool.coverage.report]
+show_missing = true
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:"
+]
+
 [tool.black]
 line-length = 79
 target-version = ['py37']

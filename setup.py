@@ -32,27 +32,6 @@ classifiers = (
 )
 keywords = "lsst lsst-the-docs"
 
-# Setup-time requirements
-setup_requires = [
-    "setuptools_scm==1.15.6",
-    "pytest-runner==5.1",
-]
-
-# Installation (application runtime) requirements
-install_requires = []
-
-# Test dependencies
-tests_require = []
-
-# Sphinx documentation requirements
-docs_require = []
-
-# Optional installation dependencies
-extras_require = {
-    # Recommended extra for development
-    "dev": []
-}
-
 setup(
     name=name,
     description=description,
@@ -65,8 +44,4 @@ setup(
     keywords=keywords,
     packages=find_packages(exclude=("tests",)),
     use_scm_version=True,
-    setup_requires=setup_requires,
-    tests_require=tests_require,
-    install_requires=install_requires,
-    extras_require=extras_require,
 )

@@ -6,8 +6,6 @@
 #     make update-deps
 
 pytest
-pytest-cov
-pytest-flake8
 responses
 pytest-mock
 mock
