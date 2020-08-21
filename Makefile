@@ -56,26 +56,30 @@ db-clean:
 	rm ltd-keeper-dev.sqlite
 	rm ltd-keeper-test.sqlite
 
+.PHONY: redis
 redis:
 	docker run --rm --name redis-dev -p 6379:6379 redis
 
+.PHONY: worker
 worker:
 	celery worker -A keeper.celery.celery_app -E -l DEBUG
 
+.PHONY: flower
 flower:
 	celery -A keeper.celery.celery_app flower
 
+.PHONY: docs
 docs:
 	$(MAKE) -C docs html
 
+.PHONY: docs-clean
 docs-clean:
 	$(MAKE) -C docs clean
 
+.PHONY: image
 image:
 	docker build -t lsstsqre/ltd-keeper:build .
 
-travis-docker-deploy:
-	./bin/travis-docker-deploy.sh lsstsqre/ltd-keeper build
-
+.PHONY: version
 version:
 	FLASK_APP=keeper LTD_KEEPER_PROFILE=development flask version
