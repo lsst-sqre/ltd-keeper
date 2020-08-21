@@ -9,6 +9,8 @@ pytest
 responses
 pytest-mock
 mock
+coverage[toml]
+mypy
 Sphinx
 docutils==0.15.2  # due to boto3
 sphinx-rtd-theme
