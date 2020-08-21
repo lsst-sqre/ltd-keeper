@@ -72,8 +72,7 @@ docs-clean:
 	$(MAKE) -C docs clean
 
 image:
-	python setup.py sdist
-	docker build --build-arg VERSION=$(VERSION) -t lsstsqre/ltd-keeper:build .
+	docker build -t lsstsqre/ltd-keeper:build .
 
 travis-docker-deploy:
 	./bin/travis-docker-deploy.sh lsstsqre/ltd-keeper build
