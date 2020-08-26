@@ -18,9 +18,12 @@ Note that this test will create a random uuid4) directory at the root of
 it.
 """
 
+from __future__ import annotations
+
 import os
 import tempfile
 import uuid
+from typing import TYPE_CHECKING, Any, List
 
 import boto3
 import pytest
@@ -34,6 +37,11 @@ from keeper.s3 import (
     set_condition,
 )
 
+if TYPE_CHECKING:
+    from unittest.mock import Mock
+
+    from _pytest.fixtures import FixtureRequest
+
 
 @pytest.mark.skipif(
     os.getenv("LTD_KEEPER_TEST_AWS_ID") is None
@@ -43,7 +51,7 @@ from keeper.s3 import (
     "LTD_KEEPER_TEST_AWS_SECRET and "
     "LTD_KEEPER_TEST_BUCKET",
 )
-def test_delete_directory(request):
+def test_delete_directory(request: FixtureRequest) -> None:
     session = boto3.session.Session(
         aws_access_key_id=os.getenv("LTD_KEEPER_TEST_AWS_ID"),
         aws_secret_access_key=os.getenv("LTD_KEEPER_TEST_AWS_SECRET"),
@@ -53,13 +61,13 @@ def test_delete_directory(request):
 
     bucket_root = str(uuid.uuid4()) + "/"
 
-    def cleanup():
+    def cleanup() -> None:
         print("Cleaning up the bucket")
         delete_directory(
-            os.getenv("LTD_KEEPER_TEST_BUCKET"),
+            os.getenv("LTD_KEEPER_TEST_BUCKET", ""),
             bucket_root,
-            os.getenv("LTD_KEEPER_TEST_AWS_ID"),
-            os.getenv("LTD_KEEPER_TEST_AWS_SECRET"),
+            os.getenv("LTD_KEEPER_TEST_AWS_ID", ""),
+            os.getenv("LTD_KEEPER_TEST_AWS_SECRET", ""),
         )
 
     request.addfinalizer(cleanup)
@@ -76,10 +84,10 @@ def test_delete_directory(request):
 
     # Delete b/*
     delete_directory(
-        os.getenv("LTD_KEEPER_TEST_BUCKET"),
+        os.getenv("LTD_KEEPER_TEST_BUCKET", ""),
         bucket_root + "a/b/",
-        os.getenv("LTD_KEEPER_TEST_AWS_ID"),
-        os.getenv("LTD_KEEPER_TEST_AWS_SECRET"),
+        os.getenv("LTD_KEEPER_TEST_AWS_ID", ""),
+        os.getenv("LTD_KEEPER_TEST_AWS_SECRET", ""),
     )
 
     # Ensure paths outside of that are still available, but paths in b/ are
@@ -99,10 +107,10 @@ def test_delete_directory(request):
 
     # Attempt to delete an empty prefix. Ensure it does not raise an exception.
     delete_directory(
-        os.getenv("LTD_KEEPER_TEST_BUCKET"),
+        os.getenv("LTD_KEEPER_TEST_BUCKET", ""),
         bucket_root + "empty-prefix/",
-        os.getenv("LTD_KEEPER_TEST_AWS_ID"),
-        os.getenv("LTD_KEEPER_TEST_AWS_SECRET"),
+        os.getenv("LTD_KEEPER_TEST_AWS_ID", ""),
+        os.getenv("LTD_KEEPER_TEST_AWS_SECRET", ""),
     )
 
 
@@ -114,7 +122,7 @@ def test_delete_directory(request):
     "LTD_KEEPER_TEST_AWS_SECRET and "
     "LTD_KEEPER_TEST_BUCKET",
 )
-def test_copy_directory(request):
+def test_copy_directory(request: FixtureRequest) -> None:
     session = boto3.session.Session(
         aws_access_key_id=os.getenv("LTD_KEEPER_TEST_AWS_ID"),
         aws_secret_access_key=os.getenv("LTD_KEEPER_TEST_AWS_SECRET"),
@@ -124,13 +132,13 @@ def test_copy_directory(request):
 
     bucket_root = str(uuid.uuid4()) + "/"
 
-    def cleanup():
+    def cleanup() -> None:
         print("Cleaning up the bucket")
         delete_directory(
-            os.getenv("LTD_KEEPER_TEST_BUCKET"),
+            os.getenv("LTD_KEEPER_TEST_BUCKET", ""),
             bucket_root,
-            os.getenv("LTD_KEEPER_TEST_AWS_ID"),
-            os.getenv("LTD_KEEPER_TEST_AWS_SECRET"),
+            os.getenv("LTD_KEEPER_TEST_AWS_ID", ""),
+            os.getenv("LTD_KEEPER_TEST_AWS_SECRET", ""),
         )
 
     request.addfinalizer(cleanup)
@@ -158,11 +166,11 @@ def test_copy_directory(request):
 
     # copy files
     copy_directory(
-        bucket_name=os.getenv("LTD_KEEPER_TEST_BUCKET"),
+        bucket_name=os.getenv("LTD_KEEPER_TEST_BUCKET", ""),
         src_path=bucket_root + "b/",
         dest_path=bucket_root + "a/",
-        aws_access_key_id=os.getenv("LTD_KEEPER_TEST_AWS_ID"),
-        aws_secret_access_key=os.getenv("LTD_KEEPER_TEST_AWS_SECRET"),
+        aws_access_key_id=os.getenv("LTD_KEEPER_TEST_AWS_ID", ""),
+        aws_secret_access_key=os.getenv("LTD_KEEPER_TEST_AWS_SECRET", ""),
         surrogate_key="new-key",
         surrogate_control="max-age=31536000",
         cache_control="no-cache",
@@ -188,7 +196,7 @@ def test_copy_directory(request):
     assert os.path.join(bucket_root, "a") in bucket_paths
 
 
-def test_copy_dir_src_in_dest():
+def test_copy_dir_src_in_dest() -> None:
     """Test that copy_directory fails raises an assertion error if source in
     destination.
     """
@@ -196,7 +204,7 @@ def test_copy_dir_src_in_dest():
         copy_directory("example", "dest/src", "dest", "id", "key")
 
 
-def test_copy_dir_dest_in_src():
+def test_copy_dir_dest_in_src() -> None:
     """Test that copy_directory fails raises an assertion error if destination
     is part of the source.
     """
@@ -205,8 +213,13 @@ def test_copy_dir_dest_in_src():
 
 
 def _upload_files(
-    file_paths, bucket, bucket_root, surrogate_key, cache_control, content_type
-):
+    file_paths: List[str],
+    bucket: Any,
+    bucket_root: str,
+    surrogate_key: str,
+    cache_control: str,
+    content_type: str,
+) -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         for p in file_paths:
             full_path = os.path.join(temp_dir, p)
@@ -234,7 +247,9 @@ def _upload_files(
         ("base/prefix", "", "base/prefix/"),
     ],
 )
-def test_format_bucket_prefix(base_prefix, dirname, expected):
+def test_format_bucket_prefix(
+    base_prefix: str, dirname: str, expected: str
+) -> None:
     assert expected == format_bucket_prefix(base_prefix, dirname)
 
 
@@ -309,14 +324,16 @@ def test_format_bucket_prefix(base_prefix, dirname, expected):
         ),
     ],
 )
-def test_set_condition(conditions, key, condition, expected):
+def test_set_condition(
+    conditions: Any, key: str, condition: Any, expected: Any
+) -> None:
     new_conditions = set_condition(
         conditions=conditions, condition_key=key, condition=condition
     )
     assert new_conditions == expected
 
 
-def test_presign_post_url_for_prefix(mocker):
+def test_presign_post_url_for_prefix(mocker: Mock) -> None:
     mock_s3_session = mocker.MagicMock()
     mock_s3_client = mocker.MagicMock()
     mock_s3_session.client.return_value = mock_s3_client
@@ -338,7 +355,7 @@ def test_presign_post_url_for_prefix(mocker):
     )
 
 
-def test_presign_post_url_for_prefix_malformed(mocker):
+def test_presign_post_url_for_prefix_malformed(mocker: Mock) -> None:
     """Same test as test_presign_post_url_for_prefix, but prefix has a trailing
     slash.
     """
@@ -363,7 +380,7 @@ def test_presign_post_url_for_prefix_malformed(mocker):
     )
 
 
-def test_presign_post_url_for_prefix_with_conditions(mocker):
+def test_presign_post_url_for_prefix_with_conditions(mocker: Mock) -> None:
     mock_s3_session = mocker.MagicMock()
     mock_s3_client = mocker.MagicMock()
     mock_s3_session.client.return_value = mock_s3_client
@@ -401,7 +418,7 @@ def test_presign_post_url_for_prefix_with_conditions(mocker):
     )
 
 
-def test_presign_post_url_for_directory_objects(mocker):
+def test_presign_post_url_for_directory_objects(mocker: Mock) -> None:
     mock_s3_session = mocker.MagicMock()
     mock_s3_client = mocker.MagicMock()
     mock_s3_session.client.return_value = mock_s3_client
@@ -423,7 +440,9 @@ def test_presign_post_url_for_directory_objects(mocker):
     )
 
 
-def test_presign_post_url_for_directory_objects_with_conditions(mocker):
+def test_presign_post_url_for_directory_objects_with_conditions(
+    mocker: Mock,
+) -> None:
     mock_s3_session = mocker.MagicMock()
     mock_s3_client = mocker.MagicMock()
     mock_s3_session.client.return_value = mock_s3_client

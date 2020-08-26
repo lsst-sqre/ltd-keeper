@@ -1,11 +1,17 @@
-"""Application initialization.
-"""
+"""Application initialization."""
 
-__all__ = ("__version__", "flask_app")
+from __future__ import annotations
 
-from .appfactory import create_flask_app
-from .version import get_version
+from typing import TYPE_CHECKING
 
-__version__ = get_version()
+from keeper.appfactory import create_flask_app
+from keeper.version import get_version
 
-flask_app = create_flask_app()
+if TYPE_CHECKING:
+    from flask import Flask
+
+__all__ = ["__version__", "flask_app"]
+
+__version__: str = get_version()
+
+flask_app: Flask = create_flask_app()

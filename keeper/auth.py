@@ -13,23 +13,61 @@ Copyright 2016 AURA/LSST.
 Copyright 2014 Miguel Grinberg.
 """
 
+from __future__ import annotations
+
 from functools import wraps
+from typing import TYPE_CHECKING, Any, Callable, TypeVar
 
 import structlog
 from flask import current_app, g, jsonify
 from flask_httpauth import HTTPBasicAuth
 
-from .models import User
+from keeper.models import User
 
-# User+Password-based auth (only allowed for getting a token)
+if TYPE_CHECKING:
+    from flask import Response
+
+__all__ = [
+    "password_auth",
+    "token_auth",
+    "verify_password",
+    "unauthorized",
+    "verify_auth_token",
+    "unauthorized",
+    "verify_auth_token",
+    "permission_required",
+    "is_authorized",
+]
+
 password_auth = HTTPBasicAuth()
+"""User+Password-based auth (only allowed for getting a token)."""
 
-# Token-based auth (used for all requests)
 token_auth = HTTPBasicAuth()
+"""Token-based auth (used for all requests)."""
 
 
 @password_auth.verify_password
-def verify_password(username, password):
+def verify_password(username: str, password: str) -> bool:
+    """Verify a user's password corresponding to a username (for
+    `password_auth` middleware).
+
+    Parameters
+    ----------
+    username : `str`
+        The user's username, as provided in the request.
+    password : `str`
+        The password provided in the request.
+
+    Returns
+    -------
+    bool
+        ``True`` if the password is valid and ``False`` otherwise (including
+        if the user does not exist).
+
+    Notes
+    -----
+    This middleware binds the user's username to the request logger.
+    """
     g.user = User.query.filter_by(username=username).first()
 
     # Bind the username to the logger
@@ -45,7 +83,14 @@ def verify_password(username, password):
 
 
 @password_auth.error_handler
-def unauthorized():
+def unauthorized() -> Response:
+    """Handle error response for `password_auth` middleware.
+
+    Returns
+    -------
+    flask.Response
+        Flask response (401 unauthorized status).
+    """
     response = jsonify(
         {
             "status": 401,
@@ -58,8 +103,26 @@ def unauthorized():
 
 
 @token_auth.verify_password
-def verify_auth_token(token, unused):
-    if current_app.config.get("IGNORE_AUTH") is True:
+def verify_auth_token(token: str, *args: Any) -> bool:
+    """Verify an auth token (for `token_auth` middleware).
+
+    Parameters
+    ----------
+    token : `str`
+        The token, which takes the place of the "username" in basic auth.
+
+    Returns
+    -------
+    bool
+        ``True`` if the password is valid and ``False`` otherwise (including
+        if the user does not exist).
+
+    Notes
+    -----
+    This middleware binds the user's username to the request logger.
+    """
+    if current_app.config.get("IGNORE_AUTH"):
+        # App is in a testing state; use the default user
         g.user = User.query.get(1)
     else:
         g.user = User.verify_auth_token(token)
@@ -74,7 +137,14 @@ def verify_auth_token(token, unused):
 
 
 @token_auth.error_handler
-def unauthorized_token():
+def unauthorized_token() -> Response:
+    """Handle error response for `password_auth` middleware.
+
+    Returns
+    -------
+    flask.Response
+        Flask response (401 unauthorized status).
+    """
     response = jsonify(
         {
             "status": 401,
@@ -86,9 +156,14 @@ def unauthorized_token():
     return response
 
 
-def permission_required(permission):
+F = TypeVar("F", bound=Callable[..., Any])
+
+
+def permission_required(permission: int) -> Callable[[F], F]:
     """Route decorator to test user authorizations.
 
+    Examples
+    --------
     The decorator should be applied *after* the authentication decorator.
     For example::
 
@@ -104,9 +179,9 @@ def permission_required(permission):
     Authorization requires authentication.
     """
 
-    def decorator(f):
+    def decorator(f):  # type: ignore
         @wraps(f)
-        def decorated_function(*args, **kwargs):
+        def decorated_function(*args, **kwargs):  # type: ignore
             if current_app.config.get("IGNORE_AUTH") is True:
                 return f(*args, **kwargs)
             elif g.get("user", None) is None:
@@ -140,12 +215,20 @@ def permission_required(permission):
     return decorator
 
 
-def is_authorized(permission):
-    """Function is test whether a user has permission or not."""
+def is_authorized(permission: int) -> bool:
+    """Test whether the current user has the given permission.
+
+    Returns
+    -------
+    bool
+        ``True`` if the current user in the request context has the current
+        set of permissions based on `keeper.models.User.has_permission`.
+    """
     if current_app.config.get("IGNORE_AUTH") is True:
+        # App is in a testing state
         return True
     elif g.get("user", None) is None:
-        # user not authenticated
+        # User not authenticated
         return False
     else:
         return g.user.has_permission(permission)

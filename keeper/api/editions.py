@@ -1,19 +1,26 @@
 """API v1 routes for Editions."""
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Dict, Tuple
+
 from flask import jsonify, request
 from flask_accept import accept_fallback
 
-from ..auth import permission_required, token_auth
-from ..logutils import log_route
-from ..models import Edition, Permission, Product, db
-from ..taskrunner import (
+from keeper.api import api
+from keeper.auth import permission_required, token_auth
+from keeper.logutils import log_route
+from keeper.models import Edition, Permission, Product, db
+from keeper.taskrunner import (
     append_task_to_chain,
     insert_task_url_in_response,
     launch_task_chain,
     mock_registry,
 )
-from ..tasks.dashboardbuild import build_dashboard
-from . import api
+from keeper.tasks.dashboardbuild import build_dashboard
+
+if TYPE_CHECKING:
+    from flask import Response
 
 # Register imports of celery task chain launchers
 mock_registry.extend(
@@ -29,7 +36,7 @@ mock_registry.extend(
 @log_route()
 @token_auth.login_required
 @permission_required(Permission.ADMIN_EDITION)
-def new_edition(slug):
+def new_edition(slug: str) -> Tuple[Response, int, Dict[str, str]]:
     """Create a new Edition for a Product.
 
     **Authorization**
@@ -120,7 +127,7 @@ def new_edition(slug):
 @log_route()
 @token_auth.login_required
 @permission_required(Permission.ADMIN_EDITION)
-def deprecate_edition(id):
+def deprecate_edition(id: int) -> Tuple[Response, int]:
     """Deprecate an Edition of a Product.
 
     When an Edition is deprecated, the current time is added to the
@@ -176,7 +183,7 @@ def deprecate_edition(id):
 @api.route("/products/<slug>/editions/", methods=["GET"])
 @accept_fallback
 @log_route()
-def get_product_editions(slug):
+def get_product_editions(slug: str) -> Response:
     """List all editions published for a Product.
 
     **Example request**
@@ -223,7 +230,7 @@ def get_product_editions(slug):
 @api.route("/editions/<int:id>", methods=["GET"])
 @accept_fallback
 @log_route()
-def get_edition(id):
+def get_edition(id: int) -> Response:
     """Show metadata for an Edition.
 
     **Example request**
@@ -293,7 +300,7 @@ def get_edition(id):
 @log_route()
 @token_auth.login_required
 @permission_required(Permission.ADMIN_EDITION)
-def edit_edition(id):
+def edit_edition(id: int) -> Response:
     """Edit an Edition.
 
     This PATCH method allows you to specify a subset of JSON fields to replace

@@ -1,11 +1,25 @@
 """ltd-keeper configuration and environment profiles."""
 
+from __future__ import annotations
+
 import abc
 import logging
 import os
 import sys
+from typing import TYPE_CHECKING, Dict, Optional, Type
 
 import structlog
+
+if TYPE_CHECKING:
+    from flask import Flask
+
+__all__ = [
+    "Config",
+    "DevelopmentConfig",
+    "TestConfig",
+    "ProductionConfig",
+    "config",
+]
 
 BASEDIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 """Director path at the root of the repository (only for test and development
@@ -13,29 +27,27 @@ profiles).
 """
 
 
-class Config(object):
+class Config(abc.ABC):
     """Configuration baseclass."""
 
-    __metaclass__ = abc.ABCMeta
-
-    SECRET_KEY = "secret-key"
-    DEBUG = False
-    IGNORE_AUTH = False
-    PREFERRED_URL_SCHEME = "http"
-    AWS_ID = os.environ.get("LTD_KEEPER_AWS_ID")
-    AWS_SECRET = os.environ.get("LTD_KEEPER_AWS_SECRET")
-    FASTLY_KEY = os.environ.get("LTD_KEEPER_FASTLY_KEY")
-    FASTLY_SERVICE_ID = os.environ.get("LTD_KEEPER_FASTLY_ID")
-    LTD_DASHER_URL = os.getenv("LTD_DASHER_URL", None)
-    CELERY_RESULT_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
-    CELERY_BROKER_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
-    LTD_EVENTS_URL = os.getenv("LTD_EVENTS_URL", None)
+    SECRET_KEY: Optional[str] = "secret-key"
+    DEBUG: bool = False
+    IGNORE_AUTH: bool = False
+    PREFERRED_URL_SCHEME: str = "http"
+    AWS_ID: Optional[str] = os.environ.get("LTD_KEEPER_AWS_ID")
+    AWS_SECRET: Optional[str] = os.environ.get("LTD_KEEPER_AWS_SECRET")
+    FASTLY_KEY: Optional[str] = os.environ.get("LTD_KEEPER_FASTLY_KEY")
+    FASTLY_SERVICE_ID: Optional[str] = os.environ.get("LTD_KEEPER_FASTLY_ID")
+    LTD_DASHER_URL: Optional[str] = os.getenv("LTD_DASHER_URL", None)
+    CELERY_RESULT_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379")
+    CELERY_BROKER_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379")
+    LTD_EVENTS_URL: Optional[str] = os.getenv("LTD_EVENTS_URL", None)
 
     # Suppresses a warning until Flask-SQLAlchemy 3
     # See http://stackoverflow.com/a/33790196
-    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SQLALCHEMY_TRACK_MODIFICATIONS: bool = False
 
-    PROXY_FIX = bool(int(os.getenv("LTD_KEEPER_PROXY_FIX", "0")))
+    PROXY_FIX: bool = bool(int(os.getenv("LTD_KEEPER_PROXY_FIX", "0")))
     """Activate the Werkzeug ProxyFix middleware by setting to 1.
 
     Only activate this middleware when LTD Keeper is deployed behind a
@@ -50,23 +62,23 @@ class Config(object):
     - ``TRUST_X_PREFIX``
     """
 
-    TRUST_X_FOR = int(os.getenv("LTD_KEEPER_X_FOR", "1"))
+    TRUST_X_FOR: int = int(os.getenv("LTD_KEEPER_X_FOR", "1"))
     """Number of values to trust for X-Forwarded-For."""
 
-    TRUST_X_PROTO = int(os.getenv("LTD_KEEPER_X_PROTO", "1"))
+    TRUST_X_PROTO: int = int(os.getenv("LTD_KEEPER_X_PROTO", "1"))
     """Number of values to trust for X-Forwarded-Proto."""
 
-    TRUST_X_HOST = int(os.getenv("LTD_KEEPER_X_HOST", "1"))
+    TRUST_X_HOST: int = int(os.getenv("LTD_KEEPER_X_HOST", "1"))
     """Number of values to trust for X-Forwarded-Host."""
 
-    TRUST_X_PORT = int(os.getenv("LTD_KEEPER_X_PORT", "0"))
+    TRUST_X_PORT: int = int(os.getenv("LTD_KEEPER_X_PORT", "0"))
     """Number of values to trust for X-Forwarded-Port."""
 
-    TRUST_X_PREFIX = int(os.getenv("LTD_KEEPER_X_PREFIX", "0"))
+    TRUST_X_PREFIX: int = int(os.getenv("LTD_KEEPER_X_PREFIX", "0"))
     """Number of values to trust for X-Forwarded-Prefix."""
 
     @abc.abstractclassmethod
-    def init_app(cls, app):
+    def init_app(cls, app: Flask) -> None:
         pass
 
 
@@ -82,7 +94,7 @@ class DevelopmentConfig(Config):
     DEFAULT_PASSWORD = "pass"
 
     @classmethod
-    def init_app(cls, app):
+    def init_app(cls, app: Flask) -> None:
         """Initialization hook called during
         `keeper.appfactory.create_flask_app`.
         """
@@ -121,7 +133,7 @@ class TestConfig(Config):
     )
 
     @classmethod
-    def init_app(cls, app):
+    def init_app(cls, app: Flask) -> None:
         """Initialization hook called during `
         `keeper.appfactory.create_flask_app`.
         """
@@ -158,10 +170,10 @@ class ProductionConfig(Config):
     SQLALCHEMY_DATABASE_URI = os.environ.get("LTD_KEEPER_DB_URL")
     DEFAULT_USER = os.environ.get("LTD_KEEPER_BOOTSTRAP_USER")
     DEFAULT_PASSWORD = os.environ.get("LTD_KEEPER_BOOTSTRAP_PASSWORD")
-    PREFERRED_URL_SCHEME = os.environ.get("LTD_KEEPER_URL_SCHEME")
+    PREFERRED_URL_SCHEME = os.environ.get("LTD_KEEPER_URL_SCHEME", "https")
 
     @classmethod
-    def init_app(cls, app):
+    def init_app(cls, app: Flask) -> None:
         """Initialization hook called during
         `keeper.appfactory.create_flask_app`.
         """
@@ -188,7 +200,7 @@ class ProductionConfig(Config):
         )
 
 
-config = {
+config: Dict[str, Type[Config]] = {
     "development": DevelopmentConfig,
     "testing": TestConfig,
     "production": ProductionConfig,

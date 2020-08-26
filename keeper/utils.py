@@ -4,8 +4,11 @@ Copyright 2016 AURA/LSST.
 Copyright 2014 Miguel Grinberg.
 """
 
+from __future__ import annotations
+
 import json
 import re
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
 
 from dateutil import parser as datetime_parser
 from dateutil.tz import tzutc
@@ -15,19 +18,36 @@ from sqlalchemy.types import VARCHAR, TypeDecorator
 from werkzeug.exceptions import NotFound
 from werkzeug.urls import url_parse
 
-from .exceptions import ValidationError
+from keeper.exceptions import ValidationError
 
-# Regular expression to validate url-safe slugs for products
+if TYPE_CHECKING:
+    import datetime
+
+__all__ = [
+    "PRODUCT_SLUG_PATTERN",
+    "PATH_SLUG_PATTERN",
+    "TICKET_BRANCH_PATTERN",
+    "split_url",
+    "validate_product_slug",
+    "validate_path_slug",
+    "auto_slugify_edition",
+    "format_utc_datetime",
+    "parse_utc_datetime",
+    "JSONEncodedVARCHAR",
+    "MutableList",
+]
+
 PRODUCT_SLUG_PATTERN = re.compile(r"^[a-z]+[-a-z0-9]*[a-z0-9]+$")
+"""Regular expression to validate url-safe slugs for products."""
 
-# Regular expression to validate url-safe slugs for editions/builds
 PATH_SLUG_PATTERN = re.compile(r"^[a-zA-Z0-9-\._]+$")
+"""Regular expression to validate url-safe slugs for editions/builds."""
 
-# Regular expression for DM ticket branches (to auto-build slugs)
 TICKET_BRANCH_PATTERN = re.compile(r"^tickets/([A-Z]+-[0-9]+)$")
+"""Regular expression for DM ticket branches (to auto-build slugs)."""
 
 
-def split_url(url, method="GET"):
+def split_url(url: str, method: str = "GET") -> Tuple[str, Dict[str, str]]:
     """Returns the endpoint name and arguments that match a given URL.
 
     This is the reverse of Flask's `url_for()`.
@@ -65,7 +85,7 @@ def split_url(url, method="GET"):
     return result
 
 
-def validate_product_slug(slug):
+def validate_product_slug(slug: str) -> bool:
     """Validate a URL-safe slug for products."""
     m = PRODUCT_SLUG_PATTERN.match(slug)
     if m is None or m.string != slug:
@@ -73,17 +93,19 @@ def validate_product_slug(slug):
     return True
 
 
-def validate_path_slug(slug):
-    """Validate a URL-safe slug for builds/editions. This validation
-    is slightly more lax than validate_product_slug because build/edition
-    slugs are only used in the paths, not as parts of domains."""
+def validate_path_slug(slug: str) -> bool:
+    """Validate a URL-safe slug for builds/editions.
+
+    This validation is slightly more lax than `validate_product_slug` because
+    build/edition slugs are only used in the paths, not as parts of domains.
+    """
     m = PATH_SLUG_PATTERN.match(slug)
     if m is None or m.string != slug:
         raise ValidationError("Invalid slug: " + slug)
     return True
 
 
-def auto_slugify_edition(git_refs):
+def auto_slugify_edition(git_refs: List[str]) -> str:
     """Given a list of Git refs, build a reasonable URL-safe slug."""
     slug = "-".join(git_refs)
 
@@ -97,17 +119,17 @@ def auto_slugify_edition(git_refs):
     return slug
 
 
-def format_utc_datetime(dt):
-    """Standardized UTC `str` representation for a
-    `datetime.datetime.Datetime`.
-    """
+def format_utc_datetime(dt: Optional[datetime.datetime]) -> Optional[str]:
+    """Standardized UTC `str` representation for a `datetime.datetime`."""
     if dt is None:
         return None
     else:
         return dt.isoformat() + "Z"
 
 
-def parse_utc_datetime(datetime_str):
+def parse_utc_datetime(
+    datetime_str: Optional[str],
+) -> Optional[datetime.datetime]:
     """Parse a date string, returning a UTC datetime object."""
     if datetime_str is not None:
         date = (
@@ -132,13 +154,13 @@ class JSONEncodedVARCHAR(TypeDecorator):
 
     impl = VARCHAR
 
-    def process_bind_param(self, value, dialect):
+    def process_bind_param(self, value: Any, dialect: Any) -> str:
         if value is not None:
             value = json.dumps(value)
 
         return value
 
-    def process_result_value(self, value, dialect):
+    def process_result_value(self, value: Optional[Any], dialect: Any) -> Any:
         if value is not None:
             value = json.loads(value)
         return value
@@ -156,7 +178,7 @@ class MutableList(Mutable, list):
     """
 
     @classmethod
-    def coerce(cls, key, value):
+    def coerce(cls, key: Any, value: Any) -> "MutableList":
         """Convert plain lists to MutableList."""
         if not isinstance(value, MutableList):
             if isinstance(value, list):
@@ -167,12 +189,12 @@ class MutableList(Mutable, list):
         else:
             return value
 
-    def __setitem__(self, index, value):
+    def __setitem__(self, index: Any, value: Any) -> None:
         """Detect list set events and emit change events."""
         list.__setitem__(self, index, value)
         self.changed()
 
-    def __delitem__(self, index):
+    def __delitem__(self, index: Union[int, slice]) -> None:
         """Detect list del events and emit change events."""
         list.__delitem__(self, index)
         self.changed()

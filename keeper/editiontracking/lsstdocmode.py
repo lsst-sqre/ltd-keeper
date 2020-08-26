@@ -1,13 +1,21 @@
 """Utilities for parsing Git refs according to LSST format."""
 
-__all__ = (
+from __future__ import annotations
+
+import re
+from typing import TYPE_CHECKING, Optional
+
+from keeper.editiontracking.base import TrackingModeBase
+
+if TYPE_CHECKING:
+    from keeper.models import Build, Edition
+
+__all__ = [
     "DOCUSHARE_PATTERN",
     "LSST_DOC_V_TAG",
     "LsstDocVersionTag",
     "LsstDocTrackingMode",
-)
-
-import re
+]
 
 # The RFC-401 format for tagged docushare releases.
 DOCUSHARE_PATTERN = re.compile(r"docushare-v(?P<version>[\d\.]+)")
@@ -17,16 +25,21 @@ DOCUSHARE_PATTERN = re.compile(r"docushare-v(?P<version>[\d\.]+)")
 LSST_DOC_V_TAG = re.compile(r"^v(?P<major>[\d+])\.(?P<minor>[\d+])$")
 
 
-class LsstDocTrackingMode:
+class LsstDocTrackingMode(TrackingModeBase):
     """LSST document-specific tracking mode where an edition publishes the
     most recent ``vN.M`` tag.
     """
 
     @property
-    def name(self):
+    def name(self) -> str:
         return "lsst_doc"
 
-    def should_update(self, edition, candidate_build):
+    def should_update(
+        self, edition: Optional[Edition], candidate_build: Optional[Build]
+    ) -> bool:
+        if edition is None or candidate_build is None:
+            return False
+
         # If the edition is unpublished or showing `master`, and the
         # build is tracking `master`, then allow this rebuild.
         # This is used in the period before a semantic version is
@@ -82,7 +95,7 @@ class LsstDocVersionTag:
         match the LPM-51 standard).
     """
 
-    def __init__(self, version_str):
+    def __init__(self, version_str: str) -> None:
         super(LsstDocVersionTag, self).__init__()
         self.version_str = version_str
         match = LSST_DOC_V_TAG.match(version_str)
@@ -93,19 +106,26 @@ class LsstDocVersionTag:
         self.major = int(match.group("major"))
         self.minor = int(match.group("minor"))
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "LsstDocVersion({:r})".format(self.version_str)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "{0:d}.{1:d}".format(self.major, self.minor)
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, LsstDocVersionTag):
+            raise NotImplementedError
         return self.major == other.major and self.minor == other.minor
 
-    def __ne__(self, other):
+    def __ne__(self, other: object) -> bool:
+        if not isinstance(other, LsstDocVersionTag):
+            raise NotImplementedError
         return self.__eq__(other) is False
 
-    def __gt__(self, other):
+    def __gt__(self, other: object) -> bool:
+        if not isinstance(other, LsstDocVersionTag):
+            raise NotImplementedError
+
         if self.major > other.major:
             return True
         elif self.major == other.major:
@@ -113,11 +133,20 @@ class LsstDocVersionTag:
         else:
             return False
 
-    def __lt__(self, other):
+    def __lt__(self, other: object) -> bool:
+        if not isinstance(other, LsstDocVersionTag):
+            raise NotImplementedError
+
         return (self.__eq__(other) is False) and (self.__gt__(other) is False)
 
-    def __ge__(self, other):
+    def __ge__(self, other: object) -> bool:
+        if not isinstance(other, LsstDocVersionTag):
+            raise NotImplementedError
+
         return (self.__eq__(other) is True) or (self.__gt__(other) is True)
 
-    def __le__(self, other):
+    def __le__(self, other: object) -> bool:
+        if not isinstance(other, LsstDocVersionTag):
+            raise NotImplementedError
+
         return (self.__eq__(other) is True) or (self.__gt__(other) is False)

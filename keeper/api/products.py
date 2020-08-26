@@ -1,19 +1,23 @@
 """API v1 routes for products."""
 
+from __future__ import annotations
+
+from typing import Dict, Tuple
+
 from flask import jsonify, request
 from flask_accept import accept_fallback
 
-from ..auth import permission_required, token_auth
-from ..logutils import log_route
-from ..models import Edition, Permission, Product, db
-from ..taskrunner import (
+from keeper.api import api
+from keeper.auth import permission_required, token_auth
+from keeper.logutils import log_route
+from keeper.models import Edition, Permission, Product, db
+from keeper.taskrunner import (
     append_task_to_chain,
     insert_task_url_in_response,
     launch_task_chain,
     mock_registry,
 )
-from ..tasks.dashboardbuild import build_dashboard
-from . import api
+from keeper.tasks.dashboardbuild import build_dashboard
 
 # Register imports of celery task chain launchers
 mock_registry.extend(
@@ -27,7 +31,7 @@ mock_registry.extend(
 @api.route("/products/", methods=["GET"])
 @accept_fallback
 @log_route()
-def get_products():
+def get_products() -> str:
     """List all documentation products (anonymous access allowed).
 
     **Example request**
@@ -65,7 +69,7 @@ def get_products():
 @api.route("/products/<slug>", methods=["GET"])
 @accept_fallback
 @log_route()
-def get_product(slug):
+def get_product(slug: str) -> str:
     """Get the record of a single documentation product (anonymous access
     allowed).
 
@@ -139,7 +143,7 @@ def get_product(slug):
 @log_route()
 @token_auth.login_required
 @permission_required(Permission.ADMIN_PRODUCT)
-def new_product():
+def new_product() -> Tuple[str, int, Dict[str, str]]:
     """Create a new documentation product.
 
     Every new product also includes a default edition (slug is 'main'). This
@@ -251,7 +255,7 @@ def new_product():
 @log_route()
 @token_auth.login_required
 @permission_required(Permission.ADMIN_PRODUCT)
-def edit_product(slug):
+def edit_product(slug: str) -> Tuple[str, int, Dict[str, str]]:
     """Update a product.
 
     Note that not all fields can be updated with this method (currently).
@@ -328,7 +332,7 @@ def edit_product(slug):
 @log_route()
 @token_auth.login_required
 @permission_required(Permission.ADMIN_PRODUCT)
-def rebuild_product_dashboard(slug):
+def rebuild_product_dashboard(slug: str) -> Tuple[str, int, Dict[str, str]]:
     """Rebuild the LTD Dasher dashboard manually for a single product.
 
     Note that the dashboard is built asynchronously.

@@ -1,12 +1,20 @@
-"""Test an Edition that tracks LSST document releases (``lsst_doc).
-"""
+"""Test an Edition that tracks LSST document releases (``lsst_doc``)."""
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 from keeper.taskrunner import mock_registry
 from keeper.tasks.dashboardbuild import build_dashboard
 from keeper.tasks.editionrebuild import rebuild_edition
 
+if TYPE_CHECKING:
+    from unittest.mock import Mock
 
-def test_lsst_doc_edition(client, mocker):
+    from keeper.testutils import TestClient
+
+
+def test_lsst_doc_edition(client: TestClient, mocker: Mock) -> None:
     """Test an edition that tracks LSST Doc semantic versions.
 
     1. Create a build on `master`; it should be tracked because the LSST_DOC

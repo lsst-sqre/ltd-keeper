@@ -1,12 +1,11 @@
-"""Unit tests for keeper.editiontracking.eupsmajormode.
-"""
+"""Unit tests for keeper.editiontracking.eupsmajormode."""
 
 import pytest
 
 from keeper.editiontracking.eupsmajormode import MajorReleaseTag
 
 
-def test_parsing():
+def test_parsing() -> None:
     tag = MajorReleaseTag("v1_0")
     assert tag.major == 1
     assert tag.minor == 0
@@ -35,7 +34,7 @@ def test_parsing():
         MajorReleaseTag("2.0.0")
 
 
-def test_comparisons():
+def test_comparisons() -> None:
     assert MajorReleaseTag("v1_0") > MajorReleaseTag("v0_1")
     assert MajorReleaseTag("v1_0") != MajorReleaseTag("v0_1")
 

@@ -1,10 +1,16 @@
-"""Tests for the root route.
-"""
+"""Tests for the root route."""
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 from keeper.version import get_version
 
+if TYPE_CHECKING:
+    from keeper.testutils import TestClient
 
-def test_root(client):
+
+def test_root(client: TestClient) -> None:
     r = client.get("/")
     assert r.status == 200
 

@@ -1,9 +1,15 @@
 """Implement the "eups_major_release" Edition tracking mode.
 """
 
-__all__ = ("EupsMajorReleaseTrackingMode",)
+from __future__ import annotations
 
 import re
+from typing import TYPE_CHECKING, Optional, Tuple
+
+from keeper.editiontracking.base import TrackingModeBase
+
+if TYPE_CHECKING:
+    from keeper.models import Build, Edition
 
 TAG_PATTERN = re.compile(r"^v(?P<major>\d+)_(?P<minor>\d+)$")
 """Regular expression for matching an EUPS major release tag with the format
@@ -15,17 +21,24 @@ GIT_TAG_PATTERN = re.compile(r"^(?P<major>\d+)\.(?P<minor>\d+)$")
 with the format ``X.Y``.
 """
 
+__all__ = ["EupsMajorReleaseTrackingMode"]
 
-class EupsMajorReleaseTrackingMode:
+
+class EupsMajorReleaseTrackingMode(TrackingModeBase):
     """Tracking mode for the the newest EUPS major release (``vX_Y`` or
     ``X.Y``).
     """
 
     @property
-    def name(self):
+    def name(self) -> str:
         return "eups_major_release"
 
-    def should_update(self, edition, candidate_build):
+    def should_update(
+        self, edition: Optional[Edition], candidate_build: Optional[Build]
+    ) -> bool:
+        if edition is None or candidate_build is None:
+            return False
+
         # Does the build have a major release tag?
         try:
             candidate_version = MajorReleaseTag(candidate_build.git_refs[0])
@@ -52,10 +65,9 @@ class EupsMajorReleaseTrackingMode:
 
 
 class MajorReleaseTag:
-    """An EUPS tag for a major release.
-    """
+    """An EUPS tag for a major release."""
 
-    def __init__(self, tag):
+    def __init__(self, tag: str) -> None:
         self.tag = tag
         match = TAG_PATTERN.search(tag)
         if match is None:
@@ -69,23 +81,41 @@ class MajorReleaseTag:
         self.minor = int(match.group("minor"))
 
     @property
-    def parts(self):
+    def parts(self) -> Tuple[int, int]:
         return (self.major, self.minor)
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, MajorReleaseTag):
+            raise NotImplementedError
+
         return self.parts == other.parts
 
-    def __ne__(self, other):
+    def __ne__(self, other: object) -> bool:
+        if not isinstance(other, MajorReleaseTag):
+            raise NotImplementedError
+
         return self.__eq__(other) is False
 
-    def __gt__(self, other):
+    def __gt__(self, other: object) -> bool:
+        if not isinstance(other, MajorReleaseTag):
+            raise NotImplementedError
+
         return self.parts > other.parts
 
-    def __lt__(self, other):
+    def __lt__(self, other: object) -> bool:
+        if not isinstance(other, MajorReleaseTag):
+            raise NotImplementedError
+
         return (self.__eq__(other) is False) and (self.__gt__(other) is False)
 
-    def __ge__(self, other):
+    def __ge__(self, other: object) -> bool:
+        if not isinstance(other, MajorReleaseTag):
+            raise NotImplementedError
+
         return (self.__eq__(other) is True) or (self.__gt__(other) is True)
 
-    def __le__(self, other):
+    def __le__(self, other: object) -> bool:
+        if not isinstance(other, MajorReleaseTag):
+            raise NotImplementedError
+
         return (self.__eq__(other) is True) or (self.__gt__(other) is False)

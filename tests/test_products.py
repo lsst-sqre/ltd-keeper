@@ -1,5 +1,8 @@
-"""Tests for the product API.
-"""
+"""Tests for the product API."""
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 import pytest
 import werkzeug.exceptions
@@ -8,8 +11,13 @@ from keeper.exceptions import ValidationError
 from keeper.taskrunner import mock_registry
 from keeper.tasks.dashboardbuild import build_dashboard
 
+if TYPE_CHECKING:
+    from unittest.mock import Mock
 
-def test_products(client, mocker):
+    from keeper.testutils import TestClient
+
+
+def test_products(client: TestClient, mocker: Mock) -> None:
     """Test various API operations against Product resources.
     """
     mock_registry.patch_all(mocker)
@@ -190,27 +198,31 @@ def test_products(client, mocker):
 # Only the full admin client and the product-authorized client should get in
 
 
-def test_post_product_auth_anon(anon_client):
+def test_post_product_auth_anon(anon_client: TestClient) -> None:
     r = anon_client.post("/products/", {"foo": "bar"})
     assert r.status == 401
 
 
-def test_post_product_auth_product_client(product_client):
+def test_post_product_auth_product_client(product_client: TestClient) -> None:
     with pytest.raises(ValidationError):
         product_client.post("/products/", {"foo": "bar"})
 
 
-def test_post_product_auth_edition_client(edition_client):
+def test_post_product_auth_edition_client(edition_client: TestClient) -> None:
     r = edition_client.post("/products/", {"foo": "bar"})
     assert r.status == 403
 
 
-def test_post_product_auth_builduploader_client(upload_build_client):
+def test_post_product_auth_builduploader_client(
+    upload_build_client: TestClient,
+) -> None:
     r = upload_build_client.post("/products/", {"foo": "bar"})
     assert r.status == 403
 
 
-def test_post_product_auth_builddeprecator_client(upload_build_client):
+def test_post_product_auth_builddeprecator_client(
+    upload_build_client: TestClient,
+) -> None:
     r = upload_build_client.post("/products/", {"foo": "bar"})
     assert r.status == 403
 
@@ -219,27 +231,31 @@ def test_post_product_auth_builddeprecator_client(upload_build_client):
 # Only the full admin client and the product-authorized client should get in
 
 
-def test_patch_product_auth_anon(anon_client):
+def test_patch_product_auth_anon(anon_client: TestClient) -> None:
     r = anon_client.patch("/products/test", {"foo": "bar"})
     assert r.status == 401
 
 
-def test_patch_product_auth_product_client(product_client):
+def test_patch_product_auth_product_client(product_client: TestClient) -> None:
     with pytest.raises(werkzeug.exceptions.NotFound):
         product_client.patch("/products/test", {"foo": "bar"})
 
 
-def test_patch_product_auth_edition_client(edition_client):
+def test_patch_product_auth_edition_client(edition_client: TestClient) -> None:
     r = edition_client.patch("/products/test", {"foo": "bar"})
     assert r.status == 403
 
 
-def test_patch_product_auth_builduploader_client(upload_build_client):
+def test_patch_product_auth_builduploader_client(
+    upload_build_client: TestClient,
+) -> None:
     r = upload_build_client.patch("/products/test", {"foo": "bar"})
     assert r.status == 403
 
 
-def test_patch_product_auth_builddeprecator_client(upload_build_client):
+def test_patch_product_auth_builddeprecator_client(
+    upload_build_client: TestClient,
+) -> None:
     r = upload_build_client.patch("/products/test", {"foo": "bar"})
     assert r.status == 403
 
@@ -248,21 +264,27 @@ def test_patch_product_auth_builddeprecator_client(upload_build_client):
 # Only the full admin client and the product-authorized client should get in
 
 
-def test_post_dashboard_auth_anon(anon_client):
+def test_post_dashboard_auth_anon(anon_client: TestClient) -> None:
     r = anon_client.post("/products/test/dashboard", {})
     assert r.status == 401
 
 
-def test_post_dashboard_auth_product_client(product_client):
+def test_post_dashboard_auth_product_client(
+    product_client: TestClient,
+) -> None:
     with pytest.raises(werkzeug.exceptions.NotFound):
         product_client.post("/products/test/dashboard", {})
 
 
-def test_post_dashboard_auth_edition_client(edition_client):
+def test_post_dashboard_auth_edition_client(
+    edition_client: TestClient,
+) -> None:
     r = edition_client.post("/products/test/dashboard", {})
     assert r.status == 403
 
 
-def test_post_dashboard_auth_builduploader_client(upload_build_client):
+def test_post_dashboard_auth_builduploader_client(
+    upload_build_client: TestClient,
+) -> None:
     r = upload_build_client.post("/products/test/dashboard", {})
     assert r.status == 403

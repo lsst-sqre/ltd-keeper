@@ -1,17 +1,23 @@
-"""Factory for the Celery application.
-"""
+"""Factory for the Celery application."""
 
-__all__ = ("celery_app", "create_celery_app")
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
 
 from celery import Celery
 
-celery_app = None
+if TYPE_CHECKING:
+    from flask import Flask
+
+__all__ = ["celery_app", "create_celery_app"]
+
+celery_app: Any = None
 """Celery app instance, initialized by `create_celery_app` via
 `keeper.appfactory.create_flask_app`.
 """
 
 
-def create_celery_app(flask_app):
+def create_celery_app(flask_app: Flask) -> None:
     """Create the Celery app.
 
     This implementation is based on
@@ -28,10 +34,10 @@ def create_celery_app(flask_app):
     celery_app.conf.update(flask_app.config)
     TaskBase = celery_app.Task
 
-    class ContextTask(TaskBase):
+    class ContextTask(TaskBase):  # type: ignore
         abstract = True
 
-        def __call__(self, *args, **kwargs):
+        def __call__(self, *args, **kwargs):  # type: ignore
             with flask_app.app_context():
                 return TaskBase.__call__(self, *args, **kwargs)
 

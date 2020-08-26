@@ -1,12 +1,17 @@
-__all__ = ("EditionTrackingModes",)
+from __future__ import annotations
 
-from ..exceptions import ValidationError
-from .eupsdailymode import EupsDailyReleaseTrackingMode
-from .eupsmajormode import EupsMajorReleaseTrackingMode
-from .eupsweeklymode import EupsWeeklyReleaseTrackingMode
-from .gitrefmode import GitRefTrackingMode
-from .lsstdocmode import LsstDocTrackingMode
-from .manualmode import ManualTrackingMode
+from typing import Union
+
+from keeper.editiontracking.base import TrackingModeBase
+from keeper.editiontracking.eupsdailymode import EupsDailyReleaseTrackingMode
+from keeper.editiontracking.eupsmajormode import EupsMajorReleaseTrackingMode
+from keeper.editiontracking.eupsweeklymode import EupsWeeklyReleaseTrackingMode
+from keeper.editiontracking.gitrefmode import GitRefTrackingMode
+from keeper.editiontracking.lsstdocmode import LsstDocTrackingMode
+from keeper.editiontracking.manualmode import ManualTrackingMode
+from keeper.exceptions import ValidationError
+
+__all__ = ["EditionTrackingModes"]
 
 
 class EditionTrackingModes:
@@ -34,12 +39,12 @@ class EditionTrackingModes:
     This is the inverse of ``_modes``.
     """
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: Union[int, str]) -> TrackingModeBase:
         if not isinstance(key, int):
             key = self.name_to_id(key)
         return self._modes[key]
 
-    def name_to_id(self, mode):
+    def name_to_id(self, mode: str) -> int:
         """Convert a mode name (string used by the web API) to a mode ID
         (integer) used by the DB.
 
@@ -67,7 +72,7 @@ class EditionTrackingModes:
             raise ValidationError(message.format(mode, self._name_map.keys()))
         return mode_id
 
-    def id_to_name(self, mode_id):
+    def id_to_name(self, mode_id: int) -> str:
         """Convert a mode ID (integer used by the DB) to a name used by the
         web API.
 

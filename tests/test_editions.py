@@ -1,5 +1,8 @@
-"""Tests APIs related to edition resources.
-"""
+"""Tests APIs related to edition resources."""
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 import pytest
 from werkzeug.exceptions import NotFound
@@ -9,8 +12,13 @@ from keeper.taskrunner import mock_registry
 from keeper.tasks.dashboardbuild import build_dashboard
 from keeper.tasks.editionrebuild import rebuild_edition
 
+if TYPE_CHECKING:
+    from unittest.mock import Mock
 
-def test_editions(client, mocker):
+    from keeper.testutils import TestClient
+
+
+def test_editions(client: TestClient, mocker: Mock) -> None:
     """Exercise different /edition/ API scenarios.
     """
     mock_registry.patch_all(mocker)
@@ -218,27 +226,31 @@ def test_editions(client, mocker):
 # Only the full admin client and the edition-authorized client should get in
 
 
-def test_post_edition_auth_anon(anon_client):
+def test_post_edition_auth_anon(anon_client: TestClient) -> None:
     r = anon_client.post("/products/test/editions/", {"foo": "bar"})
     assert r.status == 401
 
 
-def test_post_edition_auth_product_client(product_client):
+def test_post_edition_auth_product_client(product_client: TestClient) -> None:
     r = product_client.post("/products/test/editions/", {"foo": "bar"})
     assert r.status == 403
 
 
-def test_post_edition_auth_edition_client(edition_client):
+def test_post_edition_auth_edition_client(edition_client: TestClient) -> None:
     with pytest.raises(NotFound):
         edition_client.post("/products/test/editions/", {"foo": "bar"})
 
 
-def test_post_edition_auth_builduploader_client(upload_build_client):
+def test_post_edition_auth_builduploader_client(
+    upload_build_client: TestClient,
+) -> None:
     r = upload_build_client.post("/products/test/editions/", {"foo": "bar"})
     assert r.status == 403
 
 
-def test_post_edition_auth_builddeprecator_client(deprecate_build_client):
+def test_post_edition_auth_builddeprecator_client(
+    deprecate_build_client: TestClient,
+) -> None:
     r = deprecate_build_client.post("/products/test/editions/", {"foo": "bar"})
     assert r.status == 403
 
@@ -247,27 +259,31 @@ def test_post_edition_auth_builddeprecator_client(deprecate_build_client):
 # Only the full admin client and the edition-authorized client should get in
 
 
-def test_patch_edition_auth_anon(anon_client):
+def test_patch_edition_auth_anon(anon_client: TestClient) -> None:
     r = anon_client.patch("/editions/1", {"foo": "bar"})
     assert r.status == 401
 
 
-def test_patch_edition_auth_product_client(product_client):
+def test_patch_edition_auth_product_client(product_client: TestClient) -> None:
     r = product_client.patch("/editions/1", {"foo": "bar"})
     assert r.status == 403
 
 
-def test_patch_edition_auth_edition_client(edition_client):
+def test_patch_edition_auth_edition_client(edition_client: TestClient) -> None:
     with pytest.raises(NotFound):
         edition_client.patch("/editions/1", {"foo": "bar"})
 
 
-def test_patch_edition_auth_builduploader_client(upload_build_client):
+def test_patch_edition_auth_builduploader_client(
+    upload_build_client: TestClient,
+) -> None:
     r = upload_build_client.patch("/editions/1", {"foo": "bar"})
     assert r.status == 403
 
 
-def test_patch_edition_auth_builddeprecator_client(deprecate_build_client):
+def test_patch_edition_auth_builddeprecator_client(
+    deprecate_build_client: TestClient,
+) -> None:
     r = deprecate_build_client.patch("/editions/1", {"foo": "bar"})
     assert r.status == 403
 
@@ -276,26 +292,34 @@ def test_patch_edition_auth_builddeprecator_client(deprecate_build_client):
 # Only the full admin client and the edition-authorized client should get in
 
 
-def test_delete_edition_auth_anon(anon_client):
+def test_delete_edition_auth_anon(anon_client: TestClient) -> None:
     r = anon_client.delete("/editions/1")
     assert r.status == 401
 
 
-def test_delete_edition_auth_product_client(product_client):
+def test_delete_edition_auth_product_client(
+    product_client: TestClient,
+) -> None:
     r = product_client.delete("/editions/1")
     assert r.status == 403
 
 
-def test_delete_edition_auth_edition_client(edition_client):
+def test_delete_edition_auth_edition_client(
+    edition_client: TestClient,
+) -> None:
     with pytest.raises(NotFound):
         edition_client.delete("/editions/1")
 
 
-def test_delete_edition_auth_builduploader_client(upload_build_client):
+def test_delete_edition_auth_builduploader_client(
+    upload_build_client: TestClient,
+) -> None:
     r = upload_build_client.delete("/editions/1")
     assert r.status == 403
 
 
-def test_delete_edition_auth_builddeprecator_client(deprecate_build_client):
+def test_delete_edition_auth_builddeprecator_client(
+    deprecate_build_client: TestClient,
+) -> None:
     r = deprecate_build_client.delete("/editions/1")
     assert r.status == 403

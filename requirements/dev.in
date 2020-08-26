@@ -8,6 +8,7 @@
 pytest
 responses
 pytest-mock
+sqlalchemy-stubs
 mock
 coverage[toml]
 mypy

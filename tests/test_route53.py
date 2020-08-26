@@ -4,6 +4,8 @@
 account.
 """
 
+from __future__ import annotations
+
 import logging
 import os
 
@@ -26,9 +28,9 @@ logging.getLogger("keeper.route53").level = logging.DEBUG
     or os.getenv("LTD_KEEPER_TEST_AWS_SECRET") is None,
     reason="Set LTD_KEEPER_TEST_AWS_ID and " "LTD_KEEPER_TEST_AWS_SECRET",
 )
-def test_route53():
-    AWS_ID = os.getenv("LTD_KEEPER_TEST_AWS_ID")
-    AWS_SECRET = os.getenv("LTD_KEEPER_TEST_AWS_SECRET")
+def test_route53() -> None:
+    AWS_ID = os.getenv("LTD_KEEPER_TEST_AWS_ID", "")
+    AWS_SECRET = os.getenv("LTD_KEEPER_TEST_AWS_SECRET", "")
 
     session = boto3.session.Session(
         aws_access_key_id=AWS_ID, aws_secret_access_key=AWS_SECRET

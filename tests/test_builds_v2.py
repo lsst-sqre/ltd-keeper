@@ -1,5 +1,8 @@
-"""Test v2 APIs for build resources.
-"""
+"""Test v2 APIs for build resources."""
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 import pytest
 from mock import MagicMock
@@ -11,8 +14,13 @@ from keeper.taskrunner import mock_registry
 from keeper.tasks.dashboardbuild import build_dashboard
 from keeper.tasks.editionrebuild import rebuild_edition
 
+if TYPE_CHECKING:
+    from unittest.mock import Mock
 
-def test_builds_v2(client, mocker):
+    from keeper.testutils import TestClient
+
+
+def test_builds_v2(client: TestClient, mocker: Mock) -> None:
     mock_registry.patch_all(mocker)
 
     mock_presigned_url = {
@@ -251,7 +259,7 @@ def test_builds_v2(client, mocker):
 # Only the build-upload auth'd client should get in
 
 
-def test_post_build_auth_anon(anon_client):
+def test_post_build_auth_anon(anon_client: TestClient) -> None:
     r = anon_client.post(
         "/products/test/builds/",
         {"foo": "bar"},
@@ -260,7 +268,7 @@ def test_post_build_auth_anon(anon_client):
     assert r.status == 401
 
 
-def test_post_build_auth_product_client(product_client):
+def test_post_build_auth_product_client(product_client: TestClient) -> None:
     r = product_client.post(
         "/products/test/builds/",
         {"foo": "bar"},
@@ -269,7 +277,7 @@ def test_post_build_auth_product_client(product_client):
     assert r.status == 403
 
 
-def test_post_build_auth_edition_client(edition_client):
+def test_post_build_auth_edition_client(edition_client: TestClient) -> None:
     r = edition_client.post(
         "/products/test/builds/",
         {"foo": "bar"},
@@ -278,7 +286,9 @@ def test_post_build_auth_edition_client(edition_client):
     assert r.status == 403
 
 
-def test_post_build_auth_builduploader_client(upload_build_client):
+def test_post_build_auth_builduploader_client(
+    upload_build_client: TestClient,
+) -> None:
     with pytest.raises(NotFound):
         upload_build_client.post(
             "/products/test/builds/",
@@ -287,7 +297,9 @@ def test_post_build_auth_builduploader_client(upload_build_client):
         )
 
 
-def test_post_build_auth_builddeprecator_client(deprecate_build_client):
+def test_post_build_auth_builddeprecator_client(
+    deprecate_build_client: TestClient,
+) -> None:
     r = deprecate_build_client.post(
         "/products/test/builds/",
         {"foo": "bar"},

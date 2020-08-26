@@ -4,6 +4,29 @@ In LSST the Docs, ltd-mason is responsible for uploading documentation
 resources to S3. ltd-keeper deletes resources and copies builds to editions.
 """
 
+from __future__ import annotations
+
+import logging
+import os
+from copy import deepcopy
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Collection,
+    Dict,
+    List,
+    Optional,
+    Sequence,
+)
+
+import boto3
+import botocore.exceptions
+
+from keeper.exceptions import S3Error
+
+if TYPE_CHECKING:
+    import botocore.client.S3
+
 __all__ = (
     "delete_directory",
     "copy_directory",
@@ -12,17 +35,8 @@ __all__ = (
     "format_bucket_prefix",
 )
 
-import logging
-import os
-from copy import deepcopy
 
-import boto3
-import botocore.exceptions
-
-from .exceptions import S3Error
-
-
-def open_s3_session(*, key_id, access_key):
+def open_s3_session(*, key_id: str, access_key: str) -> boto3.session.Session:
     """Create a boto3 S3 session that can be reused by multiple requests.
 
     Parameters
@@ -38,8 +52,11 @@ def open_s3_session(*, key_id, access_key):
 
 
 def delete_directory(
-    bucket_name, root_path, aws_access_key_id, aws_secret_access_key
-):
+    bucket_name: str,
+    root_path: str,
+    aws_access_key_id: str,
+    aws_secret_access_key: str,
+) -> None:
     """Delete all objects in the S3 bucket named `bucket_name` that are
     found in the `root_path` directory.
 
@@ -75,7 +92,7 @@ def delete_directory(
     paginator = client.get_paginator("list_objects_v2")
     pages = paginator.paginate(Bucket=bucket_name, Prefix=root_path)
 
-    keys = dict(Objects=[])
+    keys: Dict[str, List[Dict[str, str]]] = dict(Objects=[])
     for item in pages.search("Contents"):
         try:
             keys["Objects"].append({"Key": item["Key"]})
@@ -103,16 +120,16 @@ def delete_directory(
 
 
 def copy_directory(
-    bucket_name,
-    src_path,
-    dest_path,
-    aws_access_key_id,
-    aws_secret_access_key,
-    surrogate_key=None,
-    cache_control=None,
-    surrogate_control=None,
-    create_directory_redirect_object=True,
-):
+    bucket_name: str,
+    src_path: str,
+    dest_path: str,
+    aws_access_key_id: str,
+    aws_secret_access_key: str,
+    surrogate_key: Optional[str] = None,
+    cache_control: Optional[str] = None,
+    surrogate_control: Optional[str] = None,
+    create_directory_redirect_object: bool = True,
+) -> None:
     """Copy objects from one directory in a bucket to another directory in
     the same bucket.
 
@@ -234,13 +251,13 @@ def copy_directory(
 
 def presign_post_url_for_prefix(
     *,
-    s3_session,
-    bucket_name,
-    prefix,
-    fields=None,
-    conditions=None,
-    expiration=3600,
-):
+    s3_session: botocore.client.S3,
+    bucket_name: str,
+    prefix: str,
+    fields: Optional[Dict[str, str]] = None,
+    conditions: Optional[Sequence[Collection[str]]] = None,
+    expiration: int = 3600,
+) -> Dict[str, Any]:
     """Generate a presigned POST URL for clients to upload objects to S3
     without additional authentication.
 
@@ -320,13 +337,13 @@ def presign_post_url_for_prefix(
 
 def presign_post_url_for_directory_object(
     *,
-    s3_session,
-    bucket_name,
-    key,
-    fields=None,
-    conditions=None,
-    expiration=3600,
-):
+    s3_session: botocore.client.S3,
+    bucket_name: str,
+    key: str,
+    fields: Optional[Dict[str, str]] = None,
+    conditions: Optional[List[Any]] = None,
+    expiration: int = 3600,
+) -> Dict[str, Any]:
     """Generate a presigned POST URL for clients to upload directory rediect
     objects to S3 without additional authentication.
 
@@ -378,15 +395,16 @@ def presign_post_url_for_directory_object(
         fields = {}
     else:
         fields = deepcopy(fields)
+
     if conditions is None:
-        conditions = []
+        _conditions: List[Any] = []
     else:
-        conditions = deepcopy(conditions)
+        _conditions = deepcopy(conditions)
 
     # Apply presets for directory redirect objects
     fields["x-amz-meta-dir-redirect"] = "true"
     conditions = set_condition(
-        conditions=conditions,
+        conditions=_conditions,
         condition_key="x-amz-meta-dir-redirect",
         condition={"x-amz-meta-dir-redirect": "true"},
     )
@@ -407,7 +425,7 @@ def presign_post_url_for_directory_object(
     return response
 
 
-def format_bucket_prefix(base_prefix, dirname):
+def format_bucket_prefix(base_prefix: str, dirname: str) -> str:
     """Format an S3 bucket key prefix by joining a base prefix with a directory
     name.
     """
@@ -419,7 +437,12 @@ def format_bucket_prefix(base_prefix, dirname):
     return prefix
 
 
-def set_condition(*, conditions, condition_key, condition):
+def set_condition(
+    *,
+    conditions: List[Collection[str]],
+    condition_key: str,
+    condition: Collection[str],
+) -> List[Collection[str]]:
     """Set a condition on a presigned URL condition list, overwriting an
     existing condition on the same field if necessary.
 

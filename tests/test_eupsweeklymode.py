@@ -1,12 +1,11 @@
-"""Tests for `keeper.editiontracking.eupsweeklymode`.
-"""
+"""Tests for `keeper.editiontracking.eupsweeklymode`."""
 
 import pytest
 
 from keeper.editiontracking.eupsweeklymode import WeeklyReleaseTag
 
 
-def test_parsing():
+def test_parsing() -> None:
     tag = WeeklyReleaseTag("w_2018_01")
     assert tag.year == 2018
     assert tag.week == 1
@@ -33,7 +32,7 @@ def test_parsing():
         WeeklyReleaseTag("w_2018_01rc1")
 
 
-def test_comparisons():
+def test_comparisons() -> None:
     assert WeeklyReleaseTag("w_2018_01") > WeeklyReleaseTag("w_2017_01")
     assert not WeeklyReleaseTag("w_2018_01") < WeeklyReleaseTag("w_2017_01")
 

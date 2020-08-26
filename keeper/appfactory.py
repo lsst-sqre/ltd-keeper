@@ -1,18 +1,20 @@
-"""Flask application factory.
-"""
+"""Flask application factory."""
 
-__all__ = ("create_flask_app",)
+from __future__ import annotations
 
 import os
+from typing import Optional
 
 from flask import Flask
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-from .cli import add_app_commands
-from .config import config
+from keeper.cli import add_app_commands
+from keeper.config import config
+
+__all__ = ["create_flask_app"]
 
 
-def create_flask_app(profile=None):
+def create_flask_app(profile: Optional[str] = None) -> Flask:
     """Create an application instance.
 
     This is called from ``__init__.py`` to create the `keeper.flask_app`
@@ -24,13 +26,15 @@ def create_flask_app(profile=None):
     if profile is None:
         # Let Python API clients (like pytest) set the profile directly
         # Otherwise, the profile is obtained from the shell environment.
-        profile = os.getenv("LTD_KEEPER_PROFILE", "development")
-    app.config.from_object(config[profile])
-    config[profile].init_app(app)
+        _profile = os.getenv("LTD_KEEPER_PROFILE", "development")
+    else:
+        _profile = profile
+    app.config.from_object(config[_profile])
+    config[_profile].init_app(app)  # type: ignore  # doesn't recog classmethod
 
     # Add the middleware to respect headers forwarded from the proxy server
     if app.config["PROXY_FIX"]:
-        app.wsgi_app = ProxyFix(
+        app.wsgi_app = ProxyFix(  # type: ignore
             app.wsgi_app,
             x_for=app.config["TRUST_X_FOR"],
             x_proto=app.config["TRUST_X_PROTO"],
@@ -40,13 +44,13 @@ def create_flask_app(profile=None):
         )
 
     # Initialize the celery app
-    from .celery import create_celery_app
+    from keeper.celery import create_celery_app
 
     create_celery_app(app)
 
     # Initialize the Flask-SQLAlchemy  database interface and
     # initialize Alembic migrations through Flask-Migrate
-    from .models import db, migrate
+    from keeper.models import db, migrate
 
     db.init_app(app)
     migrate.init_app(
@@ -54,7 +58,7 @@ def create_flask_app(profile=None):
     )  # for sqlite; safe for other servers
 
     # Register blueprints
-    from .api import api as api_blueprint
+    from keeper.api import api as api_blueprint
 
     app.register_blueprint(api_blueprint, url_prefix=None)
 

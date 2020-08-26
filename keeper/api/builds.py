@@ -1,19 +1,26 @@
 """API v1 routes for builds."""
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Dict, Tuple
+
 from flask import jsonify, request
 from flask_accept import accept_fallback
 
-from ..auth import permission_required, token_auth
-from ..logutils import log_route
-from ..models import Build, Permission, Product, db
-from ..taskrunner import (
+from keeper.api import api
+from keeper.auth import permission_required, token_auth
+from keeper.logutils import log_route
+from keeper.models import Build, Permission, Product, db
+from keeper.taskrunner import (
     append_task_to_chain,
     insert_task_url_in_response,
     launch_task_chain,
     mock_registry,
 )
-from ..tasks.dashboardbuild import build_dashboard
-from . import api
+from keeper.tasks.dashboardbuild import build_dashboard
+
+if TYPE_CHECKING:
+    from flask import Response
 
 # Register imports of celery task chain launchers
 mock_registry.extend(
@@ -29,7 +36,7 @@ mock_registry.extend(
 @log_route()
 @token_auth.login_required
 @permission_required(Permission.UPLOAD_BUILD)
-def patch_build(id):
+def patch_build(id: int) -> Tuple[Response, int, Dict[str, str]]:
     """Mark a build as uploaded.
 
     This method should be called when the documentation has been successfully
@@ -102,7 +109,7 @@ def patch_build(id):
 @log_route()
 @token_auth.login_required
 @permission_required(Permission.DEPRECATE_BUILD)
-def deprecate_build(id):
+def deprecate_build(id: int) -> Tuple[Response, int]:
     """Mark a build as deprecated.
 
     **Authorization**
@@ -150,7 +157,7 @@ def deprecate_build(id):
 @api.route("/products/<slug>/builds/", methods=["GET"])
 @accept_fallback
 @log_route()
-def get_product_builds(slug):
+def get_product_builds(slug: str) -> Response:
     """List all builds for a product.
 
     **Example request**
@@ -196,7 +203,7 @@ def get_product_builds(slug):
 @api.route("/builds/<int:id>", methods=["GET"])
 @accept_fallback
 @log_route()
-def get_build(id):
+def get_build(id: int) -> Response:
     """Show metadata for a single build.
 
     **Example request**

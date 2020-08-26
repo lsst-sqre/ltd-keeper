@@ -1,23 +1,33 @@
-"""Implements the ``git_ref`` tracking mode.
-"""
+"""Implements the ``git_ref`` tracking mode."""
 
-__all__ = ("GitRefTrackingMode",)
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Optional
+
+from keeper.editiontracking.base import TrackingModeBase
+
+if TYPE_CHECKING:
+    from keeper.models import Build, Edition
+
+__all__ = ["GitRefTrackingMode"]
 
 
-class GitRefTrackingMode:
+class GitRefTrackingMode(TrackingModeBase):
     """Default tracking mode where an edition tracks an array of Git refs.
 
     This is the default mode if Edition.mode is None.
     """
 
-    def __init__(self):
-        super().__init__()
-
     @property
-    def name(self):
+    def name(self) -> str:
         return "git_refs"
 
-    def should_update(self, edition, candidate_build):
+    def should_update(
+        self, edition: Optional[Edition], candidate_build: Optional[Build]
+    ) -> bool:
+        if edition is None or candidate_build is None:
+            return False
+
         if (candidate_build.product == edition.product) and (
             candidate_build.git_refs == edition.tracked_refs
         ):

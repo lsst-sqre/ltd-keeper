@@ -1,25 +1,32 @@
 """Celery task for rebuilding an edition.
 """
 
-__all__ = ("rebuild_edition",)
+from __future__ import annotations
 
+from typing import TYPE_CHECKING
 from urllib.parse import urljoin, urlsplit, urlunsplit
 
 import requests
 from celery.utils.log import get_task_logger
 from flask import current_app
 
+from keeper import fastly, s3
+from keeper.celery import celery_app
+from keeper.models import Edition, db
 from keeper.utils import format_utc_datetime
 
-from .. import fastly, s3
-from ..celery import celery_app
-from ..models import Edition, db
+if TYPE_CHECKING:
+    import celery.task
+
+__all__ = ["rebuild_edition", "send_edition_updated_event"]
 
 logger = get_task_logger(__name__)
 
 
 @celery_app.task(bind=True)
-def rebuild_edition(self, edition_url, edition_id):
+def rebuild_edition(
+    self: celery.task.Task, edition_url: str, edition_id: int
+) -> None:
     """Rebuild an edition with a given build, as a Celery task.
 
     Parameters
@@ -91,7 +98,9 @@ def rebuild_edition(self, edition_url, edition_id):
     logger.info("Finished rebuild_edition")
 
 
-def send_edition_updated_event(edition, events_url, api_url):
+def send_edition_updated_event(
+    edition: Edition, events_url: str, api_url: str
+) -> None:
     """Send the ``edition.updated`` event to the LTD Events webhook endpoint.
     """
     product_info = {

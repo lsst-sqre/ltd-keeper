@@ -1,17 +1,24 @@
-__all__ = ("build_dashboard",)
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 import requests
 from celery.utils.log import get_task_logger
 from flask import current_app
 
-from ..celery import celery_app
-from ..exceptions import DasherError
+from keeper.celery import celery_app
+from keeper.exceptions import DasherError
+
+if TYPE_CHECKING:
+    import celery.task
+
+__all__ = ["build_dashboard"]
 
 logger = get_task_logger(__name__)
 
 
 @celery_app.task(bind=True)
-def build_dashboard(self, product_url):
+def build_dashboard(self: celery.task.Task, product_url: str) -> None:
     """Build a product's dashboard as a Celery task.
 
     Parameters

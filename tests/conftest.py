@@ -1,10 +1,19 @@
 """py.test fixtures available to all test modules without explicit import."""
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import pytest
 
 from keeper.appfactory import create_flask_app
 from keeper.models import Permission, User, db
 from keeper.testutils import TestClient
+
+if TYPE_CHECKING:
+    import flask
+    from _pytest.fixtures import FixtureRequest
+
 
 DEFAULT_USERNAME = "hipster"
 DEFAULT_PASSWORD = "pug"
@@ -17,7 +26,7 @@ BUILD_DEPRECATOR_USERNAME = "build_deprecator"
 
 
 @pytest.fixture
-def empty_app(request):
+def empty_app(request: FixtureRequest) -> flask.Flask:
     """An application with only a single user, but otherwise empty"""
     app = create_flask_app(profile="testing")
     ctx = app.app_context()
@@ -59,7 +68,7 @@ def empty_app(request):
 
     db.session.commit()
 
-    def fin():
+    def fin() -> None:
         db.session.remove()
         db.drop_all()
         ctx.pop()
@@ -69,14 +78,14 @@ def empty_app(request):
 
 
 @pytest.fixture
-def basic_client(empty_app):
+def basic_client(empty_app: flask.Flask) -> TestClient:
     """Client with username/password auth, using the `app` application."""
     client = TestClient(empty_app, DEFAULT_USERNAME, DEFAULT_PASSWORD)
     return client
 
 
 @pytest.fixture
-def client(empty_app):
+def client(empty_app: flask.Flask) -> TestClient:
     """Client with token-based auth, using the `app` application."""
     _c = TestClient(empty_app, DEFAULT_USERNAME, DEFAULT_PASSWORD)
     r = _c.get("/token")
@@ -85,14 +94,14 @@ def client(empty_app):
 
 
 @pytest.fixture
-def anon_client(empty_app):
+def anon_client(empty_app: flask.Flask) -> TestClient:
     """Anonymous client."""
     client = TestClient(empty_app, "", "")
     return client
 
 
 @pytest.fixture
-def product_client(empty_app):
+def product_client(empty_app: flask.Flask) -> TestClient:
     """Client with token-based auth with ADMIN_PRODUCT permissions."""
     _c = TestClient(empty_app, PRODUCT_ADMIN_USERNAME, DEFAULT_PASSWORD)
     r = _c.get("/token")
@@ -101,7 +110,7 @@ def product_client(empty_app):
 
 
 @pytest.fixture
-def edition_client(empty_app):
+def edition_client(empty_app: flask.Flask) -> TestClient:
     """Client with token-based auth with ADMIN_EDITION permissions."""
     _c = TestClient(empty_app, EDITION_ADMIN_USERNAME, DEFAULT_PASSWORD)
     r = _c.get("/token")
@@ -110,7 +119,7 @@ def edition_client(empty_app):
 
 
 @pytest.fixture
-def upload_build_client(empty_app):
+def upload_build_client(empty_app: flask.Flask) -> TestClient:
     """Client with token-based auth with UPLOAD_BUILD permissions."""
     _c = TestClient(empty_app, BUILD_UPLOADER_USERNAME, DEFAULT_PASSWORD)
     r = _c.get("/token")
@@ -119,7 +128,7 @@ def upload_build_client(empty_app):
 
 
 @pytest.fixture
-def deprecate_build_client(empty_app):
+def deprecate_build_client(empty_app: flask.Flask) -> TestClient:
     """Client with token-based auth with DEPRECATE_BUILD permissions."""
     _c = TestClient(empty_app, BUILD_DEPRECATOR_USERNAME, DEFAULT_PASSWORD)
     r = _c.get("/token")

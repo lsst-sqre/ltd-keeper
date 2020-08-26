@@ -4,9 +4,12 @@ Copyright 2016 AURA/LSST.
 Copyright 2014 Miguel Grinberg.
 """
 
+from __future__ import annotations
+
 import urllib.parse
 import uuid
 from datetime import datetime
+from typing import Any, Dict, Optional
 
 from flask import current_app, url_for
 from flask_migrate import Migrate
@@ -28,6 +31,18 @@ from .utils import (
     validate_product_slug,
 )
 
+__all__ = [
+    "mock_registry",
+    "db",
+    "migrate",
+    "edition_tracking_modes",
+    "Permission",
+    "User",
+    "Product",
+    "Build",
+    "Edition",
+]
+
 # Register imports of celery task chain launchers
 mock_registry.extend(["keeper.models.append_task_to_chain"])
 
@@ -45,15 +60,14 @@ This is initialized in `keeper.appfactory.create_flask_app`.
 """
 
 edition_tracking_modes = EditionTrackingModes()
-"""Tracking modes for editions.
-"""
+"""Tracking modes for editions."""
 
 
-class Permission(object):
+class Permission:
     """User permission definitions.
 
     These permissions can be added to the ``permissions`` column of a
-    :class:`User`. For example, to give a user permission to both
+    `User`. For example, to give a user permission to both
     administer products *and* editions::
 
         p = Permission
@@ -61,13 +75,13 @@ class Permission(object):
                     permissions=p.ADMIN_PRODUCT | p.ADMIN_EDITION)
 
     You can give a user permission to do everything with the
-    :meth:`User.full_permissions` helper method::
+    `User.full_permissions` helper method::
 
         p = Permission
         user = User(username='admin-user',
                     permission=p.full_permissions())
 
-    See :class:`User.has_permission` for how to use these permission
+    See `User.has_permission` for how to use these permission
     bits to test user authorization.
     """
 
@@ -77,23 +91,19 @@ class Permission(object):
     """
 
     ADMIN_PRODUCT = 0b10
-    """Permission to add, modify and deprecate Products.
-    """
+    """Permission to add, modify and deprecate Products."""
 
     ADMIN_EDITION = 0b100
-    """Permission to add, modify and deprecate Editions.
-    """
+    """Permission to add, modify and deprecate Editions."""
 
     UPLOAD_BUILD = 0b1000
-    """Permission to create a new Build.
-    """
+    """Permission to create a new Build."""
 
     DEPRECATE_BUILD = 0b10000
-    """Permission to deprecate a Build.
-    """
+    """Permission to deprecate a Build."""
 
     @classmethod
-    def full_permissions(self):
+    def full_permissions(self) -> int:
         """Helper method to create a bit mask with all permissions enabled.
 
         Returns
@@ -110,23 +120,19 @@ class Permission(object):
         )
 
 
-class User(db.Model):
-    """DB model for authenticated API users.
-    """
+class User(db.Model):  # type: ignore
+    """DB model for authenticated API users."""
 
     __tablename__ = "users"
 
     id = db.Column(db.Integer, primary_key=True)
-    """Primary key for this User.
-    """
+    """Primary key for this User."""
 
     username = db.Column(db.Unicode(255), index=True, unique=True)
-    """Username (must be unique).
-    """
+    """Username (must be unique)."""
 
     password_hash = db.Column(db.String(128))
-    """Password hash.
-    """
+    """Password hash."""
 
     permissions = db.Column(db.Integer)
     """Permissions for this user, as a bit.
@@ -136,18 +142,18 @@ class User(db.Model):
     Permission
     """
 
-    def set_password(self, password):
+    def set_password(self, password: str) -> None:
         self.password_hash = generate_password_hash(password)
 
-    def verify_password(self, password):
+    def verify_password(self, password: str) -> bool:
         return check_password_hash(self.password_hash, password)
 
-    def generate_auth_token(self, expires_in=3600):
+    def generate_auth_token(self, expires_in: int = 3600) -> str:
         s = Serializer(current_app.config["SECRET_KEY"], expires_in=expires_in)
         return s.dumps({"id": self.id}).decode("utf-8")
 
     @staticmethod
-    def verify_auth_token(token):
+    def verify_auth_token(token: str) -> Optional["User"]:
         s = Serializer(current_app.config["SECRET_KEY"])
         try:
             data = s.loads(token)
@@ -155,10 +161,10 @@ class User(db.Model):
             return None
         return User.query.get(data["id"])
 
-    def has_permission(self, permissions):
+    def has_permission(self, permissions: int) -> bool:
         """Verify that a user has a given set of permissions.
 
-        Permissions are defined in the :class:`Permission` class. To check
+        Permissions are defined in the `Permission` class. To check
         authorization for a user against a specific permissions::
 
             user.has_permission(Permission.ADMIN_PRODUCT)
@@ -182,7 +188,7 @@ class User(db.Model):
         return (self.permissions & permissions) == permissions
 
 
-class Product(db.Model):
+class Product(db.Model):  # type: ignore
     """DB model for software products.
 
     A software product maps to a top-level Eups package and has a single
@@ -192,32 +198,25 @@ class Product(db.Model):
     __tablename__ = "products"
 
     id = db.Column(db.Integer, primary_key=True)
-    """Primary key for this product.
-    """
+    """Primary key for this product."""
 
     slug = db.Column(db.Unicode(255), nullable=False, unique=True)
-    """URL/path-safe identifier for this product (unique).
-    """
+    """URL/path-safe identifier for this product (unique)."""
 
     doc_repo = db.Column(db.Unicode(255), nullable=False)
-    """URL of the Git documentation repo (i.e., on GitHub).
-    """
+    """URL of the Git documentation repo (i.e., on GitHub)."""
 
     title = db.Column(db.Unicode(255), nullable=False)
-    """Title of this product.
-    """
+    """Title of this product."""
 
     root_domain = db.Column(db.Unicode(255), nullable=False)
-    """Root domain name serving docs (e.g., lsst.io).
-    """
+    """Root domain name serving docs (e.g., lsst.io)."""
 
     root_fastly_domain = db.Column(db.Unicode(255), nullable=False)
-    """Fastly CDN domain name (without doc's domain prepended).
-    """
+    """Fastly CDN domain name (without doc's domain prepended)."""
 
     bucket_name = db.Column(db.Unicode(255), nullable=True)
-    """Name of the S3 bucket hosting builds.
-    """
+    """Name of the S3 bucket hosting builds."""
 
     surrogate_key = db.Column(db.String(32))
     """surrogate_key for Fastly quick purges of dashboards.
@@ -235,7 +234,7 @@ class Product(db.Model):
     """
 
     @classmethod
-    def from_url(cls, product_url):
+    def from_url(cls, product_url: str) -> "Product":
         """Get a Product given its API URL.
 
         Parameters
@@ -267,7 +266,7 @@ class Product(db.Model):
         return product
 
     @property
-    def domain(self):
+    def domain(self) -> str:
         """Domain where docs for this product are served from.
 
         (E.g. ``product.lsst.io`` if ``product`` is the slug and ``lsst.io``
@@ -276,7 +275,7 @@ class Product(db.Model):
         return ".".join((self.slug, self.root_domain))
 
     @property
-    def fastly_domain(self):
+    def fastly_domain(self) -> str:
         """Domain where Fastly serves content from for this product.
         """
         # Note that in non-ssl contexts fastly wants you to prepend the domain
@@ -285,18 +284,18 @@ class Product(db.Model):
         return self.root_fastly_domain
 
     @property
-    def published_url(self):
+    def published_url(self) -> str:
         """URL where this product is published to the end-user.
         """
         parts = ("https", self.domain, "", "", "", "")
         return urllib.parse.urlunparse(parts)
 
-    def get_url(self):
+    def get_url(self) -> str:
         """API URL for this entity.
         """
         return url_for("api.get_product", slug=self.slug, _external=True)
 
-    def export_data(self):
+    def export_data(self) -> Dict[str, Any]:
         """Export entity as JSON-compatible dict.
         """
         return {
@@ -313,7 +312,7 @@ class Product(db.Model):
             "surrogate_key": self.surrogate_key,
         }
 
-    def import_data(self, data):
+    def import_data(self, data: Dict[str, Any]) -> "Product":
         """Convert a dict `data` into a table row.
         """
         try:
@@ -347,7 +346,7 @@ class Product(db.Model):
 
         return self
 
-    def patch_data(self, data):
+    def patch_data(self, data: Dict[str, Any]) -> None:
         """Partial update of fields from PUT requests on an existing product.
 
         Currently only updates to doc_repo and title are supported.
@@ -359,7 +358,7 @@ class Product(db.Model):
             self.title = data["title"]
 
 
-class Build(db.Model):
+class Build(db.Model):  # type: ignore
     """DB model for documentation builds."""
 
     __tablename__ = "builds"
@@ -419,7 +418,7 @@ class Build(db.Model):
     # product - from Product class
 
     @classmethod
-    def from_url(cls, build_url):
+    def from_url(cls, build_url: str) -> "Build":
         """Get a Build given its API URL.
 
         Parameters
@@ -443,13 +442,13 @@ class Build(db.Model):
         return build
 
     @property
-    def bucket_root_dirname(self):
+    def bucket_root_dirname(self) -> str:
         """Directory in the bucket where the build is located.
         """
         return "/".join((self.product.slug, "builds", self.slug))
 
     @property
-    def published_url(self):
+    def published_url(self) -> str:
         """URL where this build is published to the end-user.
         """
         parts = (
@@ -462,12 +461,12 @@ class Build(db.Model):
         )
         return urllib.parse.urlunparse(parts)
 
-    def get_url(self):
+    def get_url(self) -> str:
         """API URL for this entity.
         """
         return url_for("api.get_build", id=self.id, _external=True)
 
-    def export_data(self):
+    def export_data(self) -> Dict[str, Any]:
         """Export entity as JSON-compatible dict.
         """
         return {
@@ -485,7 +484,7 @@ class Build(db.Model):
             "surrogate_key": self.surrogate_key,
         }
 
-    def import_data(self, data):
+    def import_data(self, data: Dict[str, Any]) -> "Build":
         """Convert a dict `data` into a table row.
         """
         try:
@@ -530,7 +529,7 @@ class Build(db.Model):
 
         return self
 
-    def patch_data(self, data):
+    def patch_data(self, data: Dict[str, Any]) -> None:
         """Modify build via PATCH.
 
         Only allowed modification is to set 'uploaded' field to True to
@@ -540,7 +539,7 @@ class Build(db.Model):
             if data["uploaded"] is True:
                 self.register_uploaded_build()
 
-    def register_uploaded_build(self):
+    def register_uploaded_build(self) -> None:
         """Hook for when a build has been uploaded.
         """
         self.uploaded = True
@@ -555,7 +554,7 @@ class Build(db.Model):
             if edition.should_rebuild(build=self):
                 edition.set_pending_rebuild(build=self)
 
-    def deprecate_build(self):
+    def deprecate_build(self) -> None:
         """Trigger a build deprecation.
 
         Sets the `date_ended` field.
@@ -563,7 +562,7 @@ class Build(db.Model):
         self.date_ended = datetime.now()
 
 
-class Edition(db.Model):
+class Edition(db.Model):  # type: ignore
     """DB model for Editions. Editions are fixed-location publications of the
     docs. Editions are updated by new builds; though not all builds are used
     by Editions.
@@ -578,8 +577,7 @@ class Edition(db.Model):
     product_id = db.Column(
         db.Integer, db.ForeignKey("products.id"), index=True
     )
-    """ID of the product being used by this Edition.
-    """
+    """ID of the product being used by this Edition."""
 
     build_id = db.Column(db.Integer, db.ForeignKey("builds.id"), index=True)
     """ID of the build being used by this edition.
@@ -607,18 +605,15 @@ class Edition(db.Model):
     """
 
     slug = db.Column(db.Unicode(255), nullable=False)
-    """URL-safe slug for edition.
-    """
+    """URL-safe slug for edition."""
 
     title = db.Column(db.Unicode(256), nullable=False)
-    """Human-readable title for edition.
-    """
+    """Human-readable title for edition."""
 
     date_created = db.Column(
         db.DateTime, default=datetime.now(), nullable=False
     )
-    """DateTime when this edition was initially created.
-    """
+    """DateTime when this edition was initially created."""
 
     date_rebuilt = db.Column(
         db.DateTime, default=datetime.now(), nullable=False
@@ -632,20 +627,17 @@ class Edition(db.Model):
     """
 
     surrogate_key = db.Column(db.String(32))
-    """surrogate-key header for Fastly (quick purges); 32-char hex.
-    """
+    """surrogate-key header for Fastly (quick purges); 32-char hex."""
 
     pending_rebuild = db.Column(db.Boolean, default=False, nullable=False)
-    """Flag indicating if a rebuild is pending work by the rebuild task.
-    """
+    """Flag indicating if a rebuild is pending work by the rebuild task."""
 
     # Relationships
     build = db.relationship("Build", uselist=False)
-    """One-to-one relationship with the `Build` resource.
-    """
+    """One-to-one relationship with the `Build` resource."""
 
     @classmethod
-    def from_url(cls, edition_url):
+    def from_url(cls, edition_url: str) -> "Edition":
         """Get an Edition given its API URL.
 
         Parameters
@@ -676,15 +668,13 @@ class Edition(db.Model):
         return edition
 
     @property
-    def bucket_root_dirname(self):
-        """Directory in the bucket where the edition is located.
-        """
+    def bucket_root_dirname(self) -> str:
+        """Directory in the bucket where the edition is located."""
         return "/".join((self.product.slug, "v", self.slug))
 
     @property
-    def published_url(self):
-        """URL where this edition is published to the end-user.
-        """
+    def published_url(self) -> str:
+        """URL where this edition is published to the end-user."""
         if self.slug == "main":
             # Special case for main; published at product's root
             parts = ("https", self.product.domain, "", "", "", "")
@@ -699,14 +689,12 @@ class Edition(db.Model):
             )
         return urllib.parse.urlunparse(parts)
 
-    def get_url(self):
-        """API URL for this entity.
-        """
+    def get_url(self) -> str:
+        """API URL for this entity."""
         return url_for("api.get_edition", id=self.id, _external=True)
 
-    def export_data(self):
-        """Export entity as JSON-compatible dict.
-        """
+    def export_data(self) -> Dict[str, Any]:
+        """Export entity as JSON-compatible dict."""
         if self.build is not None:
             build_url = self.build.get_url()
         else:
@@ -736,7 +724,7 @@ class Edition(db.Model):
 
         return data
 
-    def import_data(self, data):
+    def import_data(self, data: Dict[str, Any]) -> "Edition":
         """Initialize the edition on POST.
 
         The Product is set on object initialization.
@@ -787,7 +775,7 @@ class Edition(db.Model):
 
         return self
 
-    def patch_data(self, data):
+    def patch_data(self, data: Dict[str, Any]) -> None:
         """Partial update of the Edition.
         """
         logger = get_logger(__name__)
@@ -822,7 +810,9 @@ class Edition(db.Model):
             )
             self.pending_rebuild = data["pending_rebuild"]
 
-    def should_rebuild(self, build_url=None, build=None):
+    def should_rebuild(
+        self, build_url: Optional[str] = None, build: Optional[Build] = None
+    ) -> bool:
         """Determine whether the edition should be rebuilt to show a certain
         build given the tracking mode.
 
@@ -846,8 +836,10 @@ class Edition(db.Model):
 
         if build is not None:
             candidate_build = build
-        else:
+        elif build_url is not None:
             candidate_build = Build.from_url(build_url)
+        else:
+            raise RuntimeError("Provide either a build or build_url arg.")
 
         # Prefilter
         if candidate_build.product != self.product:
@@ -867,7 +859,9 @@ class Edition(db.Model):
 
         return tracking_mode.should_update(self, candidate_build)
 
-    def set_pending_rebuild(self, build_url=None, build=None):
+    def set_pending_rebuild(
+        self, build_url: Optional[str] = None, build: Optional["Build"] = None
+    ) -> None:
         """Update the build this edition is declared to point to and set it
         to a pending state.
 
@@ -908,6 +902,8 @@ class Edition(db.Model):
         the rebuild is complete.
         """
         if build is None:
+            if build_url is None:
+                raise RuntimeError("Provide a build_url if build is None")
             build = Build.from_url(build_url)
 
         # Create a surrogate-key for the edition if it doesn't have one
@@ -921,9 +917,11 @@ class Edition(db.Model):
                 "will not be accepted."
             )
         if build.uploaded is False:
-            raise ValidationError("Build has not been uploaded: " + build_url)
+            raise ValidationError(
+                f"Build has not been uploaded: {build.get_url()}"
+            )
         if build.date_ended is not None:
-            raise ValidationError("Build was deprecated: " + build_url)
+            raise ValidationError(f"Build was deprecated: {build.get_url()}")
 
         # Set the desired state
         self.build = build
@@ -935,7 +933,7 @@ class Edition(db.Model):
 
         append_task_to_chain(rebuild_edition.si(self.get_url(), self.id))
 
-    def set_rebuild_complete(self):
+    def set_rebuild_complete(self) -> None:
         """Confirm that the rebuild is complete and the declared state is
         correct.
 
@@ -953,12 +951,12 @@ class Edition(db.Model):
         self.pending_rebuild = False
         self.date_rebuilt = datetime.now()
 
-    def set_mode(self, mode):
+    def set_mode(self, mode: str) -> None:
         """Set the ``mode`` attribute.
 
         Parameters
         ----------
-        mode : `int`
+        mode : `str`
             Mode identifier. Validated to be one defined in
             `keeper.editiontracking.EditionTrackingModes`.
 
@@ -972,19 +970,18 @@ class Edition(db.Model):
         # TODO set tracked_refs to None if mode is LSST_DOC.
 
     @property
-    def default_mode_name(self):
+    def default_mode_name(self) -> str:
         """Default tracking mode name if ``Edition.mode`` is `None` (`str`).
         """
         return "git_refs"
 
     @property
-    def default_mode_id(self):
-        """Default tracking mode ID if ``Edition.mode`` is `None` (`int`).
-        """
+    def default_mode_id(self) -> int:
+        """Default tracking mode ID if ``Edition.mode`` is `None` (`int`)."""
         return edition_tracking_modes.name_to_id(self.default_mode_name)
 
     @property
-    def mode_name(self):
+    def mode_name(self) -> str:
         """Name of the mode (`str`).
 
         See also
@@ -996,9 +993,8 @@ class Edition(db.Model):
         else:
             return self.default_mode_name
 
-    def update_slug(self, new_slug):
-        """Update the edition's slug by migrating files on S3.
-        """
+    def update_slug(self, new_slug: str) -> None:
+        """Update the edition's slug by migrating files on S3."""
         # Check that this slug does not already exist
         self._validate_slug(new_slug)
 
@@ -1029,7 +1025,7 @@ class Edition(db.Model):
                 AWS_SECRET,
             )
 
-    def _compute_autoincremented_slug(self):
+    def _compute_autoincremented_slug(self) -> str:
         """Compute an autoincremented integer slug for this edition.
 
         Returns
@@ -1071,7 +1067,7 @@ class Edition(db.Model):
         else:
             return str(max(integer_slugs) + 1)
 
-    def _validate_slug(self, slug):
+    def _validate_slug(self, slug: str) -> bool:
         """Ensure that the slug is both unique to the product and meets the
         slug format regex.
 
@@ -1097,7 +1093,7 @@ class Edition(db.Model):
 
         return True
 
-    def deprecate(self):
+    def deprecate(self) -> None:
         """Deprecate the Edition; sets the `date_ended` field.
         """
         self.date_ended = datetime.now()

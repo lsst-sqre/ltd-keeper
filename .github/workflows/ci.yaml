@@ -31,7 +31,7 @@ jobs:
           LTD_KEEPER_TEST_AWS_ID: ${{ secrets.LTD_KEEPER_TEST_AWS_ID }}
           LTD_KEEPER_TEST_AWS_SECRET: ${{ secrets.LTD_KEEPER_TEST_AWS_SECRET }}
           LTD_KEEPER_TEST_BUCKET: ${{ secrets.LTD_KEEPER_TEST_BUCKET }}
-        run: tox -e lint,py,coverage-report  # run tox using Python in path
+        run: tox -e lint,typing,py,coverage-report  # run tox using Python in path
 
   docs:
     runs-on: ubuntu-latest

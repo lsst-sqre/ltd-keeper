@@ -3,13 +3,17 @@
 See https://docs.fastly.com/api/ for more information about the Fastly API.
 """
 
+from __future__ import annotations
+
 import requests
 from structlog import get_logger
 
-from .exceptions import FastlyError
+from keeper.exceptions import FastlyError
+
+__all__ = ["FastlyService"]
 
 
-class FastlyService(object):
+class FastlyService:
     """API client for a Fastly service.
 
     Parameters
@@ -20,17 +24,16 @@ class FastlyService(object):
         The Fastly API key. We only support key-based authentication.
     """
 
-    def __init__(self, service_id, api_key):
-        super(FastlyService, self).__init__()
+    def __init__(self, service_id: str, api_key: str) -> None:
         self.service_id = service_id
         self.api_key = api_key
         self._api_root = "https://api.fastly.com"
         self._logger = get_logger(__name__)
 
-    def _url(self, path):
+    def _url(self, path: str) -> str:
         return self._api_root + path
 
-    def purge_key(self, surrogate_key):
+    def purge_key(self, surrogate_key: str) -> None:
         """Instant purge URLs with a given `surrogate_key`.
 
         See

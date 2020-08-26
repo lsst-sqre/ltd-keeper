@@ -2,12 +2,21 @@
 ``git_refs`` to ``lsst_doc``.
 """
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from keeper.taskrunner import mock_registry
 from keeper.tasks.dashboardbuild import build_dashboard
 from keeper.tasks.editionrebuild import rebuild_edition
 
+if TYPE_CHECKING:
+    from unittest.mock import Mock
 
-def test_pach_lsst_doc_edition(client, mocker):
+    from keeper.testutils import TestClient
+
+
+def test_pach_lsst_doc_edition(client: TestClient, mocker: Mock) -> None:
     """Test patching an edition from tracking a Git ref to an LSST doc.
 
     1. Create a product with the default GIT_REF tracking mode for the

@@ -1,11 +1,18 @@
-"""Implement the "eups_daily_release" Edition tracking mode.
-"""
+"""Implement the "eups_daily_release" Edition tracking mode."""
 
-__all__ = ("EupsDailyReleaseTrackingMode",)
+from __future__ import annotations
 
 import re
+from typing import TYPE_CHECKING, Optional, Tuple
 
 from structlog import get_logger
+
+from keeper.editiontracking.base import TrackingModeBase
+
+if TYPE_CHECKING:
+    from keeper.models import Build, Edition
+
+__all__ = ["EupsDailyReleaseTrackingMode"]
 
 TAG_PATTERN = re.compile(r"^d_(?P<year>\d+)_(?P<month>\d+)_(?P<day>\d+)$")
 """Regular expression for matching an EUPS daily release tag with the format
@@ -20,16 +27,21 @@ with the format ``d.YYYY.MM.DD``.
 """
 
 
-class EupsDailyReleaseTrackingMode:
+class EupsDailyReleaseTrackingMode(TrackingModeBase):
     """Tracking mode for the the newest EUPS daily release (``d_YYYY_MM_DD``
     of ``d.YYYY.MM.DD``).
     """
 
     @property
-    def name(self):
+    def name(self) -> str:
         return "eups_daily_release"
 
-    def should_update(self, edition, candidate_build):
+    def should_update(
+        self, edition: Optional[Edition], candidate_build: Optional[Build]
+    ) -> bool:
+        if edition is None or candidate_build is None:
+            return False
+
         # Does the build have a daily release tag?
         try:
             candidate_version = DailyReleaseTag(candidate_build.git_refs[0])
@@ -56,10 +68,9 @@ class EupsDailyReleaseTrackingMode:
 
 
 class DailyReleaseTag:
-    """An EUPS tag for a daily release.
-    """
+    """An EUPS tag for a daily release."""
 
-    def __init__(self, tag):
+    def __init__(self, tag: str) -> None:
         self.logger = get_logger(__name__)
 
         self.logger.debug("DailyReleaseTag", tag=tag)
@@ -82,23 +93,35 @@ class DailyReleaseTag:
         )
 
     @property
-    def parts(self):
+    def parts(self) -> Tuple[int, int, int]:
         return (self.year, self.month, self.day)
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, DailyReleaseTag):
+            raise NotImplementedError
         return self.parts == other.parts
 
-    def __ne__(self, other):
+    def __ne__(self, other: object) -> bool:
+        if not isinstance(other, DailyReleaseTag):
+            raise NotImplementedError
         return self.__eq__(other) is False
 
-    def __gt__(self, other):
+    def __gt__(self, other: object) -> bool:
+        if not isinstance(other, DailyReleaseTag):
+            raise NotImplementedError
         return self.parts > other.parts
 
-    def __lt__(self, other):
+    def __lt__(self, other: object) -> bool:
+        if not isinstance(other, DailyReleaseTag):
+            raise NotImplementedError
         return (self.__eq__(other) is False) and (self.__gt__(other) is False)
 
-    def __ge__(self, other):
+    def __ge__(self, other: object) -> bool:
+        if not isinstance(other, DailyReleaseTag):
+            raise NotImplementedError
         return (self.__eq__(other) is True) or (self.__gt__(other) is True)
 
-    def __le__(self, other):
+    def __le__(self, other: object) -> bool:
+        if not isinstance(other, DailyReleaseTag):
+            raise NotImplementedError
         return (self.__eq__(other) is True) or (self.__gt__(other) is False)

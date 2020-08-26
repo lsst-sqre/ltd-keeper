@@ -4,19 +4,28 @@
 AWS Route 53.
 """
 
+from __future__ import annotations
+
 from pprint import pformat
+from typing import TYPE_CHECKING, Any, Dict, Optional
 
 import boto3
 from structlog import get_logger
 
-from .exceptions import Route53Error
+from keeper.exceptions import Route53Error
+
+if TYPE_CHECKING:
+    import botocore.client.Route53
 
 __all__ = ["create_cname", "delete_cname"]
 
 
 def create_cname(
-    cname_domain, origin_domain, aws_access_key_id, aws_secret_access_key
-):
+    cname_domain: str,
+    origin_domain: str,
+    aws_access_key_id: str,
+    aws_secret_access_key: str,
+) -> None:
     """Create a CNAME `cname_domain` that points to resources at
     `origin_domain`.
 
@@ -69,7 +78,9 @@ def create_cname(
     _upsert_cname_record(client, zone_id, cname_domain, origin_domain)
 
 
-def delete_cname(cname_domain, aws_access_key_id, aws_secret_access_key):
+def delete_cname(
+    cname_domain: str, aws_access_key_id: str, aws_secret_access_key: str
+) -> None:
     """Delete a CNAME for `cname_domain`
 
     **Note:** This function deletes the first matching CNAME records and
@@ -108,12 +119,15 @@ def delete_cname(cname_domain, aws_access_key_id, aws_secret_access_key):
 
     zone_id = _get_zone_id(client, cname_domain)
     record = _find_cname_record(client, zone_id, cname_domain)
+    if record is None:
+        logger.info(f"Did not delete {cname_domain} because it does not exist")
+        return
 
     # Build the change set for change_resource_record_sets. This method
     # needs to know the TTL for the specific record to update; although
     # we only use single records.
     # http://docs.aws.amazon.com/Route53/latest/APIReference/API_ChangeResourceRecordSets.html
-    change = {
+    change: Any = {
         "Action": "DELETE",
         "ResourceRecordSet": {
             "Name": cname_domain,
@@ -143,7 +157,7 @@ def delete_cname(cname_domain, aws_access_key_id, aws_secret_access_key):
         raise Route53Error(msg)
 
 
-def _get_zone_id(client, domain):
+def _get_zone_id(client: botocore.client.Route53, domain: str) -> str:
     """Get the ID of the Hosted Zone that services this `domain`.
 
     Parameters
@@ -183,7 +197,9 @@ def _get_zone_id(client, domain):
     return zone_id
 
 
-def _find_cname_record(client, zone_id, cname_domain):
+def _find_cname_record(
+    client: botocore.client.Route53, zone_id: str, cname_domain: str
+) -> Optional[Dict[str, Any]]:
     """Find an existing record for the `cname_domain`, or `None` if one does
     not exist.
 
@@ -237,9 +253,15 @@ def _find_cname_record(client, zone_id, cname_domain):
             return record
 
     logger.info("No existing CNAME record found", cname_domain=cname_domain)
+    return None
 
 
-def _upsert_cname_record(client, zone_id, cname_domain, origin_domain):
+def _upsert_cname_record(
+    client: botocore.client.Route53,
+    zone_id: str,
+    cname_domain: str,
+    origin_domain: str,
+) -> None:
     """Upsert a CNAME record of `cname_domain` that points to `origin_domain`.
     """
     logger = get_logger(__name__)

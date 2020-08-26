@@ -1,3 +1,5 @@
+from typing import List
+
 import pytest
 
 from keeper.exceptions import ValidationError
@@ -24,12 +26,12 @@ from keeper.utils import (
         (["1.0.0"], "1.0.0"),
     ],
 )
-def test_auto_slugify_edition(git_refs, expected):
+def test_auto_slugify_edition(git_refs: List[str], expected: str) -> None:
     assert expected == auto_slugify_edition(git_refs)
     assert validate_path_slug(auto_slugify_edition(git_refs))
 
 
-def test_validate_product_slug():
+def test_validate_product_slug() -> None:
     with pytest.raises(ValidationError):
         validate_product_slug("DM-1234")
     with pytest.raises(ValidationError):

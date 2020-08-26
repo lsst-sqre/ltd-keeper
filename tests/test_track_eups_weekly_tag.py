@@ -1,10 +1,19 @@
 """Test an Edition that tracks eups weekly release (`eups_weekly_release`).
 """
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from keeper.taskrunner import mock_registry
 
+if TYPE_CHECKING:
+    from unittest.mock import Mock
 
-def test_eups_weekly_release_edition(client, mocker):
+    from keeper.testutils import TestClient
+
+
+def test_eups_weekly_release_edition(client: TestClient, mocker: Mock) -> None:
     """Test an edition that tracks the most recent EUPS weekly release.
     """
     # These mocks are needed but not checked

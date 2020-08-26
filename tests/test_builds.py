@@ -1,5 +1,9 @@
 """Tests for the builds API."""
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import pytest
 from werkzeug.exceptions import NotFound
 
@@ -8,8 +12,13 @@ from keeper.taskrunner import mock_registry
 from keeper.tasks.dashboardbuild import build_dashboard
 from keeper.tasks.editionrebuild import rebuild_edition
 
+if TYPE_CHECKING:
+    from unittest.mock import Mock
 
-def test_builds(client, mocker):
+    from keeper.testutils import TestClient
+
+
+def test_builds(client: TestClient, mocker: Mock) -> None:
     mock_registry.patch_all(mocker)
 
     # ========================================================================
@@ -221,27 +230,31 @@ def test_builds(client, mocker):
 # Only the build-upload auth'd client should get in
 
 
-def test_post_build_auth_anon(anon_client):
+def test_post_build_auth_anon(anon_client: TestClient) -> None:
     r = anon_client.post("/products/test/builds/", {"foo": "bar"})
     assert r.status == 401
 
 
-def test_post_build_auth_product_client(product_client):
+def test_post_build_auth_product_client(product_client: TestClient) -> None:
     r = product_client.post("/products/test/builds/", {"foo": "bar"})
     assert r.status == 403
 
 
-def test_post_build_auth_edition_client(edition_client):
+def test_post_build_auth_edition_client(edition_client: TestClient) -> None:
     r = edition_client.post("/products/test/builds/", {"foo": "bar"})
     assert r.status == 403
 
 
-def test_post_build_auth_builduploader_client(upload_build_client):
+def test_post_build_auth_builduploader_client(
+    upload_build_client: TestClient,
+) -> None:
     with pytest.raises(NotFound):
         upload_build_client.post("/products/test/builds/", {"foo": "bar"})
 
 
-def test_post_build_auth_builddeprecator_client(deprecate_build_client):
+def test_post_build_auth_builddeprecator_client(
+    deprecate_build_client: TestClient,
+) -> None:
     r = deprecate_build_client.post("/products/test/builds/", {"foo": "bar"})
     assert r.status == 403
 
@@ -250,27 +263,31 @@ def test_post_build_auth_builddeprecator_client(deprecate_build_client):
 # Only the build-upload auth'd client should get in
 
 
-def test_patch_build_auth_anon(anon_client):
+def test_patch_build_auth_anon(anon_client: TestClient) -> None:
     r = anon_client.patch("/builds/1", {"foo": "bar"})
     assert r.status == 401
 
 
-def test_patch_build_auth_product_client(product_client):
+def test_patch_build_auth_product_client(product_client: TestClient) -> None:
     r = product_client.patch("/builds/1", {"foo": "bar"})
     assert r.status == 403
 
 
-def test_patch_build_auth_edition_client(edition_client):
+def test_patch_build_auth_edition_client(edition_client: TestClient) -> None:
     r = edition_client.patch("/builds/1", {"foo": "bar"})
     assert r.status == 403
 
 
-def test_patch_build_auth_builduploader_client(upload_build_client):
+def test_patch_build_auth_builduploader_client(
+    upload_build_client: TestClient,
+) -> None:
     with pytest.raises(NotFound):
         upload_build_client.patch("/builds/1", {"foo": "bar"})
 
 
-def test_patch_build_auth_builddeprecator_client(deprecate_build_client):
+def test_patch_build_auth_builddeprecator_client(
+    deprecate_build_client: TestClient,
+) -> None:
     r = deprecate_build_client.patch("/builds/1", {"foo": "bar"})
     assert r.status == 403
 
@@ -279,26 +296,30 @@ def test_patch_build_auth_builddeprecator_client(deprecate_build_client):
 # Only the build-deprecator auth'd client should get in
 
 
-def test_delete_build_auth_anon(anon_client):
+def test_delete_build_auth_anon(anon_client: TestClient) -> None:
     r = anon_client.delete("/builds/1")
     assert r.status == 401
 
 
-def test_delete_build_auth_product_client(product_client):
+def test_delete_build_auth_product_client(product_client: TestClient) -> None:
     r = product_client.delete("/builds/1")
     assert r.status == 403
 
 
-def test_delete_build_auth_edition_client(edition_client):
+def test_delete_build_auth_edition_client(edition_client: TestClient) -> None:
     r = edition_client.delete("/builds/1")
     assert r.status == 403
 
 
-def test_delete_build_auth_builduploader_client(upload_build_client):
+def test_delete_build_auth_builduploader_client(
+    upload_build_client: TestClient,
+) -> None:
     r = upload_build_client.delete("/builds/1")
     assert r.status == 403
 
 
-def test_delete_build_auth_builddeprecator_client(deprecate_build_client):
+def test_delete_build_auth_builddeprecator_client(
+    deprecate_build_client: TestClient,
+) -> None:
     with pytest.raises(NotFound):
         deprecate_build_client.delete("/builds/1", {"foo": "bar"})

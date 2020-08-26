@@ -2,10 +2,19 @@
 using the autoincrement=True feature.
 """
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from keeper.taskrunner import mock_registry
 
+if TYPE_CHECKING:
+    from unittest.mock import Mock
 
-def test_editions_autoincrement(client, mocker):
+    from keeper.testutils import TestClient
+
+
+def test_editions_autoincrement(client: TestClient, mocker: Mock) -> None:
     """Test creating editions with autoincrement=True.
     """
     mock_registry.patch_all(mocker)

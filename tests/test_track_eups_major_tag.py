@@ -1,12 +1,19 @@
-"""Test an Edition that tracks eups major releases (`eups_major_release`).
-"""
+"""Test an Edition that tracks eups major releases (`eups_major_release`)."""
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 from keeper.taskrunner import mock_registry
 
+if TYPE_CHECKING:
+    from unittest.mock import Mock
 
-def test_eups_major_release_edition(client, mocker):
-    """Test an edition that tracks the most recent EUPS major release.
-    """
+    from keeper.testutils import TestClient
+
+
+def test_eups_major_release_edition(client: TestClient, mocker: Mock) -> None:
+    """Test an edition that tracks the most recent EUPS major release."""
     mock_registry.patch_all(mocker)
 
     # ========================================================================

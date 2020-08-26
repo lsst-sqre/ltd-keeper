@@ -1,34 +1,40 @@
-"""The POST /products/<slug>/builds/ endpoint.
-"""
+"""The POST /products/<slug>/builds/ endpoint."""
 
-__all__ = ("post_products_builds_v1", "post_products_builds_v2")
+from __future__ import annotations
 
 import uuid
 from copy import deepcopy
+from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple
 
 from flask import current_app, jsonify, request
 from flask_accept import accept_fallback
 from structlog import get_logger
 
-from ..auth import is_authorized, permission_required, token_auth
-from ..logutils import log_route
-from ..mediatypes import v2_json_type
-from ..models import Build, Edition, Permission, Product, db
-from ..s3 import (
+from keeper.api import api
+from keeper.auth import is_authorized, permission_required, token_auth
+from keeper.logutils import log_route
+from keeper.mediatypes import v2_json_type
+from keeper.models import Build, Edition, Permission, Product, db
+from keeper.s3 import (
     format_bucket_prefix,
     open_s3_session,
     presign_post_url_for_directory_object,
     presign_post_url_for_prefix,
 )
-from ..taskrunner import (
+from keeper.taskrunner import (
     append_task_to_chain,
     insert_task_url_in_response,
     launch_task_chain,
     mock_registry,
 )
-from ..tasks.dashboardbuild import build_dashboard
-from ..utils import auto_slugify_edition
-from . import api
+from keeper.tasks.dashboardbuild import build_dashboard
+from keeper.utils import auto_slugify_edition
+
+if TYPE_CHECKING:
+    import boto3
+    from celery import Task
+
+__all__ = ["post_products_builds_v1", "post_products_builds_v2"]
 
 # Register imports of celery task chain launchers
 mock_registry.extend(
@@ -44,7 +50,7 @@ mock_registry.extend(
 @log_route()
 @token_auth.login_required
 @permission_required(Permission.UPLOAD_BUILD)
-def post_products_builds_v1(slug):
+def post_products_builds_v1(slug: str) -> Tuple[str, int, Dict[str, str]]:
     """Add a new build for a product.
 
     This method only adds a record for the build and specifies where the build
@@ -169,7 +175,7 @@ def post_products_builds_v1(slug):
 @log_route()
 @token_auth.login_required
 @permission_required(Permission.UPLOAD_BUILD)
-def post_products_builds_v2(slug):
+def post_products_builds_v2(slug: str) -> Tuple[str, int, Dict[str, str]]:
     """Handle POST /products/../builds/ (version 2).
     """
     logger = get_logger(__name__)
@@ -234,7 +240,9 @@ def post_products_builds_v2(slug):
     return jsonify(build_resource_json), 201, {"Location": build_url}
 
 
-def _handle_new_build_for_product_slug(product_slug):
+def _handle_new_build_for_product_slug(
+    product_slug: str,
+) -> Tuple[Build, Task]:
     """Generic handler for ``POST /products/../builds/`` that creates a new
     build for a product.
 
@@ -264,7 +272,7 @@ def _handle_new_build_for_product_slug(product_slug):
     return build, task
 
 
-def _create_build(product):
+def _create_build(product: Product) -> Build:
     """Create a build for a product.
     """
     surrogate_key = uuid.uuid4().hex
@@ -285,7 +293,7 @@ def _create_build(product):
     return build
 
 
-def _create_edition(product, build):
+def _create_edition(product: Product, build: Build) -> Optional[Edition]:
     """Create an edition to track the Git ref of a build, if not tracking
     edition already exists.
     """
@@ -327,13 +335,17 @@ def _create_edition(product, build):
             authorized=is_authorized(Permission.ADMIN_EDITION),
             edition_count=edition_count,
         )
-    if edition:
-        return edition
+
+    return edition
 
 
 def _create_presigned_url_for_prefix(
-    *, s3_session, bucket_name, prefix, surrogate_key
-):
+    *,
+    s3_session: boto3.session.Session,
+    bucket_name: str,
+    prefix: str,
+    surrogate_key: str,
+) -> Dict[str, Any]:
     # These conditions become part of the URL's presigned policy
     url_conditions = [
         {"acl": "public-read"},
@@ -364,8 +376,12 @@ def _create_presigned_url_for_prefix(
 
 
 def _create_presigned_url_for_directory(
-    *, s3_session, bucket_name, key, surrogate_key
-):
+    *,
+    s3_session: boto3.session.Session,
+    bucket_name: str,
+    key: str,
+    surrogate_key: str,
+) -> Dict[str, Any]:
     # These conditions become part of the URL's presigned policy
     url_conditions = [
         {"acl": "public-read"},
