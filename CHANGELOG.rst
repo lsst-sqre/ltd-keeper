@@ -2,6 +2,23 @@
 Change log
 ##########
 
+1.20.0 (2020-08-27)
+===================
+
+This release includes many improvements to LTD Keeper's build and testing infrastructure:
+
+- Python packaging is now defined in ``pyproject.toml`` and ``setup.cfg`` files.
+
+- Tests, linting, and other build processes are now run through tox
+
+- Testing and Docker builds are now run through GitHub Actions.
+
+- The Docker image is now based on Python 3.7 and uses a multi-stage approach to the build to ensure the image is as small as possible.
+
+- The codebase is now formatted with black and isort; these linters are run automatically through pre-commit.
+
+- The codebase uses type annotations, which are checked though mypy.
+
 1.19.0 (2020-07-01)
 ===================
 
