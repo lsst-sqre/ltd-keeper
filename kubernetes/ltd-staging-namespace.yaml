@@ -1,8 +1,0 @@
-kind: Namespace
-apiVersion: v1
-metadata:
-  name: "ltd-staging"
-  labels:
-    name: "ltd-staging"
-    env: "staging"
-    project: "lsst-the-docs"
