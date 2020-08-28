@@ -4,21 +4,31 @@ Flask CLI subcommands are implemented with Click. The application factory
 (`keeper.appfactory`) registers these
 """
 
-__all__ = ('add_app_commands', 'createdb_command', 'init_command',
-           'version_command')
+from __future__ import annotations
 
 import os
+from typing import TYPE_CHECKING
 
 import alembic
 import click
 from flask import current_app
 from flask.cli import with_appcontext
 
-from .models import db, User, Permission
-from .version import get_version
+from keeper.models import Permission, User, db
+from keeper.version import get_version
+
+if TYPE_CHECKING:
+    from flask import Flask
+
+__all__ = [
+    "add_app_commands",
+    "createdb_command",
+    "init_command",
+    "version_command",
+]
 
 
-def add_app_commands(app):
+def add_app_commands(app: Flask) -> None:
     """Add custom flask subcommands to the Flask app.
 
     This function is called by `keeper.appfactory.create_flask_app`.
@@ -28,9 +38,9 @@ def add_app_commands(app):
     app.cli.add_command(version_command)
 
 
-@click.command('createdb')
+@click.command("createdb")
 @with_appcontext
-def createdb_command():
+def createdb_command() -> None:
     """Deploy the current schema in a new database.
 
     This database is 'stamped' as having the current alembic schema version.
@@ -48,16 +58,15 @@ def createdb_command():
 
     # stamp tables with latest schema version
     config_path = os.path.abspath(
-        os.path.join(os.path.dirname(__file__),
-                     '..',
-                     'migrations/alembic.ini'))
+        os.path.join(os.path.dirname(__file__), "..", "migrations/alembic.ini")
+    )
     alembic_cfg = alembic.config.Config(config_path)
     alembic.command.stamp(alembic_cfg, "head")
 
 
-@click.command('init')
+@click.command("init")
 @with_appcontext
-def init_command():
+def init_command() -> None:
     """Initialize the application DB.
 
     Bootstraps an administrative user given the environment variables:
@@ -66,16 +75,18 @@ def init_command():
     - ``LTD_KEEPER_BOOTSTRAP_PASSWORD``
     """
     if User.query.get(1) is None:
-        u = User(username=current_app.config['DEFAULT_USER'],
-                 permissions=Permission.full_permissions())
-        u.set_password(current_app.config['DEFAULT_PASSWORD'])
+        u = User(
+            username=current_app.config["DEFAULT_USER"],
+            permissions=Permission.full_permissions(),
+        )
+        u.set_password(current_app.config["DEFAULT_PASSWORD"])
         db.session.add(u)
         db.session.commit()
 
 
-@click.command('version')
+@click.command("version")
 @with_appcontext
-def version_command():
+def version_command() -> None:
     """Print the LTD Keeper application version.
 
     Alternatively, to get the Flask and Python versions, run::

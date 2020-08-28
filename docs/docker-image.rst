@@ -27,7 +27,7 @@ The key tags are:
 
 lsstsqre/nginx-python:k8s
 -------------------------
-  
+
 This is an Nginx Proxy for LTD Keeper containers to be used in a Kubernetes pod (see :doc:`gke-deploy`).
 The related Dockerfile can be found in `github.com/lsst-sqre/nginx-python-docker <https://github.com/lsst-sqre/nginx-python-docker>`_.
 

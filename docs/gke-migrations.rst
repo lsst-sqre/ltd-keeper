@@ -43,7 +43,7 @@ Procedure
 3. Log into the maintenance pod and apply the migration:
 
    .. code-block:: bash
-   
+
       kubectl exec keeper-mgmt -c uwsgi -i -t /bin/bash
 
    To apply the migration:
@@ -51,7 +51,7 @@ Procedure
    .. code-block:: bash
 
       FLASK_APP=keeper flask db upgrade
-   
+
    When the upgrade is complete, log out of the management pod's shell:
 
    .. code-block:: bash

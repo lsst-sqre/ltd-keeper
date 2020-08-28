@@ -1,12 +1,11 @@
-"""Access app version string.
-"""
+"""Access app version string."""
 
-__all__ = ['get_version']
+from pkg_resources import DistributionNotFound, get_distribution
 
-from pkg_resources import get_distribution, DistributionNotFound
+__all__ = ["get_version"]
 
 
-def get_version():
+def get_version() -> str:
     """Get the app version.
 
     Returns
@@ -17,7 +16,7 @@ def get_version():
         semantic version formatting used.
     """
     try:
-        return get_distribution('lsst-the-docs-keeper').version
+        return get_distribution("lsst-the-docs-keeper").version
     except DistributionNotFound:
         # Package is not installed
-        return '0.0.0'
+        return "0.0.0"

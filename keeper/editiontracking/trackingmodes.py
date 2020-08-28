@@ -1,12 +1,17 @@
-__all__ = ('EditionTrackingModes',)
+from __future__ import annotations
 
-from ..exceptions import ValidationError
-from .gitrefmode import GitRefTrackingMode
-from .lsstdocmode import LsstDocTrackingMode
-from .eupsmajormode import EupsMajorReleaseTrackingMode
-from .eupsweeklymode import EupsWeeklyReleaseTrackingMode
-from .eupsdailymode import EupsDailyReleaseTrackingMode
-from .manualmode import ManualTrackingMode
+from typing import Union
+
+from keeper.editiontracking.base import TrackingModeBase
+from keeper.editiontracking.eupsdailymode import EupsDailyReleaseTrackingMode
+from keeper.editiontracking.eupsmajormode import EupsMajorReleaseTrackingMode
+from keeper.editiontracking.eupsweeklymode import EupsWeeklyReleaseTrackingMode
+from keeper.editiontracking.gitrefmode import GitRefTrackingMode
+from keeper.editiontracking.lsstdocmode import LsstDocTrackingMode
+from keeper.editiontracking.manualmode import ManualTrackingMode
+from keeper.exceptions import ValidationError
+
+__all__ = ["EditionTrackingModes"]
 
 
 class EditionTrackingModes:
@@ -28,19 +33,18 @@ class EditionTrackingModes:
     based on its own logic.
     """
 
-    _name_map = {mode.name: _id
-                 for _id, mode in _modes.items()}
+    _name_map = {mode.name: _id for _id, mode in _modes.items()}
     """Map of mode names to DB IDs.
 
     This is the inverse of ``_modes``.
     """
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: Union[int, str]) -> TrackingModeBase:
         if not isinstance(key, int):
             key = self.name_to_id(key)
         return self._modes[key]
 
-    def name_to_id(self, mode):
+    def name_to_id(self, mode: str) -> int:
         """Convert a mode name (string used by the web API) to a mode ID
         (integer) used by the DB.
 
@@ -62,12 +66,13 @@ class EditionTrackingModes:
         try:
             mode_id = self._name_map[mode]
         except KeyError:
-            message = ('Edition tracking mode {!r} unknown. Valid values '
-                       'are {!r}')
+            message = (
+                "Edition tracking mode {!r} unknown. Valid values " "are {!r}"
+            )
             raise ValidationError(message.format(mode, self._name_map.keys()))
         return mode_id
 
-    def id_to_name(self, mode_id):
+    def id_to_name(self, mode_id: int) -> str:
         """Convert a mode ID (integer used by the DB) to a name used by the
         web API.
 
@@ -89,8 +94,9 @@ class EditionTrackingModes:
         try:
             mode = self._modes[mode_id]
         except KeyError:
-            message = ('Edition tracking mode ID {!r} unknown. Valid values '
-                       'are {!r}')
-            raise ValidationError(
-                message.format(mode_id, self._modes.keys()))
+            message = (
+                "Edition tracking mode ID {!r} unknown. Valid values "
+                "are {!r}"
+            )
+            raise ValidationError(message.format(mode_id, self._modes.keys()))
         return mode.name

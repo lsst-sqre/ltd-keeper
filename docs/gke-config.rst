@@ -11,7 +11,7 @@ The Keeper Git repository includes four configuration templates:
 1. :file:`kubernetes/keeper-config.template.yaml` creates a ConfigMap resource named ``keeper-config`` and is used for non-secure Keeper Flask web app configurations.
 2. :file:`kubernetes/keeper-secrets.template.yaml` creates a Secret resource named ``keeper-secrets`` and is used to configure the Keeper Flask web app.
 3. :file:`kubernetes/ssl-proxy-secrets.template.yaml` creates a Secret resource named ``ssl-proxy-secret`` and is used to supply TLS certs to the Nginx proxy service.
-4. :file:`kubernetes/cloudsql-secrets` creates a Secret resource named ``cloudsql-secrets`` containing credentials for the Google Cloud SQL instance. 
+4. :file:`kubernetes/cloudsql-secrets` creates a Secret resource named ``cloudsql-secrets`` containing credentials for the Google Cloud SQL instance.
 
 Using the secrets
 =================
@@ -177,9 +177,9 @@ The ``keeper-secrets`` resource (:file:`kubernetes/keeper-secrets.template.yaml`
 ``db-url`` → ``LTD_KEEPER_DB_URL``
    URL of Keeper's SQL database.
    For a Cloud SQL instance, this URL has the form:
-   
+
    .. code-block:: text
-   
+
       mysql+pymysql://root:<PASSWORD>@/keeper?unix_socket=/cloudsql/<PROJECT>:<REGION>:<INSTANCE>
 
    Replace ``PASSWORD`` with the database password (see :doc:`gke-cloudsql`), along with ``PROJECT`` and ``REGION`` with the Cloud SQL instance details (see :doc:`gke-setup` and doc:`gke-cloudsql``).

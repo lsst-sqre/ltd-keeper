@@ -1,29 +1,37 @@
 """API v1 routes for products."""
 
+from __future__ import annotations
+
+from typing import Dict, Tuple
+
 from flask import jsonify, request
 from flask_accept import accept_fallback
 
-from . import api
-from ..models import db
-from ..auth import token_auth, permission_required
-from ..models import Product, Permission, Edition
-from ..logutils import log_route
-from ..tasks.dashboardbuild import build_dashboard
-from ..taskrunner import (launch_task_chain, append_task_to_chain,
-                          insert_task_url_in_response, mock_registry)
-
+from keeper.api import api
+from keeper.auth import permission_required, token_auth
+from keeper.logutils import log_route
+from keeper.models import Edition, Permission, Product, db
+from keeper.taskrunner import (
+    append_task_to_chain,
+    insert_task_url_in_response,
+    launch_task_chain,
+    mock_registry,
+)
+from keeper.tasks.dashboardbuild import build_dashboard
 
 # Register imports of celery task chain launchers
-mock_registry.extend([
-    'keeper.api.products.launch_task_chain',
-    'keeper.api.products.append_task_to_chain',
-])
+mock_registry.extend(
+    [
+        "keeper.api.products.launch_task_chain",
+        "keeper.api.products.append_task_to_chain",
+    ]
+)
 
 
-@api.route('/products/', methods=['GET'])
+@api.route("/products/", methods=["GET"])
 @accept_fallback
 @log_route()
-def get_products():
+def get_products() -> str:
     """List all documentation products (anonymous access allowed).
 
     **Example request**
@@ -53,14 +61,15 @@ def get_products():
 
     :statuscode 200: No error.
     """
-    return jsonify({'products': [product.get_url() for product in
-                                 Product.query.all()]})
+    return jsonify(
+        {"products": [product.get_url() for product in Product.query.all()]}
+    )
 
 
-@api.route('/products/<slug>', methods=['GET'])
+@api.route("/products/<slug>", methods=["GET"])
 @accept_fallback
 @log_route()
-def get_product(slug):
+def get_product(slug: str) -> str:
     """Get the record of a single documentation product (anonymous access
     allowed).
 
@@ -129,12 +138,12 @@ def get_product(slug):
     return jsonify(product.export_data())
 
 
-@api.route('/products/', methods=['POST'])
+@api.route("/products/", methods=["POST"])
 @accept_fallback
 @log_route()
 @token_auth.login_required
 @permission_required(Permission.ADMIN_PRODUCT)
-def new_product():
+def new_product() -> Tuple[str, int, Dict[str, str]]:
     """Create a new documentation product.
 
     Every new product also includes a default edition (slug is 'main'). This
@@ -213,14 +222,16 @@ def new_product():
         db.session.flush()  # Because Edition._validate_slug does not autoflush
 
         # Create a default edition for the product
-        edition_data = {'tracked_refs': ['master'],
-                        'slug': 'main',
-                        'title': 'Latest'}
-        if 'main_mode' in request_json:
-            edition_data['mode'] = request_json['main_mode']
+        edition_data = {
+            "tracked_refs": ["master"],
+            "slug": "main",
+            "title": "Latest",
+        }
+        if "main_mode" in request_json:
+            edition_data["mode"] = request_json["main_mode"]
         else:
             # Default tracking mode
-            edition_data['mode'] = 'git_refs'
+            edition_data["mode"] = "git_refs"
 
         edition = Edition(product=product)
         edition.import_data(edition_data)
@@ -236,15 +247,15 @@ def new_product():
         db.session.rollback()
         raise
 
-    return jsonify(response), 201, {'Location': product.get_url()}
+    return jsonify(response), 201, {"Location": product.get_url()}
 
 
-@api.route('/products/<slug>', methods=['PATCH'])
+@api.route("/products/<slug>", methods=["PATCH"])
 @accept_fallback
 @log_route()
 @token_auth.login_required
 @permission_required(Permission.ADMIN_PRODUCT)
-def edit_product(slug):
+def edit_product(slug: str) -> Tuple[str, int, Dict[str, str]]:
     """Update a product.
 
     Note that not all fields can be updated with this method (currently).
@@ -313,15 +324,15 @@ def edit_product(slug):
         db.session.rollback()
         raise
 
-    return jsonify(response), 200, {'Location': product.get_url()}
+    return jsonify(response), 200, {"Location": product.get_url()}
 
 
-@api.route('/products/<slug>/dashboard', methods=['POST'])
+@api.route("/products/<slug>/dashboard", methods=["POST"])
 @accept_fallback
 @log_route()
 @token_auth.login_required
 @permission_required(Permission.ADMIN_PRODUCT)
-def rebuild_product_dashboard(slug):
+def rebuild_product_dashboard(slug: str) -> Tuple[str, int, Dict[str, str]]:
     """Rebuild the LTD Dasher dashboard manually for a single product.
 
     Note that the dashboard is built asynchronously.

@@ -31,7 +31,7 @@ Procedure
 
       kubectl apply -f keeper-deployment.yaml
       kubectl apply -f keeper-worker-deployment.yaml
-   
+
    To follow the upgrade, use these commands:
 
    .. code-block:: bash

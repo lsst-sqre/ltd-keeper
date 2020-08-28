@@ -4,20 +4,39 @@ In LSST the Docs, ltd-mason is responsible for uploading documentation
 resources to S3. ltd-keeper deletes resources and copies builds to editions.
 """
 
-__all__ = ('delete_directory', 'copy_directory', 'presign_post_url_for_prefix',
-           'presign_post_url_for_directory_object', 'format_bucket_prefix')
+from __future__ import annotations
 
-from copy import deepcopy
-import os
 import logging
+import os
+from copy import deepcopy
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Collection,
+    Dict,
+    List,
+    Optional,
+    Sequence,
+)
 
 import boto3
 import botocore.exceptions
 
-from .exceptions import S3Error
+from keeper.exceptions import S3Error
+
+if TYPE_CHECKING:
+    import botocore.client.S3
+
+__all__ = (
+    "delete_directory",
+    "copy_directory",
+    "presign_post_url_for_prefix",
+    "presign_post_url_for_directory_object",
+    "format_bucket_prefix",
+)
 
 
-def open_s3_session(*, key_id, access_key):
+def open_s3_session(*, key_id: str, access_key: str) -> boto3.session.Session:
     """Create a boto3 S3 session that can be reused by multiple requests.
 
     Parameters
@@ -28,12 +47,16 @@ def open_s3_session(*, key_id, access_key):
         The secret key for your AWS account.
     """
     return boto3.session.Session(
-        aws_access_key_id=key_id,
-        aws_secret_access_key=access_key)
+        aws_access_key_id=key_id, aws_secret_access_key=access_key
+    )
 
 
-def delete_directory(bucket_name, root_path,
-                     aws_access_key_id, aws_secret_access_key):
+def delete_directory(
+    bucket_name: str,
+    root_path: str,
+    aws_access_key_id: str,
+    aws_secret_access_key: str,
+) -> None:
     """Delete all objects in the S3 bucket named `bucket_name` that are
     found in the `root_path` directory.
 
@@ -57,49 +80,56 @@ def delete_directory(bucket_name, root_path,
 
     session = boto3.session.Session(
         aws_access_key_id=aws_access_key_id,
-        aws_secret_access_key=aws_secret_access_key)
-    s3 = session.resource('s3')
+        aws_secret_access_key=aws_secret_access_key,
+    )
+    s3 = session.resource("s3")
     client = s3.meta.client
 
     # Normalize directory path for searching patch prefixes of objects
-    if not root_path.endswith('/'):
-        root_path.rstrip('/')
+    if not root_path.endswith("/"):
+        root_path.rstrip("/")
 
-    paginator = client.get_paginator('list_objects_v2')
+    paginator = client.get_paginator("list_objects_v2")
     pages = paginator.paginate(Bucket=bucket_name, Prefix=root_path)
 
-    keys = dict(Objects=[])
-    for item in pages.search('Contents'):
+    keys: Dict[str, List[Dict[str, str]]] = dict(Objects=[])
+    for item in pages.search("Contents"):
         try:
-            keys['Objects'].append({'Key': item['Key']})
+            keys["Objects"].append({"Key": item["Key"]})
         except TypeError:  # item is none; nothing to delete
             continue
         # Delete immediately when 1000 objects are listed
         # the delete_objects method can only take a maximum of 1000 keys
-        if len(keys['Objects']) >= 1000:
+        if len(keys["Objects"]) >= 1000:
             try:
                 client.delete_objects(Bucket=bucket_name, Delete=keys)
             except Exception:
-                message = 'Error deleting objects from %r' % root_path
-                log.exception('Error deleting objects from %r', root_path)
+                message = "Error deleting objects from %r" % root_path
+                log.exception("Error deleting objects from %r", root_path)
                 raise S3Error(message)
             keys = dict(Objects=[])
 
     # Delete remaining keys
-    if len(keys['Objects']) > 0:
+    if len(keys["Objects"]) > 0:
         try:
             client.delete_objects(Bucket=bucket_name, Delete=keys)
         except Exception:
-            message = 'Error deleting objects from %r' % root_path
+            message = "Error deleting objects from %r" % root_path
             log.exception(message)
             raise S3Error(message)
 
 
-def copy_directory(bucket_name, src_path, dest_path,
-                   aws_access_key_id, aws_secret_access_key,
-                   surrogate_key=None, cache_control=None,
-                   surrogate_control=None,
-                   create_directory_redirect_object=True):
+def copy_directory(
+    bucket_name: str,
+    src_path: str,
+    dest_path: str,
+    aws_access_key_id: str,
+    aws_secret_access_key: str,
+    surrogate_key: Optional[str] = None,
+    cache_control: Optional[str] = None,
+    surrogate_control: Optional[str] = None,
+    create_directory_redirect_object: bool = True,
+) -> None:
     """Copy objects from one directory in a bucket to another directory in
     the same bucket.
 
@@ -154,10 +184,10 @@ def copy_directory(bucket_name, src_path, dest_path,
     app.exceptions.S3Error
         Thrown by any unexpected faults from the S3 API.
     """
-    if not src_path.endswith('/'):
-        src_path += '/'
-    if not dest_path.endswith('/'):
-        dest_path += '/'
+    if not src_path.endswith("/"):
+        src_path += "/"
+    if not dest_path.endswith("/"):
+        dest_path += "/"
 
     # Ensure the src_path and dest_path don't contain each other
     common_prefix = os.path.commonprefix([src_path, dest_path])
@@ -165,13 +195,15 @@ def copy_directory(bucket_name, src_path, dest_path,
     assert common_prefix != dest_path
 
     # Delete any existing objects in the destination
-    delete_directory(bucket_name, dest_path,
-                     aws_access_key_id, aws_secret_access_key)
+    delete_directory(
+        bucket_name, dest_path, aws_access_key_id, aws_secret_access_key
+    )
 
     session = boto3.session.Session(
         aws_access_key_id=aws_access_key_id,
-        aws_secret_access_key=aws_secret_access_key)
-    s3 = session.resource('s3')
+        aws_secret_access_key=aws_secret_access_key,
+    )
+    s3 = session.resource("s3")
     bucket = s3.Bucket(bucket_name)
 
     # Copy each object from source to destination
@@ -180,43 +212,52 @@ def copy_directory(bucket_name, src_path, dest_path,
         dest_key_path = os.path.join(dest_path, src_rel_path)
 
         # the src_obj (ObjectSummary) doesn't include headers afaik
-        head = s3.meta.client.head_object(Bucket=bucket_name,
-                                          Key=src_obj.key)
-        metadata = head['Metadata']
-        content_type = head['ContentType']
+        head = s3.meta.client.head_object(Bucket=bucket_name, Key=src_obj.key)
+        metadata = head["Metadata"]
+        content_type = head["ContentType"]
 
         # try to use original Cache-Control header if new one is not set
-        if cache_control is None and 'CacheControl' in head:
-            cache_control = head['CacheControl']
+        if cache_control is None and "CacheControl" in head:
+            cache_control = head["CacheControl"]
 
         if surrogate_control is not None:
-            metadata['surrogate-control'] = surrogate_control
+            metadata["surrogate-control"] = surrogate_control
 
         if surrogate_key is not None:
-            metadata['surrogate-key'] = surrogate_key
+            metadata["surrogate-key"] = surrogate_key
 
         s3.meta.client.copy_object(
             Bucket=bucket_name,
             Key=dest_key_path,
-            CopySource={'Bucket': bucket_name, 'Key': src_obj.key},
-            MetadataDirective='REPLACE',
+            CopySource={"Bucket": bucket_name, "Key": src_obj.key},
+            MetadataDirective="REPLACE",
             Metadata=metadata,
-            ACL='public-read',
+            ACL="public-read",
             CacheControl=cache_control,
-            ContentType=content_type)
+            ContentType=content_type,
+        )
 
     if create_directory_redirect_object:
-        dest_dirname = dest_path.rstrip('/')
+        dest_dirname = dest_path.rstrip("/")
         obj = bucket.Object(dest_dirname)
-        metadata = {'dir-redirect': 'true'}
-        obj.put(Body='',
-                ACL='public-read',
-                Metadata=metadata,
-                CacheControl=cache_control)
+        metadata = {"dir-redirect": "true"}
+        obj.put(
+            Body="",
+            ACL="public-read",
+            Metadata=metadata,
+            CacheControl=cache_control,
+        )
 
 
-def presign_post_url_for_prefix(*, s3_session, bucket_name, prefix,
-                                fields=None, conditions=None, expiration=3600):
+def presign_post_url_for_prefix(
+    *,
+    s3_session: botocore.client.S3,
+    bucket_name: str,
+    prefix: str,
+    fields: Optional[Dict[str, str]] = None,
+    conditions: Optional[Sequence[Collection[str]]] = None,
+    expiration: int = 3600,
+) -> Dict[str, Any]:
     """Generate a presigned POST URL for clients to upload objects to S3
     without additional authentication.
 
@@ -273,29 +314,36 @@ def presign_post_url_for_prefix(*, s3_session, bucket_name, prefix,
       upload-a-file>`_.
     - `S3.Client.generate_presigned_post`
     """
-    if prefix.endswith('/'):
-        key = f'{prefix}${{filename}}'
+    if prefix.endswith("/"):
+        key = f"{prefix}${{filename}}"
     else:
-        key = f'{prefix}/${{filename}}'
+        key = f"{prefix}/${{filename}}"
 
-    s3_client = s3_session.client('s3')
+    s3_client = s3_session.client("s3")
     try:
         response = s3_client.generate_presigned_post(
             bucket_name,
             key,
             Fields=fields,
             Conditions=conditions,
-            ExpiresIn=expiration)
+            ExpiresIn=expiration,
+        )
     except botocore.exceptions.ClientError:
-        raise S3Error('Error creating presigned POST URL.')
+        raise S3Error("Error creating presigned POST URL.")
 
     # The response contains the presigned URL and required fields
     return response
 
 
-def presign_post_url_for_directory_object(*, s3_session, bucket_name, key,
-                                          fields=None, conditions=None,
-                                          expiration=3600):
+def presign_post_url_for_directory_object(
+    *,
+    s3_session: botocore.client.S3,
+    bucket_name: str,
+    key: str,
+    fields: Optional[Dict[str, str]] = None,
+    conditions: Optional[List[Any]] = None,
+    expiration: int = 3600,
+) -> Dict[str, Any]:
     """Generate a presigned POST URL for clients to upload directory rediect
     objects to S3 without additional authentication.
 
@@ -341,61 +389,72 @@ def presign_post_url_for_directory_object(*, s3_session, bucket_name, key,
             A `dict` of key-value pairs that can be passed by clients in the
             data payload of the post.
     """
-    key = key.rstrip('/')
+    key = key.rstrip("/")
 
     if fields is None:
         fields = {}
     else:
         fields = deepcopy(fields)
+
     if conditions is None:
-        conditions = []
+        _conditions: List[Any] = []
     else:
-        conditions = deepcopy(conditions)
+        _conditions = deepcopy(conditions)
 
     # Apply presets for directory redirect objects
-    fields['x-amz-meta-dir-redirect'] = 'true'
+    fields["x-amz-meta-dir-redirect"] = "true"
     conditions = set_condition(
-        conditions=conditions,
-        condition_key='x-amz-meta-dir-redirect',
-        condition={'x-amz-meta-dir-redirect': 'true'})
+        conditions=_conditions,
+        condition_key="x-amz-meta-dir-redirect",
+        condition={"x-amz-meta-dir-redirect": "true"},
+    )
 
-    s3_client = s3_session.client('s3')
+    s3_client = s3_session.client("s3")
     try:
         response = s3_client.generate_presigned_post(
             bucket_name,
             key,
             Fields=fields,
             Conditions=conditions,
-            ExpiresIn=expiration)
+            ExpiresIn=expiration,
+        )
     except botocore.exceptions.ClientError:
-        raise S3Error('Error creating presigned POST URL.')
+        raise S3Error("Error creating presigned POST URL.")
 
     # The response contains the presigned URL and required fields
     return response
 
 
-def format_bucket_prefix(base_prefix, dirname):
+def format_bucket_prefix(base_prefix: str, dirname: str) -> str:
     """Format an S3 bucket key prefix by joining a base prefix with a directory
     name.
     """
-    base_prefix = base_prefix.rstrip('/').lstrip('/')
-    dirname = dirname.lstrip('/')
-    prefix = '/'.join((base_prefix, dirname))
-    if not prefix.endswith('/'):
-        prefix = prefix + '/'
+    base_prefix = base_prefix.rstrip("/").lstrip("/")
+    dirname = dirname.lstrip("/")
+    prefix = "/".join((base_prefix, dirname))
+    if not prefix.endswith("/"):
+        prefix = prefix + "/"
     return prefix
 
 
-def set_condition(*, conditions, condition_key, condition):
+def set_condition(
+    *,
+    conditions: List[Collection[str]],
+    condition_key: str,
+    condition: Collection[str],
+) -> List[Collection[str]]:
     """Set a condition on a presigned URL condition list, overwriting an
     existing condition on the same field if necessary.
 
     For more information about S3 presigned URL conditions, see
     https://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-HTTPPOSTConstructPolicy.html#sigv4-PolicyConditions
     """
-    condition_var = '$' + condition_key
-    new_conditions = [c for c in conditions
-                      if condition_key not in c
-                      if condition_var not in c]
+    condition_var = "$" + condition_key
+    new_conditions = [
+        c
+        for c in conditions
+        if condition_key not in c
+        if condition_var not in c
+    ]
     new_conditions.append(condition)
     return new_conditions

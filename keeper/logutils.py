@@ -1,22 +1,25 @@
-"""Logging helpers and utilities.
-"""
+"""Logging helpers and utilities."""
 
-__all__ = ['log_route']
-
+import uuid
 from functools import wraps
 from timeit import default_timer as timer
-import uuid
+from typing import Any, Callable, TypeVar
 
-from flask import request, make_response
 import structlog
+from flask import make_response, request
+
+__all__ = ["log_route"]
+
+F = TypeVar("F", bound=Callable[..., Any])
 
 
-def log_route():
+def log_route() -> Callable[[F], F]:
     """Route decorator to initialize a thread-local logger for a route.
     """
-    def decorator(f):
+
+    def decorator(f):  # type: ignore
         @wraps(f)
-        def decorated_function(*args, **kwargs):
+        def decorated_function(*args, **kwargs):  # type: ignore
             # Initialize a timer to capture the response time
             # This is for convenience, in addition to route monitoring.
             start_time = timer()
@@ -39,9 +42,11 @@ def log_route():
             end_time = timer()
             log.info(
                 status=response.status_code,
-                response_time=end_time - start_time)
+                response_time=end_time - start_time,
+            )
 
             return response
 
         return decorated_function
+
     return decorator

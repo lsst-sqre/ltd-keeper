@@ -4,30 +4,47 @@ Copyright 2016 AURA/LSST.
 Copyright 2014 Miguel Grinberg.
 """
 
-from datetime import datetime
-import uuid
+from __future__ import annotations
+
 import urllib.parse
+import uuid
+from datetime import datetime
+from typing import Any, Dict, Optional
 
-from werkzeug.security import generate_password_hash, check_password_hash
-from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
-from flask import url_for, current_app
-from flask_sqlalchemy import SQLAlchemy
+from flask import current_app, url_for
 from flask_migrate import Migrate
+from flask_sqlalchemy import SQLAlchemy
+from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from structlog import get_logger
+from werkzeug.security import check_password_hash, generate_password_hash
 
-from . import s3
-from . import route53
-from .exceptions import ValidationError
+from . import route53, s3
 from .editiontracking import EditionTrackingModes
-from .utils import (split_url, format_utc_datetime, JSONEncodedVARCHAR,
-                    MutableList, validate_product_slug, validate_path_slug)
+from .exceptions import ValidationError
 from .taskrunner import append_task_to_chain, mock_registry
+from .utils import (
+    JSONEncodedVARCHAR,
+    MutableList,
+    format_utc_datetime,
+    split_url,
+    validate_path_slug,
+    validate_product_slug,
+)
 
+__all__ = [
+    "mock_registry",
+    "db",
+    "migrate",
+    "edition_tracking_modes",
+    "Permission",
+    "User",
+    "Product",
+    "Build",
+    "Edition",
+]
 
 # Register imports of celery task chain launchers
-mock_registry.extend([
-    'keeper.models.append_task_to_chain',
-])
+mock_registry.extend(["keeper.models.append_task_to_chain"])
 
 
 db = SQLAlchemy()
@@ -43,15 +60,14 @@ This is initialized in `keeper.appfactory.create_flask_app`.
 """
 
 edition_tracking_modes = EditionTrackingModes()
-"""Tracking modes for editions.
-"""
+"""Tracking modes for editions."""
 
 
-class Permission(object):
+class Permission:
     """User permission definitions.
 
     These permissions can be added to the ``permissions`` column of a
-    :class:`User`. For example, to give a user permission to both
+    `User`. For example, to give a user permission to both
     administer products *and* editions::
 
         p = Permission
@@ -59,13 +75,13 @@ class Permission(object):
                     permissions=p.ADMIN_PRODUCT | p.ADMIN_EDITION)
 
     You can give a user permission to do everything with the
-    :meth:`User.full_permissions` helper method::
+    `User.full_permissions` helper method::
 
         p = Permission
         user = User(username='admin-user',
                     permission=p.full_permissions())
 
-    See :class:`User.has_permission` for how to use these permission
+    See `User.has_permission` for how to use these permission
     bits to test user authorization.
     """
 
@@ -75,23 +91,19 @@ class Permission(object):
     """
 
     ADMIN_PRODUCT = 0b10
-    """Permission to add, modify and deprecate Products.
-    """
+    """Permission to add, modify and deprecate Products."""
 
     ADMIN_EDITION = 0b100
-    """Permission to add, modify and deprecate Editions.
-    """
+    """Permission to add, modify and deprecate Editions."""
 
     UPLOAD_BUILD = 0b1000
-    """Permission to create a new Build.
-    """
+    """Permission to create a new Build."""
 
     DEPRECATE_BUILD = 0b10000
-    """Permission to deprecate a Build.
-    """
+    """Permission to deprecate a Build."""
 
     @classmethod
-    def full_permissions(self):
+    def full_permissions(self) -> int:
         """Helper method to create a bit mask with all permissions enabled.
 
         Returns
@@ -99,27 +111,28 @@ class Permission(object):
         permissions : int
             Bit mask with all permissions enabled.
         """
-        return self.ADMIN_USER | self.ADMIN_PRODUCT | self.ADMIN_EDITION \
-            | self.UPLOAD_BUILD | self.DEPRECATE_BUILD
+        return (
+            self.ADMIN_USER
+            | self.ADMIN_PRODUCT
+            | self.ADMIN_EDITION
+            | self.UPLOAD_BUILD
+            | self.DEPRECATE_BUILD
+        )
 
 
-class User(db.Model):
-    """DB model for authenticated API users.
-    """
+class User(db.Model):  # type: ignore
+    """DB model for authenticated API users."""
 
-    __tablename__ = 'users'
+    __tablename__ = "users"
 
     id = db.Column(db.Integer, primary_key=True)
-    """Primary key for this User.
-    """
+    """Primary key for this User."""
 
     username = db.Column(db.Unicode(255), index=True, unique=True)
-    """Username (must be unique).
-    """
+    """Username (must be unique)."""
 
     password_hash = db.Column(db.String(128))
-    """Password hash.
-    """
+    """Password hash."""
 
     permissions = db.Column(db.Integer)
     """Permissions for this user, as a bit.
@@ -129,29 +142,29 @@ class User(db.Model):
     Permission
     """
 
-    def set_password(self, password):
+    def set_password(self, password: str) -> None:
         self.password_hash = generate_password_hash(password)
 
-    def verify_password(self, password):
+    def verify_password(self, password: str) -> bool:
         return check_password_hash(self.password_hash, password)
 
-    def generate_auth_token(self, expires_in=3600):
-        s = Serializer(current_app.config['SECRET_KEY'], expires_in=expires_in)
-        return s.dumps({'id': self.id}).decode('utf-8')
+    def generate_auth_token(self, expires_in: int = 3600) -> str:
+        s = Serializer(current_app.config["SECRET_KEY"], expires_in=expires_in)
+        return s.dumps({"id": self.id}).decode("utf-8")
 
     @staticmethod
-    def verify_auth_token(token):
-        s = Serializer(current_app.config['SECRET_KEY'])
+    def verify_auth_token(token: str) -> Optional["User"]:
+        s = Serializer(current_app.config["SECRET_KEY"])
         try:
             data = s.loads(token)
         except Exception:
             return None
-        return User.query.get(data['id'])
+        return User.query.get(data["id"])
 
-    def has_permission(self, permissions):
+    def has_permission(self, permissions: int) -> bool:
         """Verify that a user has a given set of permissions.
 
-        Permissions are defined in the :class:`Permission` class. To check
+        Permissions are defined in the `Permission` class. To check
         authorization for a user against a specific permissions::
 
             user.has_permission(Permission.ADMIN_PRODUCT)
@@ -175,42 +188,35 @@ class User(db.Model):
         return (self.permissions & permissions) == permissions
 
 
-class Product(db.Model):
+class Product(db.Model):  # type: ignore
     """DB model for software products.
 
     A software product maps to a top-level Eups package and has a single
     product documentation repository associated with it.
     """
 
-    __tablename__ = 'products'
+    __tablename__ = "products"
 
     id = db.Column(db.Integer, primary_key=True)
-    """Primary key for this product.
-    """
+    """Primary key for this product."""
 
     slug = db.Column(db.Unicode(255), nullable=False, unique=True)
-    """URL/path-safe identifier for this product (unique).
-    """
+    """URL/path-safe identifier for this product (unique)."""
 
     doc_repo = db.Column(db.Unicode(255), nullable=False)
-    """URL of the Git documentation repo (i.e., on GitHub).
-    """
+    """URL of the Git documentation repo (i.e., on GitHub)."""
 
     title = db.Column(db.Unicode(255), nullable=False)
-    """Title of this product.
-    """
+    """Title of this product."""
 
     root_domain = db.Column(db.Unicode(255), nullable=False)
-    """Root domain name serving docs (e.g., lsst.io).
-    """
+    """Root domain name serving docs (e.g., lsst.io)."""
 
     root_fastly_domain = db.Column(db.Unicode(255), nullable=False)
-    """Fastly CDN domain name (without doc's domain prepended).
-    """
+    """Fastly CDN domain name (without doc's domain prepended)."""
 
     bucket_name = db.Column(db.Unicode(255), nullable=True)
-    """Name of the S3 bucket hosting builds.
-    """
+    """Name of the S3 bucket hosting builds."""
 
     surrogate_key = db.Column(db.String(32))
     """surrogate_key for Fastly quick purges of dashboards.
@@ -218,17 +224,17 @@ class Product(db.Model):
     Editions and Builds have independent surrogate keys.
     """
 
-    builds = db.relationship('Build', backref='product', lazy='dynamic')
+    builds = db.relationship("Build", backref="product", lazy="dynamic")
     """One-to-many relationship to all `Build` objects related to this Product.
     """
 
-    editions = db.relationship('Edition', backref='product', lazy='dynamic')
+    editions = db.relationship("Edition", backref="product", lazy="dynamic")
     """One-to-many relationship to all `Edition` objects related to this
     Product.
     """
 
     @classmethod
-    def from_url(cls, product_url):
+    def from_url(cls, product_url: str) -> "Product":
         """Get a Product given its API URL.
 
         Parameters
@@ -245,28 +251,31 @@ class Product(db.Model):
 
         # Get new Product ID from the product resource's URL
         product_endpoint, product_args = split_url(product_url)
-        if product_endpoint != 'api.get_product' or 'slug' not in product_args:
-            logger.debug('Invalid product_url',
-                         product_endpoint=product_endpoint,
-                         product_args=product_args)
-            raise ValidationError('Invalid product_url: {}'
-                                  .format(product_url))
-        slug = product_args['slug']
+        if product_endpoint != "api.get_product" or "slug" not in product_args:
+            logger.debug(
+                "Invalid product_url",
+                product_endpoint=product_endpoint,
+                product_args=product_args,
+            )
+            raise ValidationError(
+                "Invalid product_url: {}".format(product_url)
+            )
+        slug = product_args["slug"]
         product = cls.query.filter_by(slug=slug).first_or_404()
 
         return product
 
     @property
-    def domain(self):
+    def domain(self) -> str:
         """Domain where docs for this product are served from.
 
         (E.g. ``product.lsst.io`` if ``product`` is the slug and ``lsst.io``
         is the ``root_domain``.)
         """
-        return '.'.join((self.slug, self.root_domain))
+        return ".".join((self.slug, self.root_domain))
 
     @property
-    def fastly_domain(self):
+    def fastly_domain(self) -> str:
         """Domain where Fastly serves content from for this product.
         """
         # Note that in non-ssl contexts fastly wants you to prepend the domain
@@ -275,50 +284,50 @@ class Product(db.Model):
         return self.root_fastly_domain
 
     @property
-    def published_url(self):
+    def published_url(self) -> str:
         """URL where this product is published to the end-user.
         """
-        parts = ('https', self.domain, '', '', '', '')
+        parts = ("https", self.domain, "", "", "", "")
         return urllib.parse.urlunparse(parts)
 
-    def get_url(self):
+    def get_url(self) -> str:
         """API URL for this entity.
         """
-        return url_for('api.get_product', slug=self.slug, _external=True)
+        return url_for("api.get_product", slug=self.slug, _external=True)
 
-    def export_data(self):
+    def export_data(self) -> Dict[str, Any]:
         """Export entity as JSON-compatible dict.
         """
         return {
-            'self_url': self.get_url(),
-            'slug': self.slug,
-            'doc_repo': self.doc_repo,
-            'title': self.title,
-            'root_domain': self.root_domain,
-            'root_fastly_domain': self.root_fastly_domain,
-            'domain': self.domain,
-            'fastly_domain': self.fastly_domain,
-            'bucket_name': self.bucket_name,
-            'published_url': self.published_url,
-            'surrogate_key': self.surrogate_key
+            "self_url": self.get_url(),
+            "slug": self.slug,
+            "doc_repo": self.doc_repo,
+            "title": self.title,
+            "root_domain": self.root_domain,
+            "root_fastly_domain": self.root_fastly_domain,
+            "domain": self.domain,
+            "fastly_domain": self.fastly_domain,
+            "bucket_name": self.bucket_name,
+            "published_url": self.published_url,
+            "surrogate_key": self.surrogate_key,
         }
 
-    def import_data(self, data):
+    def import_data(self, data: Dict[str, Any]) -> "Product":
         """Convert a dict `data` into a table row.
         """
         try:
-            self.slug = data['slug']
-            self.doc_repo = data['doc_repo']
-            self.title = data['title']
-            self.root_domain = data['root_domain']
-            self.root_fastly_domain = data['root_fastly_domain']
-            self.bucket_name = data['bucket_name']
+            self.slug = data["slug"]
+            self.doc_repo = data["doc_repo"]
+            self.title = data["title"]
+            self.root_domain = data["root_domain"]
+            self.root_fastly_domain = data["root_fastly_domain"]
+            self.bucket_name = data["bucket_name"]
         except KeyError as e:
-            raise ValidationError('Invalid Product: missing ' + e.args[0])
+            raise ValidationError("Invalid Product: missing " + e.args[0])
 
         # clean any full stops pre-pended on inputted fully qualified domains
-        self.root_domain = self.root_domain.lstrip('.')
-        self.root_fastly_domain = self.root_fastly_domain.lstrip('.')
+        self.root_domain = self.root_domain.lstrip(".")
+        self.root_fastly_domain = self.root_fastly_domain.lstrip(".")
 
         # Validate slug; raises ValidationError
         validate_product_slug(self.slug)
@@ -328,37 +337,39 @@ class Product(db.Model):
             self.surrogate_key = uuid.uuid4().hex
 
         # Setup Fastly CNAME with Route53
-        AWS_ID = current_app.config['AWS_ID']
-        AWS_SECRET = current_app.config['AWS_SECRET']
+        AWS_ID = current_app.config["AWS_ID"]
+        AWS_SECRET = current_app.config["AWS_SECRET"]
         if AWS_ID is not None and AWS_SECRET is not None:
-            route53.create_cname(self.domain, self.fastly_domain,
-                                 AWS_ID, AWS_SECRET)
+            route53.create_cname(
+                self.domain, self.fastly_domain, AWS_ID, AWS_SECRET
+            )
 
         return self
 
-    def patch_data(self, data):
+    def patch_data(self, data: Dict[str, Any]) -> None:
         """Partial update of fields from PUT requests on an existing product.
 
         Currently only updates to doc_repo and title are supported.
         """
-        if 'doc_repo' in data:
-            self.doc_repo = data['doc_repo']
+        if "doc_repo" in data:
+            self.doc_repo = data["doc_repo"]
 
-        if 'title' in data:
-            self.title = data['title']
+        if "title" in data:
+            self.title = data["title"]
 
 
-class Build(db.Model):
+class Build(db.Model):  # type: ignore
     """DB model for documentation builds."""
 
-    __tablename__ = 'builds'
+    __tablename__ = "builds"
 
     id = db.Column(db.Integer, primary_key=True)
     """Primary key of the build.
     """
 
-    product_id = db.Column(db.Integer, db.ForeignKey('products.id'),
-                           index=True)
+    product_id = db.Column(
+        db.Integer, db.ForeignKey("products.id"), index=True
+    )
     """ID of the `Product` this `Build` belongs to.
     """
 
@@ -368,8 +379,9 @@ class Build(db.Model):
     This slug is also used as a pseudo-POSIX directory prefix in the S3 bucket.
     """
 
-    date_created = db.Column(db.DateTime, default=datetime.now(),
-                             nullable=False)
+    date_created = db.Column(
+        db.DateTime, default=datetime.now(), nullable=False
+    )
     """DateTime when this build was created.
     """
 
@@ -406,7 +418,7 @@ class Build(db.Model):
     # product - from Product class
 
     @classmethod
-    def from_url(cls, build_url):
+    def from_url(cls, build_url: str) -> "Build":
         """Get a Build given its API URL.
 
         Parameters
@@ -421,82 +433,90 @@ class Build(db.Model):
         """
         # Get new Build ID from the build resource's URL
         build_endpoint, build_args = split_url(build_url)
-        if build_endpoint != 'api.get_build' or 'id' not in build_args:
-            raise ValidationError('Invalid build_url: {}'.format(build_url))
-        build = cls.query.get(build_args['id'])
+        if build_endpoint != "api.get_build" or "id" not in build_args:
+            raise ValidationError("Invalid build_url: {}".format(build_url))
+        build = cls.query.get(build_args["id"])
         if build is None:
-            raise ValidationError('Invalid build_url: ' + build_url)
+            raise ValidationError("Invalid build_url: " + build_url)
 
         return build
 
     @property
-    def bucket_root_dirname(self):
+    def bucket_root_dirname(self) -> str:
         """Directory in the bucket where the build is located.
         """
-        return '/'.join((self.product.slug, 'builds', self.slug))
+        return "/".join((self.product.slug, "builds", self.slug))
 
     @property
-    def published_url(self):
+    def published_url(self) -> str:
         """URL where this build is published to the end-user.
         """
-        parts = ('https',
-                 self.product.domain,
-                 '/builds/{0}'.format(self.slug),
-                 '', '', '')
+        parts = (
+            "https",
+            self.product.domain,
+            "/builds/{0}".format(self.slug),
+            "",
+            "",
+            "",
+        )
         return urllib.parse.urlunparse(parts)
 
-    def get_url(self):
+    def get_url(self) -> str:
         """API URL for this entity.
         """
-        return url_for('api.get_build', id=self.id, _external=True)
+        return url_for("api.get_build", id=self.id, _external=True)
 
-    def export_data(self):
+    def export_data(self) -> Dict[str, Any]:
         """Export entity as JSON-compatible dict.
         """
         return {
-            'self_url': self.get_url(),
-            'product_url': self.product.get_url(),
-            'slug': self.slug,
-            'date_created': format_utc_datetime(self.date_created),
-            'date_ended': format_utc_datetime(self.date_ended),
-            'uploaded': self.uploaded,
-            'bucket_name': self.product.bucket_name,
-            'bucket_root_dir': self.bucket_root_dirname,
-            'git_refs': self.git_refs,
-            'github_requester': self.github_requester,
-            'published_url': self.published_url,
-            'surrogate_key': self.surrogate_key
+            "self_url": self.get_url(),
+            "product_url": self.product.get_url(),
+            "slug": self.slug,
+            "date_created": format_utc_datetime(self.date_created),
+            "date_ended": format_utc_datetime(self.date_ended),
+            "uploaded": self.uploaded,
+            "bucket_name": self.product.bucket_name,
+            "bucket_root_dir": self.bucket_root_dirname,
+            "git_refs": self.git_refs,
+            "github_requester": self.github_requester,
+            "published_url": self.published_url,
+            "surrogate_key": self.surrogate_key,
         }
 
-    def import_data(self, data):
+    def import_data(self, data: Dict[str, Any]) -> "Build":
         """Convert a dict `data` into a table row.
         """
         try:
-            git_refs = data['git_refs']
+            git_refs = data["git_refs"]
             if isinstance(git_refs, str):
-                raise ValidationError('Invalid Build: git_refs must be an '
-                                      'array of strings')
+                raise ValidationError(
+                    "Invalid Build: git_refs must be an " "array of strings"
+                )
             self.git_refs = git_refs
         except KeyError as e:
-            raise ValidationError('Invalid Build: missing ' + e.args[0])
+            raise ValidationError("Invalid Build: missing " + e.args[0])
 
-        if 'github_requester' in data:
-            self.github_requester = data['github_requester']
+        if "github_requester" in data:
+            self.github_requester = data["github_requester"]
 
-        if 'slug' in data:
+        if "slug" in data:
             identical_slugs = len(
                 Build.query.autoflush(False)
                 .filter(Build.product == self.product)
-                .filter(Build.slug == data['slug'])
-                .all())
+                .filter(Build.slug == data["slug"])
+                .all()
+            )
             if identical_slugs > 0:
-                raise ValidationError('Invalid Build, slug already exists')
-            self.slug = data['slug']
+                raise ValidationError("Invalid Build, slug already exists")
+            self.slug = data["slug"]
         else:
             # auto-create a slug
-            all_builds = Build.query.autoflush(False)\
-                .filter(Build.product == self.product)\
+            all_builds = (
+                Build.query.autoflush(False)
+                .filter(Build.product == self.product)
                 .all()
+            )
             slugs = [b.slug for b in all_builds]
             trial_slug_n = 1
             while str(trial_slug_n) in slugs:
@@ -509,30 +529,32 @@ class Build(db.Model):
 
         return self
 
-    def patch_data(self, data):
+    def patch_data(self, data: Dict[str, Any]) -> None:
         """Modify build via PATCH.
 
         Only allowed modification is to set 'uploaded' field to True to
         acknowledge a build upload to the bucket.
         """
-        if 'uploaded' in data:
-            if data['uploaded'] is True:
+        if "uploaded" in data:
+            if data["uploaded"] is True:
                 self.register_uploaded_build()
 
-    def register_uploaded_build(self):
+    def register_uploaded_build(self) -> None:
         """Hook for when a build has been uploaded.
         """
         self.uploaded = True
 
-        editions = Edition.query.autoflush(False)\
-            .filter(Edition.product == self.product)\
+        editions = (
+            Edition.query.autoflush(False)
+            .filter(Edition.product == self.product)
             .all()
+        )
 
         for edition in editions:
             if edition.should_rebuild(build=self):
                 edition.set_pending_rebuild(build=self)
 
-    def deprecate_build(self):
+    def deprecate_build(self) -> None:
         """Trigger a build deprecation.
 
         Sets the `date_ended` field.
@@ -540,25 +562,24 @@ class Build(db.Model):
         self.date_ended = datetime.now()
 
 
-class Edition(db.Model):
+class Edition(db.Model):  # type: ignore
     """DB model for Editions. Editions are fixed-location publications of the
     docs. Editions are updated by new builds; though not all builds are used
     by Editions.
     """
 
-    __tablename__ = 'editions'
+    __tablename__ = "editions"
 
     id = db.Column(db.Integer, primary_key=True)
     """Primary key of this Edition.
     """
 
-    product_id = db.Column(db.Integer, db.ForeignKey('products.id'),
-                           index=True)
-    """ID of the product being used by this Edition.
-    """
+    product_id = db.Column(
+        db.Integer, db.ForeignKey("products.id"), index=True
+    )
+    """ID of the product being used by this Edition."""
 
-    build_id = db.Column(db.Integer, db.ForeignKey('builds.id'),
-                         index=True)
+    build_id = db.Column(db.Integer, db.ForeignKey("builds.id"), index=True)
     """ID of the build being used by this edition.
 
     See also
@@ -584,20 +605,19 @@ class Edition(db.Model):
     """
 
     slug = db.Column(db.Unicode(255), nullable=False)
-    """URL-safe slug for edition.
-    """
+    """URL-safe slug for edition."""
 
     title = db.Column(db.Unicode(256), nullable=False)
-    """Human-readable title for edition.
-    """
+    """Human-readable title for edition."""
 
-    date_created = db.Column(db.DateTime, default=datetime.now(),
-                             nullable=False)
-    """DateTime when this edition was initially created.
-    """
+    date_created = db.Column(
+        db.DateTime, default=datetime.now(), nullable=False
+    )
+    """DateTime when this edition was initially created."""
 
-    date_rebuilt = db.Column(db.DateTime, default=datetime.now(),
-                             nullable=False)
+    date_rebuilt = db.Column(
+        db.DateTime, default=datetime.now(), nullable=False
+    )
     """DateTime when the Edition was last rebuild.
     """
 
@@ -607,20 +627,17 @@ class Edition(db.Model):
     """
 
     surrogate_key = db.Column(db.String(32))
-    """surrogate-key header for Fastly (quick purges); 32-char hex.
-    """
+    """surrogate-key header for Fastly (quick purges); 32-char hex."""
 
     pending_rebuild = db.Column(db.Boolean, default=False, nullable=False)
-    """Flag indicating if a rebuild is pending work by the rebuild task.
-    """
+    """Flag indicating if a rebuild is pending work by the rebuild task."""
 
     # Relationships
-    build = db.relationship('Build', uselist=False)
-    """One-to-one relationship with the `Build` resource.
-    """
+    build = db.relationship("Build", uselist=False)
+    """One-to-one relationship with the `Build` resource."""
 
     @classmethod
-    def from_url(cls, edition_url):
+    def from_url(cls, edition_url: str) -> "Edition":
         """Get an Edition given its API URL.
 
         Parameters
@@ -637,110 +654,113 @@ class Edition(db.Model):
 
         # Get new Product ID from the product resource's URL
         edition_endpoint, endpoint_args = split_url(edition_url)
-        if edition_endpoint != 'api.get_edition' or 'id' not in endpoint_args:
-            logger.debug('Invalid edition_url',
-                         edition_endpoint=edition_endpoint,
-                         endpoint_args=endpoint_args)
-            raise ValidationError('Invalid edition_url: {}'
-                                  .format(edition_url))
-        edition = cls.query.get(endpoint_args['id'])
+        if edition_endpoint != "api.get_edition" or "id" not in endpoint_args:
+            logger.debug(
+                "Invalid edition_url",
+                edition_endpoint=edition_endpoint,
+                endpoint_args=endpoint_args,
+            )
+            raise ValidationError(
+                "Invalid edition_url: {}".format(edition_url)
+            )
+        edition = cls.query.get(endpoint_args["id"])
 
         return edition
 
     @property
-    def bucket_root_dirname(self):
-        """Directory in the bucket where the edition is located.
-        """
-        return '/'.join((self.product.slug, 'v', self.slug))
+    def bucket_root_dirname(self) -> str:
+        """Directory in the bucket where the edition is located."""
+        return "/".join((self.product.slug, "v", self.slug))
 
     @property
-    def published_url(self):
-        """URL where this edition is published to the end-user.
-        """
-        if self.slug == 'main':
+    def published_url(self) -> str:
+        """URL where this edition is published to the end-user."""
+        if self.slug == "main":
             # Special case for main; published at product's root
-            parts = ('https',
-                     self.product.domain,
-                     '', '', '', '')
+            parts = ("https", self.product.domain, "", "", "", "")
         else:
-            parts = ('https',
-                     self.product.domain,
-                     '/v/{0}'.format(self.slug),
-                     '', '', '')
+            parts = (
+                "https",
+                self.product.domain,
+                "/v/{0}".format(self.slug),
+                "",
+                "",
+                "",
+            )
         return urllib.parse.urlunparse(parts)
 
-    def get_url(self):
-        """API URL for this entity.
-        """
-        return url_for('api.get_edition', id=self.id, _external=True)
+    def get_url(self) -> str:
+        """API URL for this entity."""
+        return url_for("api.get_edition", id=self.id, _external=True)
 
-    def export_data(self):
-        """Export entity as JSON-compatible dict.
-        """
+    def export_data(self) -> Dict[str, Any]:
+        """Export entity as JSON-compatible dict."""
         if self.build is not None:
             build_url = self.build.get_url()
         else:
             build_url = None
 
         data = {
-            'self_url': self.get_url(),
-            'product_url': self.product.get_url(),
-            'build_url': build_url,
-            'mode': self.mode_name,
-            'tracked_refs': self.tracked_refs,
-            'slug': self.slug,
-            'title': self.title,
-            'published_url': self.published_url,
-            'date_created': format_utc_datetime(self.date_created),
-            'date_rebuilt': format_utc_datetime(self.date_rebuilt),
-            'date_ended': format_utc_datetime(self.date_ended),
-            'surrogate_key': self.surrogate_key,
-            'pending_rebuild': self.pending_rebuild
+            "self_url": self.get_url(),
+            "product_url": self.product.get_url(),
+            "build_url": build_url,
+            "mode": self.mode_name,
+            "tracked_refs": self.tracked_refs,
+            "slug": self.slug,
+            "title": self.title,
+            "published_url": self.published_url,
+            "date_created": format_utc_datetime(self.date_created),
+            "date_rebuilt": format_utc_datetime(self.date_rebuilt),
+            "date_ended": format_utc_datetime(self.date_ended),
+            "surrogate_key": self.surrogate_key,
+            "pending_rebuild": self.pending_rebuild,
         }
 
-        if self.mode_name != 'git_refs':
+        if self.mode_name != "git_refs":
             # Force tracked_refs to None/null if it is not applicable.
-            data['tracked_refs'] = None
+            data["tracked_refs"] = None
         else:
-            data['tracked_refs'] = self.tracked_refs
+            data["tracked_refs"] = self.tracked_refs
 
         return data
 
-    def import_data(self, data):
+    def import_data(self, data: Dict[str, Any]) -> "Edition":
         """Initialize the edition on POST.
 
         The Product is set on object initialization.
         """
         # Set up the edition's slug and title (either automatic or manually
         # set)
-        if 'autoincrement' in data and data['autoincrement']:
+        if "autoincrement" in data and data["autoincrement"]:
             self.slug = self._compute_autoincremented_slug()
             self.title = self.slug
         else:
             try:
-                self.slug = data['slug']
-                self.title = data['title']
+                self.slug = data["slug"]
+                self.title = data["title"]
             except KeyError as e:
-                raise ValidationError('Invalid Product: missing ' + e.args[0])
+                raise ValidationError("Invalid Product: missing " + e.args[0])
         self._validate_slug(self.slug)
 
         # Set up the edition's build tracking mode
-        if 'mode' in data:
-            self.set_mode(data['mode'])
+        if "mode" in data:
+            self.set_mode(data["mode"])
         else:
             # Set default
             self.set_mode(self.default_mode_name)
 
         # git_refs is only required for git_refs tracking mode
-        if self.mode == edition_tracking_modes.name_to_id('git_refs'):
+        if self.mode == edition_tracking_modes.name_to_id("git_refs"):
             try:
-                tracked_refs = data['tracked_refs']
+                tracked_refs = data["tracked_refs"]
             except KeyError as e:
-                raise ValidationError('Invalid Edition: missing ' + e.args[0])
+                raise ValidationError("Invalid Edition: missing " + e.args[0])
 
             if isinstance(tracked_refs, str):
-                raise ValidationError('Invalid Edition: tracked_refs must be '
-                                      'an array of strings')
+                raise ValidationError(
+                    "Invalid Edition: tracked_refs must be "
+                    "an array of strings"
+                )
 
             self.tracked_refs = tracked_refs
 
@@ -748,45 +768,51 @@ class Edition(db.Model):
             self.surrogate_key = uuid.uuid4().hex
 
         # Indicate rebuild it needed
-        if 'build_url' in data:
-            self.set_pending_rebuild(build_url=data['build_url'])
+        if "build_url" in data:
+            self.set_pending_rebuild(build_url=data["build_url"])
 
         self.date_created = datetime.now()
 
         return self
 
-    def patch_data(self, data):
+    def patch_data(self, data: Dict[str, Any]) -> None:
         """Partial update of the Edition.
         """
         logger = get_logger(__name__)
 
-        if 'tracked_refs' in data:
-            tracked_refs = data['tracked_refs']
+        if "tracked_refs" in data:
+            tracked_refs = data["tracked_refs"]
             if isinstance(tracked_refs, str):
-                raise ValidationError('Invalid Edition: tracked_refs must '
-                                      'be an array of strings')
-            self.tracked_refs = data['tracked_refs']
+                raise ValidationError(
+                    "Invalid Edition: tracked_refs must "
+                    "be an array of strings"
+                )
+            self.tracked_refs = data["tracked_refs"]
 
-        if 'mode' in data:
-            self.set_mode(data['mode'])
+        if "mode" in data:
+            self.set_mode(data["mode"])
 
-        if 'title' in data:
-            self.title = data['title']
+        if "title" in data:
+            self.title = data["title"]
 
-        if 'build_url' in data:
-            self.set_pending_rebuild(build_url=data['build_url'])
+        if "build_url" in data:
+            self.set_pending_rebuild(build_url=data["build_url"])
 
-        if 'slug' in data:
-            self.update_slug(data['slug'])
+        if "slug" in data:
+            self.update_slug(data["slug"])
 
-        if 'pending_rebuild' in data:
-            logger.warning('Manual reset of Edition.pending_rebuild',
-                           edition=self.get_url(),
-                           prev_pending_rebuild=self.pending_rebuild,
-                           new_pending_rebuild=data['pending_rebuild'])
-            self.pending_rebuild = data['pending_rebuild']
+        if "pending_rebuild" in data:
+            logger.warning(
+                "Manual reset of Edition.pending_rebuild",
+                edition=self.get_url(),
+                prev_pending_rebuild=self.pending_rebuild,
+                new_pending_rebuild=data["pending_rebuild"],
+            )
+            self.pending_rebuild = data["pending_rebuild"]
 
-    def should_rebuild(self, build_url=None, build=None):
+    def should_rebuild(
+        self, build_url: Optional[str] = None, build: Optional[Build] = None
+    ) -> bool:
         """Determine whether the edition should be rebuilt to show a certain
         build given the tracking mode.
 
@@ -806,12 +832,14 @@ class Edition(db.Model):
         """
         logger = get_logger(__name__)
 
-        logger.debug('Edition {!r} in should_rebuild'.format(self.get_url()))
+        logger.debug("Edition {!r} in should_rebuild".format(self.get_url()))
 
         if build is not None:
             candidate_build = build
-        else:
+        elif build_url is not None:
             candidate_build = Build.from_url(build_url)
+        else:
+            raise RuntimeError("Provide either a build or build_url arg.")
 
         # Prefilter
         if candidate_build.product != self.product:
@@ -824,12 +852,16 @@ class Edition(db.Model):
         except (KeyError, ValidationError):
 
             tracking_mode = edition_tracking_modes[self.default_mode_id]
-            logger.warning('Edition {!r} has an unknown tracking'
-                           'mode'.format(self.get_url()))
+            logger.warning(
+                "Edition {!r} has an unknown tracking"
+                "mode".format(self.get_url())
+            )
 
         return tracking_mode.should_update(self, candidate_build)
 
-    def set_pending_rebuild(self, build_url=None, build=None):
+    def set_pending_rebuild(
+        self, build_url: Optional[str] = None, build: Optional["Build"] = None
+    ) -> None:
         """Update the build this edition is declared to point to and set it
         to a pending state.
 
@@ -870,6 +902,8 @@ class Edition(db.Model):
         the rebuild is complete.
         """
         if build is None:
+            if build_url is None:
+                raise RuntimeError("Provide a build_url if build is None")
             build = Build.from_url(build_url)
 
         # Create a surrogate-key for the edition if it doesn't have one
@@ -879,12 +913,15 @@ class Edition(db.Model):
         # State validation
         if self.pending_rebuild:
             raise ValidationError(
-                'This edition already has a pending rebuild, this request '
-                'will not be accepted.')
+                "This edition already has a pending rebuild, this request "
+                "will not be accepted."
+            )
         if build.uploaded is False:
-            raise ValidationError('Build has not been uploaded: ' + build_url)
+            raise ValidationError(
+                f"Build has not been uploaded: {build.get_url()}"
+            )
         if build.date_ended is not None:
-            raise ValidationError('Build was deprecated: ' + build_url)
+            raise ValidationError(f"Build was deprecated: {build.get_url()}")
 
         # Set the desired state
         self.build = build
@@ -893,9 +930,10 @@ class Edition(db.Model):
         # Add the rebuild_edition task
         # Lazy load the task because it references the db/Edition model
         from .tasks.editionrebuild import rebuild_edition
+
         append_task_to_chain(rebuild_edition.si(self.get_url(), self.id))
 
-    def set_rebuild_complete(self):
+    def set_rebuild_complete(self) -> None:
         """Confirm that the rebuild is complete and the declared state is
         correct.
 
@@ -913,12 +951,12 @@ class Edition(db.Model):
         self.pending_rebuild = False
         self.date_rebuilt = datetime.now()
 
-    def set_mode(self, mode):
+    def set_mode(self, mode: str) -> None:
         """Set the ``mode`` attribute.
 
         Parameters
         ----------
-        mode : `int`
+        mode : `str`
             Mode identifier. Validated to be one defined in
             `keeper.editiontracking.EditionTrackingModes`.
 
@@ -932,19 +970,18 @@ class Edition(db.Model):
         # TODO set tracked_refs to None if mode is LSST_DOC.
 
     @property
-    def default_mode_name(self):
+    def default_mode_name(self) -> str:
         """Default tracking mode name if ``Edition.mode`` is `None` (`str`).
         """
-        return 'git_refs'
+        return "git_refs"
 
     @property
-    def default_mode_id(self):
-        """Default tracking mode ID if ``Edition.mode`` is `None` (`int`).
-        """
+    def default_mode_id(self) -> int:
+        """Default tracking mode ID if ``Edition.mode`` is `None` (`int`)."""
         return edition_tracking_modes.name_to_id(self.default_mode_name)
 
     @property
-    def mode_name(self):
+    def mode_name(self) -> str:
         """Name of the mode (`str`).
 
         See also
@@ -956,9 +993,8 @@ class Edition(db.Model):
         else:
             return self.default_mode_name
 
-    def update_slug(self, new_slug):
-        """Update the edition's slug by migrating files on S3.
-        """
+    def update_slug(self, new_slug: str) -> None:
+        """Update the edition's slug by migrating files on S3."""
         # Check that this slug does not already exist
         self._validate_slug(new_slug)
 
@@ -967,19 +1003,29 @@ class Edition(db.Model):
         self.slug = new_slug
         new_bucket_root_dir = self.bucket_root_dirname
 
-        AWS_ID = current_app.config['AWS_ID']
-        AWS_SECRET = current_app.config['AWS_SECRET']
-        if AWS_ID is not None and AWS_SECRET is not None \
-                and self.build is not None:
-            s3.copy_directory(self.product.bucket_name,
-                              old_bucket_root_dir, new_bucket_root_dir,
-                              AWS_ID, AWS_SECRET,
-                              surrogate_key=self.surrogate_key)
-            s3.delete_directory(self.product.bucket_name,
-                                old_bucket_root_dir,
-                                AWS_ID, AWS_SECRET)
+        AWS_ID = current_app.config["AWS_ID"]
+        AWS_SECRET = current_app.config["AWS_SECRET"]
+        if (
+            AWS_ID is not None
+            and AWS_SECRET is not None
+            and self.build is not None
+        ):
+            s3.copy_directory(
+                self.product.bucket_name,
+                old_bucket_root_dir,
+                new_bucket_root_dir,
+                AWS_ID,
+                AWS_SECRET,
+                surrogate_key=self.surrogate_key,
+            )
+            s3.delete_directory(
+                self.product.bucket_name,
+                old_bucket_root_dir,
+                AWS_ID,
+                AWS_SECRET,
+            )
 
-    def _compute_autoincremented_slug(self):
+    def _compute_autoincremented_slug(self) -> str:
         """Compute an autoincremented integer slug for this edition.
 
         Returns
@@ -997,10 +1043,12 @@ class Edition(db.Model):
         4. Returns the 1+the maximum existing slug, or 1.
         """
         # Find existing edition slugs
-        slugs = db.session.query(Edition.slug)\
-            .autoflush(False)\
-            .filter(Edition.product == self.product)\
+        slugs = (
+            db.session.query(Edition.slug)
+            .autoflush(False)
+            .filter(Edition.product == self.product)
             .all()
+        )
 
         # Convert to integers
         integer_slugs = []
@@ -1015,11 +1063,11 @@ class Edition(db.Model):
             integer_slugs.append(int_slug)
 
         if len(integer_slugs) == 0:
-            return '1'
+            return "1"
         else:
             return str(max(integer_slugs) + 1)
 
-    def _validate_slug(self, slug):
+    def _validate_slug(self, slug: str) -> bool:
         """Ensure that the slug is both unique to the product and meets the
         slug format regex.
 
@@ -1032,17 +1080,20 @@ class Edition(db.Model):
 
         # Check uniqueness.
         # Turning off autoflush so that this object isn't being queried.
-        existing_count = Edition.query.autoflush(False)\
-            .filter(Edition.product == self.product)\
-            .filter(Edition.slug == slug)\
+        existing_count = (
+            Edition.query.autoflush(False)
+            .filter(Edition.product == self.product)
+            .filter(Edition.slug == slug)
             .count()
+        )
         if existing_count > 0:
             raise ValidationError(
-                'Invalid edition: slug ({0}) already exists'.format(slug))
+                "Invalid edition: slug ({0}) already exists".format(slug)
+            )
 
         return True
 
-    def deprecate(self):
+    def deprecate(self) -> None:
         """Deprecate the Edition; sets the `date_ended` field.
         """
         self.date_ended = datetime.now()

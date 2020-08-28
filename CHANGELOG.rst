@@ -2,6 +2,23 @@
 Change log
 ##########
 
+1.20.0 (2020-08-27)
+===================
+
+This release includes many improvements to LTD Keeper's build and testing infrastructure:
+
+- Python packaging is now defined in ``pyproject.toml`` and ``setup.cfg`` files.
+
+- Tests, linting, and other build processes are now run through tox
+
+- Testing and Docker builds are now run through GitHub Actions.
+
+- The Docker image is now based on Python 3.7 and uses a multi-stage approach to the build to ensure the image is as small as possible.
+
+- The codebase is now formatted with black and isort; these linters are run automatically through pre-commit.
+
+- The codebase uses type annotations, which are checked though mypy.
+
 1.19.0 (2020-07-01)
 ===================
 
@@ -25,7 +42,7 @@ Change log
 1.17.0 (2019-11-14)
 ===================
 
-- Upgrade to Google Cloud SQL Proxy 1.16. 
+- Upgrade to Google Cloud SQL Proxy 1.16.
 
 [`DM-11760 <https://jira.lsst.org/browse/DM-11760>`_]
 
@@ -62,7 +79,7 @@ Change log
   LTD Keeper exclusively maintains control over S3 credentials and restricts access to S3 resources through these presigned URLs.
 
   The `LTD Conveyor <https://ltd-conveyor.lsst.io>`_ client, version 0.5.0, now uses this new version of the endpoint.
-  
+
   Version 2 endpoints are accessible through a ``application/vnd.ltdkeeper.v2+json`` Accept header.
   Existing clients are unaffected by this change as the default endpoint will continue to operate for the foreseeable future.
 

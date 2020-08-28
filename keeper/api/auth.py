@@ -1,19 +1,25 @@
-"""Authentication routes.
-"""
+"""Authentication routes."""
 
-from flask import jsonify, g
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+from flask import g, jsonify
 from flask_accept import accept_fallback
 
-from . import api
-from ..auth import password_auth
-from ..logutils import log_route
+from keeper.api import api
+from keeper.auth import password_auth
+from keeper.logutils import log_route
+
+if TYPE_CHECKING:
+    from flask import Response
 
 
-@api.route('/token')
+@api.route("/token")
 @accept_fallback
 @log_route()
 @password_auth.login_required
-def get_auth_token():
+def get_auth_token() -> Response:
     """Obtain a token for API users.
 
     **Example request**
@@ -50,4 +56,4 @@ def get_auth_token():
     :statuscode 200: No errors.
     :statuscode 401: Not authenticated.
     """
-    return jsonify({'token': g.user.generate_auth_token()})
+    return jsonify({"token": g.user.generate_auth_token()})

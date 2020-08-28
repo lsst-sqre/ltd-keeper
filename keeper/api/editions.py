@@ -1,31 +1,42 @@
 """API v1 routes for Editions."""
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Dict, Tuple
+
 from flask import jsonify, request
 from flask_accept import accept_fallback
 
-from . import api
-from ..models import db
-from ..auth import token_auth, permission_required
-from ..models import Product, Edition, Permission
-from ..logutils import log_route
-from ..taskrunner import (launch_task_chain, append_task_to_chain,
-                          insert_task_url_in_response, mock_registry)
-from ..tasks.dashboardbuild import build_dashboard
+from keeper.api import api
+from keeper.auth import permission_required, token_auth
+from keeper.logutils import log_route
+from keeper.models import Edition, Permission, Product, db
+from keeper.taskrunner import (
+    append_task_to_chain,
+    insert_task_url_in_response,
+    launch_task_chain,
+    mock_registry,
+)
+from keeper.tasks.dashboardbuild import build_dashboard
 
+if TYPE_CHECKING:
+    from flask import Response
 
 # Register imports of celery task chain launchers
-mock_registry.extend([
-    'keeper.api.editions.launch_task_chain',
-    'keeper.api.editions.append_task_to_chain',
-])
+mock_registry.extend(
+    [
+        "keeper.api.editions.launch_task_chain",
+        "keeper.api.editions.append_task_to_chain",
+    ]
+)
 
 
-@api.route('/products/<slug>/editions/', methods=['POST'])
+@api.route("/products/<slug>/editions/", methods=["POST"])
 @accept_fallback
 @log_route()
 @token_auth.login_required
 @permission_required(Permission.ADMIN_EDITION)
-def new_edition(slug):
+def new_edition(slug: str) -> Tuple[Response, int, Dict[str, str]]:
     """Create a new Edition for a Product.
 
     **Authorization**
@@ -108,15 +119,15 @@ def new_edition(slug):
     except Exception:
         db.session.rollback()
         raise
-    return jsonify(response), 201, {'Location': edition_url}
+    return jsonify(response), 201, {"Location": edition_url}
 
 
-@api.route('/editions/<int:id>', methods=['DELETE'])
+@api.route("/editions/<int:id>", methods=["DELETE"])
 @accept_fallback
 @log_route()
 @token_auth.login_required
 @permission_required(Permission.ADMIN_EDITION)
-def deprecate_edition(id):
+def deprecate_edition(id: int) -> Tuple[Response, int]:
     """Deprecate an Edition of a Product.
 
     When an Edition is deprecated, the current time is added to the
@@ -169,10 +180,10 @@ def deprecate_edition(id):
     return jsonify(response), 200
 
 
-@api.route('/products/<slug>/editions/', methods=['GET'])
+@api.route("/products/<slug>/editions/", methods=["GET"])
 @accept_fallback
 @log_route()
-def get_product_editions(slug):
+def get_product_editions(slug: str) -> Response:
     """List all editions published for a Product.
 
     **Example request**
@@ -204,18 +215,22 @@ def get_product_editions(slug):
     :statuscode 200: No errors.
     :statuscode 404: Product not found.
     """
-    edition_urls = [edition.get_url() for edition in
-                    Edition.query.join(Product,
-                                       Product.id == Edition.product_id)
-                    .filter(Product.slug == slug)
-                    .filter(Edition.date_ended == None).all()]  # NOQA
-    return jsonify({'editions': edition_urls})
+    edition_urls = [
+        edition.get_url()
+        for edition in Edition.query.join(
+            Product, Product.id == Edition.product_id
+        )
+        .filter(Product.slug == slug)
+        .filter(Edition.date_ended == None)  # noqa: E711
+        .all()
+    ]
+    return jsonify({"editions": edition_urls})
 
 
-@api.route('/editions/<int:id>', methods=['GET'])
+@api.route("/editions/<int:id>", methods=["GET"])
 @accept_fallback
 @log_route()
-def get_edition(id):
+def get_edition(id: int) -> Response:
     """Show metadata for an Edition.
 
     **Example request**
@@ -280,12 +295,12 @@ def get_edition(id):
     return jsonify(Edition.query.get_or_404(id).export_data())
 
 
-@api.route('/editions/<int:id>', methods=['PATCH'])
+@api.route("/editions/<int:id>", methods=["PATCH"])
 @accept_fallback
 @log_route()
 @token_auth.login_required
 @permission_required(Permission.ADMIN_EDITION)
-def edit_edition(id):
+def edit_edition(id: int) -> Response:
     """Edit an Edition.
 
     This PATCH method allows you to specify a subset of JSON fields to replace

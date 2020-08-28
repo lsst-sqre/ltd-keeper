@@ -2,8 +2,15 @@
 username+password.
 """
 
+from __future__ import annotations
 
-def test_get_token(basic_client):
-    r = basic_client.get('/token')
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from keeper.testutils import TestClient
+
+
+def test_get_token(basic_client: TestClient) -> None:
+    r = basic_client.get("/token")
     assert r.status == 200
-    assert 'token' in r.json
+    assert "token" in r.json
