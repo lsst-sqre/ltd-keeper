@@ -18,8 +18,7 @@ if TYPE_CHECKING:
 
 
 def test_products(client: TestClient, mocker: Mock) -> None:
-    """Test various API operations against Product resources.
-    """
+    """Test various API operations against Product resources."""
     mock_registry.patch_all(mocker)
 
     # ========================================================================

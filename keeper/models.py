@@ -276,8 +276,7 @@ class Product(db.Model):  # type: ignore
 
     @property
     def fastly_domain(self) -> str:
-        """Domain where Fastly serves content from for this product.
-        """
+        """Domain where Fastly serves content from for this product."""
         # Note that in non-ssl contexts fastly wants you to prepend the domain
         # to fastly's origin domain. However we don't do this with TLS.
         # return '.'.join((self.domain, self.root_fastly_domain))
@@ -285,19 +284,16 @@ class Product(db.Model):  # type: ignore
 
     @property
     def published_url(self) -> str:
-        """URL where this product is published to the end-user.
-        """
+        """URL where this product is published to the end-user."""
         parts = ("https", self.domain, "", "", "", "")
         return urllib.parse.urlunparse(parts)
 
     def get_url(self) -> str:
-        """API URL for this entity.
-        """
+        """API URL for this entity."""
         return url_for("api.get_product", slug=self.slug, _external=True)
 
     def export_data(self) -> Dict[str, Any]:
-        """Export entity as JSON-compatible dict.
-        """
+        """Export entity as JSON-compatible dict."""
         return {
             "self_url": self.get_url(),
             "slug": self.slug,
@@ -313,8 +309,7 @@ class Product(db.Model):  # type: ignore
         }
 
     def import_data(self, data: Dict[str, Any]) -> "Product":
-        """Convert a dict `data` into a table row.
-        """
+        """Convert a dict `data` into a table row."""
         try:
             self.slug = data["slug"]
             self.doc_repo = data["doc_repo"]
@@ -443,14 +438,12 @@ class Build(db.Model):  # type: ignore
 
     @property
     def bucket_root_dirname(self) -> str:
-        """Directory in the bucket where the build is located.
-        """
+        """Directory in the bucket where the build is located."""
         return "/".join((self.product.slug, "builds", self.slug))
 
     @property
     def published_url(self) -> str:
-        """URL where this build is published to the end-user.
-        """
+        """URL where this build is published to the end-user."""
         parts = (
             "https",
             self.product.domain,
@@ -462,13 +455,11 @@ class Build(db.Model):  # type: ignore
         return urllib.parse.urlunparse(parts)
 
     def get_url(self) -> str:
-        """API URL for this entity.
-        """
+        """API URL for this entity."""
         return url_for("api.get_build", id=self.id, _external=True)
 
     def export_data(self) -> Dict[str, Any]:
-        """Export entity as JSON-compatible dict.
-        """
+        """Export entity as JSON-compatible dict."""
         return {
             "self_url": self.get_url(),
             "product_url": self.product.get_url(),
@@ -485,8 +476,7 @@ class Build(db.Model):  # type: ignore
         }
 
     def import_data(self, data: Dict[str, Any]) -> "Build":
-        """Convert a dict `data` into a table row.
-        """
+        """Convert a dict `data` into a table row."""
         try:
             git_refs = data["git_refs"]
             if isinstance(git_refs, str):
@@ -540,8 +530,7 @@ class Build(db.Model):  # type: ignore
                 self.register_uploaded_build()
 
     def register_uploaded_build(self) -> None:
-        """Hook for when a build has been uploaded.
-        """
+        """Hook for when a build has been uploaded."""
         self.uploaded = True
 
         editions = (
@@ -776,8 +765,7 @@ class Edition(db.Model):  # type: ignore
         return self
 
     def patch_data(self, data: Dict[str, Any]) -> None:
-        """Partial update of the Edition.
-        """
+        """Partial update of the Edition."""
         logger = get_logger(__name__)
 
         if "tracked_refs" in data:
@@ -971,8 +959,7 @@ class Edition(db.Model):  # type: ignore
 
     @property
     def default_mode_name(self) -> str:
-        """Default tracking mode name if ``Edition.mode`` is `None` (`str`).
-        """
+        """Default tracking mode name if ``Edition.mode`` is `None` (`str`)."""
         return "git_refs"
 
     @property
@@ -1094,6 +1081,5 @@ class Edition(db.Model):  # type: ignore
         return True
 
     def deprecate(self) -> None:
-        """Deprecate the Edition; sets the `date_ended` field.
-        """
+        """Deprecate the Edition; sets the `date_ended` field."""
         self.date_ended = datetime.now()

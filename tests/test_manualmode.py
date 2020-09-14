@@ -6,8 +6,7 @@ from keeper.editiontracking.trackingmodes import EditionTrackingModes
 
 
 def test_manual_mode() -> None:
-    """Test the ManualTrackingMode.
-    """
+    """Test the ManualTrackingMode."""
     modes = EditionTrackingModes()
 
     mode = modes["manual"]

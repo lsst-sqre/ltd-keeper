@@ -13,8 +13,7 @@ if TYPE_CHECKING:
 
 
 def test_eups_daily_release_edition(client: TestClient, mocker: Mock) -> None:
-    """Test an edition that tracks the most recent EUPS daily release.
-    """
+    """Test an edition that tracks the most recent EUPS daily release."""
     # The celery tasks need to be mocked, but are not checked.
     mock_registry.patch_all(mocker)
 

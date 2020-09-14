@@ -14,8 +14,7 @@ F = TypeVar("F", bound=Callable[..., Any])
 
 
 def log_route() -> Callable[[F], F]:
-    """Route decorator to initialize a thread-local logger for a route.
-    """
+    """Route decorator to initialize a thread-local logger for a route."""
 
     def decorator(f):  # type: ignore
         @wraps(f)

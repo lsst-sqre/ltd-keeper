@@ -56,7 +56,10 @@ def upgrade():
         sa.Column("github_requester", sa.String(length=256), nullable=True),
         sa.Column("uploaded", sa.Boolean(), nullable=True),
         sa.Column("surrogate_key", sa.String(length=32), nullable=False),
-        sa.ForeignKeyConstraint(["product_id"], ["products.id"],),
+        sa.ForeignKeyConstraint(
+            ["product_id"],
+            ["products.id"],
+        ),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(
@@ -77,8 +80,14 @@ def upgrade():
         sa.Column("date_created", sa.DateTime(), nullable=False),
         sa.Column("date_rebuilt", sa.DateTime(), nullable=False),
         sa.Column("date_ended", sa.DateTime(), nullable=True),
-        sa.ForeignKeyConstraint(["build_id"], ["builds.id"],),
-        sa.ForeignKeyConstraint(["product_id"], ["products.id"],),
+        sa.ForeignKeyConstraint(
+            ["build_id"],
+            ["builds.id"],
+        ),
+        sa.ForeignKeyConstraint(
+            ["product_id"],
+            ["products.id"],
+        ),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(

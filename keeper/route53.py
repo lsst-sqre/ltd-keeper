@@ -262,8 +262,7 @@ def _upsert_cname_record(
     cname_domain: str,
     origin_domain: str,
 ) -> None:
-    """Upsert a CNAME record of `cname_domain` that points to `origin_domain`.
-    """
+    """Upsert a CNAME record of `cname_domain` pointint to `origin_domain`."""
     logger = get_logger(__name__)
 
     change = {
