@@ -65,7 +65,7 @@ jobs:
           LTD_PASSWORD: ${{ secrets.LTD_PASSWORD }}
           LTD_USERNAME: ${{ secrets.LTD_USERNAME }}
         run: |
-          ltd upload --gh --dir docs/_build/html --product roundtable
+          ltd upload --gh --dir docs/_build/html --product ltd-keeper
 
   build:
     runs-on: ubuntu-latest
