@@ -12,8 +12,7 @@ from keeper.version import get_version
 @accept_fallback
 @log_route()
 def get_root() -> None:
-    """Root API route.
-    """
+    """Root API route."""
     version = get_version()
     data = {
         "server_version": version,

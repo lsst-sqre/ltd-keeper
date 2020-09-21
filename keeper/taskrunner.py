@@ -63,8 +63,7 @@ def launch_task_chain() -> celery.chain:
 def insert_task_url_in_response(
     json_data: Dict[str, Any], task: Optional[celery.Task]
 ) -> Dict[str, Any]:
-    """Insert the task status URL into the JSON response body.
-    """
+    """Insert the task status URL into the JSON response body."""
     if task is not None:
         url = url_for("api.get_task_status", id=task.id, _external=True)
         json_data["queue_url"] = url
@@ -72,8 +71,7 @@ def insert_task_url_in_response(
 
 
 class MockRegistry(collections.UserList):
-    """Registry of celery task runner API imports that should be mocked.
-    """
+    """Registry of celery task runner API imports that should be mocked."""
 
     def __init__(self, data: Optional[List[Any]] = None) -> None:
         if data:
@@ -87,8 +85,7 @@ class MockRegistry(collections.UserList):
         return self._mocks[name]
 
     def patch_all(self, mocker: Any) -> None:
-        """Apply ``mocker.patch`` to each registered import.
-        """
+        """Apply ``mocker.patch`` to each registered import."""
         for name in self.data:
             self._mocks[name] = mocker.patch(name)
 

@@ -19,8 +19,7 @@ if TYPE_CHECKING:
 
 
 def test_editions(client: TestClient, mocker: Mock) -> None:
-    """Exercise different /edition/ API scenarios.
-    """
+    """Exercise different /edition/ API scenarios."""
     mock_registry.patch_all(mocker)
 
     # ========================================================================

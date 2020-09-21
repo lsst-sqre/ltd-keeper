@@ -101,8 +101,7 @@ def rebuild_edition(
 def send_edition_updated_event(
     edition: Edition, events_url: str, api_url: str
 ) -> None:
-    """Send the ``edition.updated`` event to the LTD Events webhook endpoint.
-    """
+    """Send the ``edition.updated`` event to the LTD Events webhook."""
     product_info = {
         "url": urljoin(api_url, "/products/{}".format(edition.product.slug)),
         "published_url": edition.product.published_url,

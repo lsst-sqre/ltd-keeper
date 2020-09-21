@@ -15,8 +15,7 @@ if TYPE_CHECKING:
 
 
 def test_editions_autoincrement(client: TestClient, mocker: Mock) -> None:
-    """Test creating editions with autoincrement=True.
-    """
+    """Test creating editions with autoincrement=True."""
     mock_registry.patch_all(mocker)
 
     # ========================================================================

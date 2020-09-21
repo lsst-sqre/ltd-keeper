@@ -176,8 +176,7 @@ def post_products_builds_v1(slug: str) -> Tuple[str, int, Dict[str, str]]:
 @token_auth.login_required
 @permission_required(Permission.UPLOAD_BUILD)
 def post_products_builds_v2(slug: str) -> Tuple[str, int, Dict[str, str]]:
-    """Handle POST /products/../builds/ (version 2).
-    """
+    """Handle POST /products/../builds/ (version 2)."""
     logger = get_logger(__name__)
 
     build, task = _handle_new_build_for_product_slug(slug)
@@ -273,8 +272,7 @@ def _handle_new_build_for_product_slug(
 
 
 def _create_build(product: Product) -> Build:
-    """Create a build for a product.
-    """
+    """Create a build for a product."""
     surrogate_key = uuid.uuid4().hex
     build = Build(product=product, surrogate_key=surrogate_key)
     try:

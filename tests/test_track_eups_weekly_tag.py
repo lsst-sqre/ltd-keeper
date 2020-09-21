@@ -14,8 +14,7 @@ if TYPE_CHECKING:
 
 
 def test_eups_weekly_release_edition(client: TestClient, mocker: Mock) -> None:
-    """Test an edition that tracks the most recent EUPS weekly release.
-    """
+    """Test an edition that tracks the most recent EUPS weekly release."""
     # These mocks are needed but not checked
     mock_registry.patch_all(mocker)
 
