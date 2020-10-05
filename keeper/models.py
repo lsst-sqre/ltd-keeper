@@ -16,6 +16,7 @@ from flask import current_app, url_for
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
+from sqlalchemy.schema import UniqueConstraint
 from structlog import get_logger
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -39,7 +40,10 @@ __all__ = [
     "edition_tracking_modes",
     "Permission",
     "User",
+    "Organization",
+    "Tag",
     "Product",
+    "product_tags",
     "Build",
     "Edition",
 ]
@@ -243,6 +247,61 @@ class Organization(db.Model):  # type: ignore
     bucket_name = db.Column(db.Unicode(255), nullable=True)
     """Name of the S3 bucket hosting builds."""
 
+    tags = db.relationship("Tag", backref="organization", lazy="dynamic")
+    """One-to-many relationship to all `Tag` objects related to this
+    organization.
+    """
+
+
+product_tags = db.Table(
+    "producttags",
+    db.Column(
+        "tag_id", db.Integer, db.ForeignKey("tags.id"), primary_key=True
+    ),
+    db.Column(
+        "product_id",
+        db.Integer,
+        db.ForeignKey("products.id"),
+        primary_key=True,
+    ),
+)
+"""A table that associates the `Product` and `Tag` models."""
+
+
+class Tag(db.Model):  # type: ignore
+    """DB model for tags in an `Organization`."""
+
+    __tablename__ = "tags"
+
+    id = db.Column(db.Integer, primary_key=True)
+    """Primary key for this tag."""
+
+    organization_id = db.Column(
+        db.Integer, db.ForeignKey("organizations.id"), index=True
+    )
+    """ID of the organization that this tag belongs to."""
+
+    slug = db.Column(
+        db.Unicode(255),
+        nullable=False,
+        unique=UniqueConstraint("slug", "organization_id"),
+    )
+    """URL-safe identifier for this tag."""
+
+    title = db.Column(
+        db.Unicode(255),
+        nullable=False,
+        unique=UniqueConstraint("title", "organization_id"),
+    )
+    """Presentational title or label for this tag."""
+
+    comment = db.Column(db.UnicodeText(), nullable=True)
+    """A note about this tag."""
+
+    products = db.relationship(
+        "Product", secondary=product_tags, back_populates="tags"
+    )
+
 
 class Product(db.Model):  # type: ignore
     """DB model for software products.
@@ -288,6 +347,11 @@ class Product(db.Model):  # type: ignore
     """One-to-many relationship to all `Edition` objects related to this
     Product.
     """
+
+    tags = db.relationship(
+        "Tag", secondary=product_tags, back_populates="products"
+    )
+    """Tags associated with this product."""
 
     @classmethod
     def from_url(cls, product_url: str) -> "Product":
