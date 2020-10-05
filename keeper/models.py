@@ -18,11 +18,11 @@ from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from structlog import get_logger
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from . import route53, s3
-from .editiontracking import EditionTrackingModes
-from .exceptions import ValidationError
-from .taskrunner import append_task_to_chain, mock_registry
-from .utils import (
+from keeper import route53, s3
+from keeper.editiontracking import EditionTrackingModes
+from keeper.exceptions import ValidationError
+from keeper.taskrunner import append_task_to_chain, mock_registry
+from keeper.utils import (
     JSONEncodedVARCHAR,
     MutableList,
     format_utc_datetime,
