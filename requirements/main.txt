@@ -16,13 +16,13 @@ billiard==3.6.3.0 \
     --hash=sha256:bff575450859a6e0fbc2f9877d9b715b0bbc07c3565bb7ed2280526a0cdf5ede \
     --hash=sha256:d91725ce6425f33a97dfa72fb6bfef0e47d4652acd98a032bd1a7fbf06d5fa6a \
     # via celery
-boto3==1.15.6 \
-    --hash=sha256:87534080a5addad135fcd631fa8b57a12e1a234c23d86521e84fbbd9217fd6a5 \
-    --hash=sha256:c4c84c6647e84a9f270d86da7eea1a250c2529e26ddb39320546f235327f10e6 \
+boto3==1.15.11 \
+    --hash=sha256:5f3969dd167b787e5bc6742afbfe15e149051d8c6aa1edaa4858133384f64ec7 \
+    --hash=sha256:713da2b28e9e4cd77e922690c97935dd2316ab27635b6bab4745a2d42bd887ec \
     # via -r requirements/main.in
-botocore==1.18.6 \
-    --hash=sha256:31f04b68a6ebe8cfa97b4d70f54f29aef8b6a0bc9c4da7b8ee9b6a53fc69edae \
-    --hash=sha256:3de32a03679bb172a41c38e3c9af3f7259f3637f705aa2ac384b3233dc985b85 \
+botocore==1.18.11 \
+    --hash=sha256:1531ee5d7f7d0f0d9a12ea829ef046ac52063a1948409ae19a452a3f47a07937 \
+    --hash=sha256:a0514ba531148af26fe36bf75c73089698a5ed8ae150695b96e7cbdf32dd232b \
     # via boto3, s3transfer
 celery[redis]==5.0.0 \
     --hash=sha256:313930fddde703d8e37029a304bf91429cd11aeef63c57de6daca9d958e1f255 \
@@ -71,9 +71,9 @@ flower==0.9.5 \
     --hash=sha256:56916d1d2892e25453d6023437427fc04706a1308e0bd4822321da34e1643f9c \
     --hash=sha256:71be02bff7b2f56b0a07bd947fb3c748acba7f44f80ae88125d8954ce1a89697 \
     # via -r requirements/main.in
-humanize==2.6.0 \
-    --hash=sha256:8ee358ea6c23de896b9d1925ebe6a8504bb2ba7e98d5ccf4d07ab7f3b28f3819 \
-    --hash=sha256:fd5b32945687443d5b8bc1e02fad027da1d293a9e963b3450122ad98ef534f21 \
+humanize==3.0.1 \
+    --hash=sha256:8ff8f292c9bf52bbefdc620410e7defd1c95e7eeb1a5cfc2859aaea4b1877ff5 \
+    --hash=sha256:b67f41ad9689bd8539fe02695385989d8c789019a90c450d3d2f8891e9e4bb32 \
     # via flower
 idna==2.10 \
     --hash=sha256:b307872f855b18632ce0c21c5e45be78c0ea7ae4c15c828c20788b26921eb3f6 \
@@ -243,3 +243,7 @@ werkzeug==1.0.1 \
     --hash=sha256:2de2a5db0baeae7b2d2664949077c2ac63fbd16d98da0ff71837f7d1dea3fd43 \
     --hash=sha256:6c80b1e5ad3665290ea39320b91e1be1e0d5f60652b964a3070216de83d2e47c \
     # via flask
+
+# WARNING: The following packages were not pinned, but pip requires them to be
+# pinned when the requirements file includes hashes. Consider using the --allow-unsafe flag.
+# setuptools
