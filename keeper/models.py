@@ -6,6 +6,7 @@ Copyright 2014 Miguel Grinberg.
 
 from __future__ import annotations
 
+import enum
 import urllib.parse
 import uuid
 from datetime import datetime
@@ -186,6 +187,61 @@ class User(db.Model):  # type: ignore
             `True` if a user is authorized with the requested permissions.
         """
         return (self.permissions & permissions) == permissions
+
+
+class OrganizationLayoutMode(enum.Enum):
+    """Layout mode (enum) for organizations."""
+
+    subdomain = 1
+    """Layout based on a subdomain for each project."""
+
+    path = 2
+    """Layout based on a path prefix for each project."""
+
+
+class Organization(db.Model):  # type: ignore
+    """DB model for an organization resource.
+
+    Organizations own products (`Product`).
+    """
+
+    __tablename__ = "organizations"
+
+    id = db.Column(db.Integer, primary_key=True)
+    """Primary key for this organization."""
+
+    slug = db.Column(db.Unicode(255), nullable=False, unique=True)
+    """URL-safe identifier for this organization (unique)."""
+
+    title = db.Column(db.Unicode(255), nullable=False)
+    """Presentational title for this organization."""
+
+    layout = db.Column(
+        db.Enum(OrganizationLayoutMode),
+        nullable=False,
+        default=OrganizationLayoutMode.subdomain,
+    )
+    """Layout mode.
+
+    See also
+    --------
+    OrganizationLayoutMode
+    """
+
+    fastly_support = db.Column(db.Boolean, nullable=False, default=True)
+    """Flag Fastly CDN support."""
+
+    root_domain = db.Column(db.Unicode(255), nullable=False)
+    """Root domain name serving docs (e.g., lsst.io)."""
+
+    root_path_prefix = db.Column(db.Unicode(255), nullable=False, default="/")
+    """Root path prefix for serving products."""
+
+    fastly_domain = db.Column(db.Unicode(255), nullable=True)
+    """Fastly CDN domain name."""
+
+    bucket_name = db.Column(db.Unicode(255), nullable=True)
+    """Name of the S3 bucket hosting builds."""
 
 
 class Product(db.Model):  # type: ignore
