@@ -630,6 +630,14 @@ class Build(db.Model):  # type: ignore
     """github handle of person requesting the build (optional).
     """
 
+    uploaded_by_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=True
+    )
+    """Foreign key of the user that uploaded this build.
+
+    This key is nullable during the transition.
+    """
+
     uploaded = db.Column(db.Boolean, default=False)
     """Flag to indicate the doc has been uploaded to S3.
     """
@@ -640,6 +648,12 @@ class Build(db.Model):  # type: ignore
 
     # Relationships
     # product - from Product class
+
+    uploaded_by = db.relationship(
+        "User", primaryjoin="Build.uploaded_by_id == User.id"
+    )
+    """User who uploaded this build.
+    """
 
     @classmethod
     def from_url(cls, build_url: str) -> "Build":
