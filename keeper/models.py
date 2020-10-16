@@ -613,6 +613,17 @@ class Build(db.Model):  # type: ignore
     repository products may have multiple git refs.
 
     This field is encoded as JSON (`JSONEndedVARCHAR`).
+
+    TODO: deprecate this field after deprecation of the v1 API to use git_ref
+    (singular) exclusively.
+    """
+
+    git_ref = db.Column(db.Unicode(255), nullable=True)
+    """The git ref that this build corresponds to.
+
+    A git ref is typically a branch or tag name.
+
+    This column replaces `git_refs`.
     """
 
     github_requester = db.Column(db.Unicode(255), nullable=True)
