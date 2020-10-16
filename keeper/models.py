@@ -315,6 +315,11 @@ class Organization(db.Model):  # type: ignore
     bucket_name = db.Column(db.Unicode(255), nullable=True)
     """Name of the S3 bucket hosting builds."""
 
+    products = db.relationship(
+        "Product", back_populates="organization", lazy="dynamic"
+    )
+    """Relationship to `Product` objects owned by this organization."""
+
     tags = db.relationship("Tag", backref="organization", lazy="dynamic")
     """One-to-many relationship to all `Tag` objects related to this
     organization.
@@ -396,6 +401,14 @@ class Product(db.Model):  # type: ignore
     id = db.Column(db.Integer, primary_key=True)
     """Primary key for this product."""
 
+    organization_id = db.Column(
+        db.Integer, db.ForeignKey("organizations.id"), nullable=True
+    )
+    """Foreign key of the organization that owns this product.
+
+    This is set to nullable only for the purpose of migration.
+    """
+
     slug = db.Column(db.Unicode(255), nullable=False, unique=True)
     """URL/path-safe identifier for this product (unique)."""
 
@@ -419,6 +432,12 @@ class Product(db.Model):  # type: ignore
 
     Editions and Builds have independent surrogate keys.
     """
+
+    organization = db.relationship(
+        "Organization",
+        back_populates="products",
+    )
+    """Relationship to the parent organization."""
 
     builds = db.relationship("Build", backref="product", lazy="dynamic")
     """One-to-many relationship to all `Build` objects related to this Product.
