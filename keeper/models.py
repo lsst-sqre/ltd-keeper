@@ -494,9 +494,7 @@ class Build(db.Model):  # type: ignore
     This slug is also used as a pseudo-POSIX directory prefix in the S3 bucket.
     """
 
-    date_created = db.Column(
-        db.DateTime, default=datetime.now(), nullable=False
-    )
+    date_created = db.Column(db.DateTime, default=datetime.now, nullable=False)
     """DateTime when this build was created.
     """
 
@@ -719,14 +717,10 @@ class Edition(db.Model):  # type: ignore
     title = db.Column(db.Unicode(256), nullable=False)
     """Human-readable title for edition."""
 
-    date_created = db.Column(
-        db.DateTime, default=datetime.now(), nullable=False
-    )
+    date_created = db.Column(db.DateTime, default=datetime.now, nullable=False)
     """DateTime when this edition was initially created."""
 
-    date_rebuilt = db.Column(
-        db.DateTime, default=datetime.now(), nullable=False
-    )
+    date_rebuilt = db.Column(db.DateTime, default=datetime.now, nullable=False)
     """DateTime when the Edition was last rebuild.
     """
 
