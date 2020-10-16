@@ -41,6 +41,7 @@ __all__ = [
     "Permission",
     "User",
     "Organization",
+    "DashboardTemplate",
     "Tag",
     "Product",
     "product_tags",
@@ -193,6 +194,57 @@ class User(db.Model):  # type: ignore
         return (self.permissions & permissions) == permissions
 
 
+class DashboardTemplate(db.Model):  # type: ignore
+    """DB model for an edition dashboard template."""
+
+    __tablename__ = "dashboardtemplates"
+
+    __table_args__ = (UniqueConstraint("id", "organization_id"),)
+
+    id = db.Column(db.Integer, primary_key=True)
+    """Primary key for this dashboard template."""
+
+    organization_id = db.Column(
+        db.Integer, db.ForeignKey("organizations.id"), nullable=False
+    )
+    """ID of the organization associated with this template."""
+
+    comment = db.Column(db.UnicodeText(), nullable=True)
+    """A note about this dashboard template."""
+
+    bucket_prefix = db.Column(db.Unicode(255), nullable=False, unique=True)
+    """S3 bucket prefix where all assets related to this template are
+    persisted.
+    """
+
+    created_by_id = db.Column(db.Integer, db.ForeignKey("users.id"))
+    """ID of user who created this template."""
+
+    date_created = db.Column(db.DateTime, default=datetime.now, nullable=False)
+    """DateTime when this template was created."""
+
+    deleted_by_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=True
+    )
+    """ID of user who deleted this template."""
+
+    date_deleted = db.Column(db.DateTime, default=None, nullable=True)
+    """DateTime when this template was deleted (or null if the template has
+    not been deleted.
+    """
+
+    created_by = db.relationship(
+        "User",
+        primaryjoin="DashboardTemplate.created_by_id == User.id",
+    )
+    """User who created this template."""
+
+    deleted_by = db.relationship(
+        "User", primaryjoin="DashboardTemplate.deleted_by_id == User.id"
+    )
+    """User who deleted this template."""
+
+
 class OrganizationLayoutMode(enum.Enum):
     """Layout mode (enum) for organizations."""
 
@@ -211,8 +263,24 @@ class Organization(db.Model):  # type: ignore
 
     __tablename__ = "organizations"
 
-    id = db.Column(db.Integer, primary_key=True)
+    __table_args__ = (
+        # ensure the default dashboard is one owned by this organization
+        db.ForeignKeyConstraint(
+            ["id", "default_dashboard_template_id"],
+            ["dashboardtemplates.organization_id", "dashboardtemplates.id"],
+            name="fk_default_dashboardtemplate",
+        ),
+    )
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement="ignore_fk")
     """Primary key for this organization."""
+
+    default_dashboard_template_id = db.Column(
+        db.Integer, db.ForeignKey("dashboardtemplates.id"), nullable=True
+    )
+    """ID of the organization's default dashboard template
+    (`DashboardTemplate).
+    """
 
     slug = db.Column(db.Unicode(255), nullable=False, unique=True)
     """URL-safe identifier for this organization (unique)."""
@@ -251,6 +319,19 @@ class Organization(db.Model):  # type: ignore
     """One-to-many relationship to all `Tag` objects related to this
     organization.
     """
+
+    dashboard_templates = db.relationship(
+        "DashboardTemplate",
+        primaryjoin=id == DashboardTemplate.organization_id,
+        foreign_keys=DashboardTemplate.organization_id,
+    )
+
+    default_dashboard_template = db.relationship(
+        "DashboardTemplate",
+        primaryjoin=default_dashboard_template_id == DashboardTemplate.id,
+        foreign_keys=default_dashboard_template_id,
+        post_update=True,
+    )
 
 
 product_tags = db.Table(
