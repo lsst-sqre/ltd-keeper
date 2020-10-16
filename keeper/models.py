@@ -794,6 +794,30 @@ class Build(db.Model):  # type: ignore
         self.date_ended = datetime.now()
 
 
+class EditionKind(enum.Enum):
+    """Classification of the edition.
+
+    This classification is primarily used by edition dashboards.
+    """
+
+    main = 1
+    """The main (default) edition."""
+
+    release = 2
+    """A release."""
+
+    draft = 3
+    """A draft edition (not a release)."""
+
+    major = 4
+    """An edition that tracks a major version (for the latest minor or
+    patch version).
+    """
+
+    minor = 2
+    """An edition that tracks a minor version (for the latest patch.)"""
+
+
 class Edition(db.Model):  # type: ignore
     """DB model for Editions. Editions are fixed-location publications of the
     docs. Editions are updated by new builds; though not all builds are used
@@ -859,6 +883,16 @@ class Edition(db.Model):  # type: ignore
 
     pending_rebuild = db.Column(db.Boolean, default=False, nullable=False)
     """Flag indicating if a rebuild is pending work by the rebuild task."""
+
+    kind = db.Column(
+        db.Enum(EditionKind), default=EditionKind.draft, nullable=False
+    )
+    """The edition's kind.
+
+    See also
+    --------
+    EditionKind
+    """
 
     # Relationships
     build = db.relationship("Build", uselist=False)
