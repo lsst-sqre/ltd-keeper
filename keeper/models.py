@@ -16,7 +16,6 @@ from flask import current_app, url_for
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
-from sqlalchemy.schema import UniqueConstraint
 from structlog import get_logger
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -199,7 +198,7 @@ class DashboardTemplate(db.Model):  # type: ignore
 
     __tablename__ = "dashboardtemplates"
 
-    __table_args__ = (UniqueConstraint("id", "organization_id"),)
+    __table_args__ = (db.UniqueConstraint("id", "organization_id"),)
 
     id = db.Column(db.Integer, primary_key=True)
     """Primary key for this dashboard template."""
@@ -276,7 +275,9 @@ class Organization(db.Model):  # type: ignore
     """Primary key for this organization."""
 
     default_dashboard_template_id = db.Column(
-        db.Integer, db.ForeignKey("dashboardtemplates.id"), nullable=True
+        db.Integer,
+        db.ForeignKey("dashboardtemplates.id"),
+        nullable=True,
     )
     """ID of the organization's default dashboard template
     (`DashboardTemplate).
@@ -370,14 +371,14 @@ class Tag(db.Model):  # type: ignore
     slug = db.Column(
         db.Unicode(255),
         nullable=False,
-        unique=UniqueConstraint("slug", "organization_id"),
+        unique=db.UniqueConstraint("slug", "organization_id"),
     )
     """URL-safe identifier for this tag."""
 
     title = db.Column(
         db.Unicode(255),
         nullable=False,
-        unique=UniqueConstraint("title", "organization_id"),
+        unique=db.UniqueConstraint("title", "organization_id"),
     )
     """Presentational title or label for this tag."""
 
