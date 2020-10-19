@@ -198,8 +198,6 @@ class DashboardTemplate(db.Model):  # type: ignore
 
     __tablename__ = "dashboardtemplates"
 
-    __table_args__ = (db.UniqueConstraint("id", "organization_id"),)
-
     id = db.Column(db.Integer, primary_key=True)
     """Primary key for this dashboard template."""
 
@@ -232,6 +230,8 @@ class DashboardTemplate(db.Model):  # type: ignore
     not been deleted.
     """
 
+    __table_args__ = (db.UniqueConstraint("id", "organization_id"),)
+
     created_by = db.relationship(
         "User",
         primaryjoin="DashboardTemplate.created_by_id == User.id",
@@ -262,23 +262,10 @@ class Organization(db.Model):  # type: ignore
 
     __tablename__ = "organizations"
 
-    __table_args__ = (
-        # ensure the default dashboard is one owned by this organization
-        db.ForeignKeyConstraint(
-            ["id", "default_dashboard_template_id"],
-            ["dashboardtemplates.organization_id", "dashboardtemplates.id"],
-            name="fk_default_dashboardtemplate",
-        ),
-    )
-
     id = db.Column(db.Integer, primary_key=True, autoincrement="ignore_fk")
     """Primary key for this organization."""
 
-    default_dashboard_template_id = db.Column(
-        db.Integer,
-        db.ForeignKey("dashboardtemplates.id"),
-        nullable=True,
-    )
+    default_dashboard_template_id = db.Column(db.Integer)
     """ID of the organization's default dashboard template
     (`DashboardTemplate).
     """
@@ -315,6 +302,15 @@ class Organization(db.Model):  # type: ignore
 
     bucket_name = db.Column(db.Unicode(255), nullable=True)
     """Name of the S3 bucket hosting builds."""
+
+    __table_args__ = (
+        # ensure the default dashboard is one owned by this organization
+        db.ForeignKeyConstraint(
+            ["id", "default_dashboard_template_id"],
+            ["dashboardtemplates.organization_id", "dashboardtemplates.id"],
+            name="fk_default_dashboard_template",
+        ),
+    )
 
     products = db.relationship(
         "Product", back_populates="organization", lazy="dynamic"
