@@ -10,6 +10,7 @@ uWSGI
 Flask-SQLAlchemy
 SQLAlchemy
 PyMySQL
+psycopg2-binary
 Flask-HTTPAuth
 Flask-Migrate
 flask-accept

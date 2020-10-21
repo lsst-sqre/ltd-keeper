@@ -15,7 +15,9 @@ jobs:
           python-version: 3.8
 
       - name: Install tox
-        run: pip install tox
+        run: |
+          pip install tox
+          pip install --pre tox-docker
 
       - name: Cache tox environments
         id: cache-tox
@@ -31,7 +33,7 @@ jobs:
           LTD_KEEPER_TEST_AWS_ID: ${{ secrets.LTD_KEEPER_TEST_AWS_ID }}
           LTD_KEEPER_TEST_AWS_SECRET: ${{ secrets.LTD_KEEPER_TEST_AWS_SECRET }}
           LTD_KEEPER_TEST_BUCKET: ${{ secrets.LTD_KEEPER_TEST_BUCKET }}
-        run: tox -e lint,typing,py,coverage-report  # run tox using Python in path
+        run: tox -e lint,typing,py,postgres,coverage-report  # run tox using Python in path
 
   docs:
     runs-on: ubuntu-latest

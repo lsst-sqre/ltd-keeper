@@ -29,6 +29,7 @@ init:
 	pip install --upgrade -r requirements/main.txt -r requirements/dev.txt
 	rm -rf .tox
 	pip install --upgrade pre-commit tox
+	pip install --pre --upgrade tox-docker
 	pre-commit install
 
 .PHONY: update
@@ -40,21 +41,22 @@ test:
 
 .PHONY: run
 run:
-	FLASK_APP=keeper LTD_KEEPER_PROFILE=development flask run
+	FLASK_APP=keeper LTD_KEEPER_PROFILE=development LTD_KEEPER_DEV_DB_URL="mysql+pymysql://user:password@localhost:3306/db" flask run
 
 .PHONY: db-init
 db-init:
-	FLASK_APP=keeper LTD_KEEPER_PROFILE=development flask createdb
-	FLASK_APP=keeper LTD_KEEPER_PROFILE=development flask init
+	FLASK_APP=keeper LTD_KEEPER_PROFILE=development LTD_KEEPER_DEV_DB_URL="mysql+pymysql://user:password@localhost:3306/db" flask createdb
+	FLASK_APP=keeper LTD_KEEPER_PROFILE=development LTD_KEEPER_DEV_DB_URL="mysql+pymysql://user:password@localhost:3306/db" flask init
 
 .PHONY: db-upgrade
 db-upgrade:
-	FLASK_APP=keeper LTD_KEEPER_PROFILE=development flask db upgrade
+	FLASK_APP=keeper LTD_KEEPER_PROFILE=development LTD_KEEPER_DEV_DB_URL="mysql+pymysql://user:password@localhost:3306/db" flask db upgrade
 
 .PHONY: db-clean
 db-clean:
-	rm ltd-keeper-dev.sqlite
-	rm ltd-keeper-test.sqlite
+	rm -f ltd-keeper-dev.sqlite
+	rm -f ltd-keeper-test.sqlite
+	rm -rf mysqldb
 
 .PHONY: redis
 redis:
@@ -62,7 +64,7 @@ redis:
 
 .PHONY: worker
 worker:
-	celery worker -A keeper.celery.celery_app -E -l DEBUG
+	celery -A keeper.celery.celery_app worker -E -l DEBUG
 
 .PHONY: flower
 flower:

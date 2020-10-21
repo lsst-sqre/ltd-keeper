@@ -53,7 +53,7 @@ def test_lsst_doc_edition(client: TestClient, mocker: Mock) -> None:
     # ========================================================================
     # Get the URL for the default edition
     r = client.get(p1_url + "/editions/")
-    main_edition_url = r.json["editions"][0]
+    main_edition_url = sorted(r.json["editions"])[0]
     assert main_edition_url == "http://example.test/editions/1"
 
     # ========================================================================
@@ -80,7 +80,7 @@ def test_lsst_doc_edition(client: TestClient, mocker: Mock) -> None:
 
     # The 'master' edition was also automatically created to track master.
     r = client.get(p1_url + "/editions/")
-    master_edition_url = r.json["editions"][1]
+    master_edition_url = sorted(r.json["editions"])[1]
     mock_registry["keeper.models.append_task_to_chain"].assert_any_call(
         rebuild_edition.si(master_edition_url, 2)
     )
