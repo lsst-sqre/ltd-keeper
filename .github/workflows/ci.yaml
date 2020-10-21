@@ -15,7 +15,9 @@ jobs:
           python-version: 3.8
 
       - name: Install tox
-        run: pip install tox
+        run: |
+          pip install tox
+          pip install --pre tox-docker
 
       - name: Cache tox environments
         id: cache-tox
