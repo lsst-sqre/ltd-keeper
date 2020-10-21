@@ -99,7 +99,7 @@ def test_pach_lsst_doc_edition(client: TestClient, mocker: Mock) -> None:
 
     # Get the URL for the new edition tracking v1-0
     r = client.get(product_url + "/editions/")
-    e2_url = r.json["editions"][1]
+    e2_url = sorted(r.json["editions"])[1]  # postgres and sqlite orders differ
 
     # ========================================================================
     # Confirm upload of 'v1.0'
@@ -150,7 +150,7 @@ def test_pach_lsst_doc_edition(client: TestClient, mocker: Mock) -> None:
 
     # Get the URL for the new edition tracking v1-1
     r = client.get(product_url + "/editions/")
-    e3_url = r.json["editions"][2]
+    e3_url = sorted(r.json["editions"])[2]  # postgres and sqlite orders differ
 
     # ========================================================================
     # Confirm upload of b3
