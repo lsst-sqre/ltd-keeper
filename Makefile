@@ -29,6 +29,7 @@ init:
 	pip install --upgrade -r requirements/main.txt -r requirements/dev.txt
 	rm -rf .tox
 	pip install --upgrade pre-commit tox
+	pip install --pre --upgrade tox-docker
 	pre-commit install
 
 .PHONY: update
