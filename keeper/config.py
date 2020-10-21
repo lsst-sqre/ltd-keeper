@@ -128,9 +128,9 @@ class TestConfig(Config):
     """Test configuration (for py.test harness)."""
 
     SERVER_NAME = "example.test"
-    SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(
-        BASEDIR, "ltd-keeper-test.sqlite"
-    )
+    SQLALCHEMY_DATABASE_URI = os.environ.get(
+        "LTD_KEEPER_TEST_DB_URL"
+    ) or "sqlite:///" + os.path.join(BASEDIR, "ltd-keeper-test.sqlite")
 
     @classmethod
     def init_app(cls, app: Flask) -> None:
