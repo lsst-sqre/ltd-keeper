@@ -228,8 +228,6 @@ class DashboardTemplate(db.Model):  # type: ignore
     not been deleted.
     """
 
-    __table_args__ = (db.UniqueConstraint("id", "organization_id"),)
-
     created_by = db.relationship(
         "User",
         primaryjoin="DashboardTemplate.created_by_id == User.id",
@@ -301,15 +299,6 @@ class Organization(db.Model):  # type: ignore
     bucket_name = db.Column(db.Unicode(255), nullable=True)
     """Name of the S3 bucket hosting builds."""
 
-    __table_args__ = (
-        # ensure the default dashboard is one owned by this organization
-        db.ForeignKeyConstraint(
-            ["id", "default_dashboard_template_id"],
-            ["dashboardtemplates.organization_id", "dashboardtemplates.id"],
-            name="fk_default_dashboard_template",
-        ),
-    )
-
     products = db.relationship(
         "Product", back_populates="organization", lazy="dynamic"
     )
@@ -323,13 +312,11 @@ class Organization(db.Model):  # type: ignore
     dashboard_templates = db.relationship(
         DashboardTemplate,
         primaryjoin=id == DashboardTemplate.organization_id,
-        foreign_keys=DashboardTemplate.organization_id,
     )
 
     default_dashboard_template = db.relationship(
         DashboardTemplate,
         primaryjoin=default_dashboard_template_id == DashboardTemplate.id,
-        foreign_keys=default_dashboard_template_id,
         post_update=True,
     )
 
