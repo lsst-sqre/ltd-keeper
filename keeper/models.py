@@ -201,9 +201,7 @@ class DashboardTemplate(db.Model):  # type: ignore
     id = db.Column(db.Integer, primary_key=True)
     """Primary key for this dashboard template."""
 
-    organization_id = db.Column(
-        db.Integer, db.ForeignKey("organizations.id"), nullable=False
-    )
+    organization_id = db.Column(db.Integer, db.ForeignKey("organizations.id"))
     """ID of the organization associated with this template."""
 
     comment = db.Column(db.UnicodeText(), nullable=True)
@@ -323,13 +321,13 @@ class Organization(db.Model):  # type: ignore
     """
 
     dashboard_templates = db.relationship(
-        "DashboardTemplate",
+        DashboardTemplate,
         primaryjoin=id == DashboardTemplate.organization_id,
         foreign_keys=DashboardTemplate.organization_id,
     )
 
     default_dashboard_template = db.relationship(
-        "DashboardTemplate",
+        DashboardTemplate,
         primaryjoin=default_dashboard_template_id == DashboardTemplate.id,
         foreign_keys=default_dashboard_template_id,
         post_update=True,
