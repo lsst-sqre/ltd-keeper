@@ -65,6 +65,7 @@ target/
 # Development/test Databases
 *.sqlite
 mysqldb/
+pgdb/
 
 integration_tests/ltd_keeper_doc_examples.txt
 
