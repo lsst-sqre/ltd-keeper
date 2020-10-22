@@ -43,6 +43,15 @@ test:
 run:
 	FLASK_APP=keeper LTD_KEEPER_PROFILE=development LTD_KEEPER_DEV_DB_URL="mysql+pymysql://user:password@localhost:3306/db" flask run
 
+.PHONY: run-pg
+runpg:
+	FLASK_APP=keeper LTD_KEEPER_PROFILE=development LTD_KEEPER_DEV_DB_URL=postgresql+psycopg2://user:password@localhost:3308/db flask run
+
+.PHONY: db-init-pg
+db-init-pg:
+	FLASK_APP=keeper LTD_KEEPER_PROFILE=development LTD_KEEPER_DEV_DB_URL="postgresql+psycopg2://user:password@localhost:3308/db" flask createdb
+	FLASK_APP=keeper LTD_KEEPER_PROFILE=development LTD_KEEPER_DEV_DB_URL="postgresql+psycopg2://user:password@localhost:3308/db" flask init
+
 .PHONY: db-init
 db-init:
 	FLASK_APP=keeper LTD_KEEPER_PROFILE=development LTD_KEEPER_DEV_DB_URL="mysql+pymysql://user:password@localhost:3306/db" flask createdb
@@ -52,11 +61,16 @@ db-init:
 db-upgrade:
 	FLASK_APP=keeper LTD_KEEPER_PROFILE=development LTD_KEEPER_DEV_DB_URL="mysql+pymysql://user:password@localhost:3306/db" flask db upgrade
 
+.PHONY: db-upgrade-pg
+db-upgrade-pg:
+	FLASK_APP=keeper LTD_KEEPER_PROFILE=development LTD_KEEPER_DEV_DB_URL="postgresql+psycopg2://user:password@localhost:3308/db" flask db upgrade
+
 .PHONY: db-clean
 db-clean:
 	rm -f ltd-keeper-dev.sqlite
 	rm -f ltd-keeper-test.sqlite
 	rm -rf mysqldb
+	rm -rf pgdb
 
 .PHONY: redis
 redis:
