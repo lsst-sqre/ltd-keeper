@@ -2,6 +2,11 @@
 Change log
 ##########
 
+1.20.2 (2011-11-16)
+===================
+
+Fix name of Docker image in GitHub Actions CI workflow build job.
+
 1.20.1 (2020-11-16)
 ===================
 
