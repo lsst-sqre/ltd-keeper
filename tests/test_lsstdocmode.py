@@ -17,6 +17,13 @@ def test_lsst_doc_tag() -> None:
     assert version10.minor == 2
 
 
+def test_lsst_doc_tag_order() -> None:
+    v39 = LsstDocVersionTag("v3.9")
+    v311 = LsstDocVersionTag("v3.11")
+
+    assert v311 > v39
+
+
 def test_invalid_lsst_doc_tag() -> None:
     with pytest.raises(ValueError):
         LsstDocVersionTag("1.2")
