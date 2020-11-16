@@ -2,6 +2,11 @@
 Change log
 ##########
 
+1.20.1 (2020-11-16)
+===================
+
+Fixes the "lsstdoc" tracking mode, where version strings with double-digit numbers weren't being parsed correctly.
+
 1.20.0 (2020-08-27)
 ===================
 
