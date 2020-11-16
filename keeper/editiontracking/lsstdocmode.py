@@ -22,7 +22,7 @@ DOCUSHARE_PATTERN = re.compile(r"docushare-v(?P<version>[\d\.]+)")
 
 # The RFC-405/LPM-51 format for LSST semantic document versions.
 # v<minor>.<major>
-LSST_DOC_V_TAG = re.compile(r"^v(?P<major>[\d+])\.(?P<minor>[\d+])$")
+LSST_DOC_V_TAG = re.compile(r"^v(?P<major>[\d]+)\.(?P<minor>[\d]+)$")
 
 
 class LsstDocTrackingMode(TrackingModeBase):
