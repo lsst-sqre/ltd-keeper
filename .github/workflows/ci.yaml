@@ -88,23 +88,23 @@ jobs:
 
       - name: Pull previous images
         run: |
-          docker pull lsstsqre/example:deps-${{steps.vars.outputs.tag}} || true
-          docker pull lsstsqre/example:${{steps.vars.outputs.tag}} || true
+          docker pull lsstsqre/ltd-keeper:deps-${{steps.vars.outputs.tag}} || true
+          docker pull lsstsqre/ltd-keeper:${{steps.vars.outputs.tag}} || true
 
       - name: Build the dependencies Docker image
         run: |
           docker build --target dependencies-image \
-            --cache-from=lsstsqre/example:deps-${{steps.vars.outputs.tag}} \
-            --tag lsstsqre/example:deps-${{steps.vars.outputs.tag}} .
+            --cache-from=lsstsqre/ltd-keeper:deps-${{steps.vars.outputs.tag}} \
+            --tag lsstsqre/ltd-keeper:deps-${{steps.vars.outputs.tag}} .
 
       - name: Build the runtime Docker image
         run: |
           docker build --target runtime-image \
-            --cache-from=lsstsqre/example:${{steps.vars.outputs.tag}} \
-            --tag lsstsqre/example:${{steps.vars.outputs.tag}} .
+            --cache-from=lsstsqre/ltd-keeper:${{steps.vars.outputs.tag}} \
+            --tag lsstsqre/ltd-keeper:${{steps.vars.outputs.tag}} .
 
       - name: Push Docker images
         if: ${{ github.event_name == 'push' }}
         run: |
-          docker push lsstsqre/example:deps-${{steps.vars.outputs.tag}}
-          docker push lsstsqre/example:${{steps.vars.outputs.tag}}
+          docker push lsstsqre/ltd-keeper:deps-${{steps.vars.outputs.tag}}
+          docker push lsstsqre/ltd-keeper:${{steps.vars.outputs.tag}}
