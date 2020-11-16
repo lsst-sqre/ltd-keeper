@@ -22,7 +22,7 @@ DOCUSHARE_PATTERN = re.compile(r"docushare-v(?P<version>[\d\.]+)")
 
 # The RFC-405/LPM-51 format for LSST semantic document versions.
 # v<minor>.<major>
-LSST_DOC_V_TAG = re.compile(r"^v(?P<major>[\d+])\.(?P<minor>[\d+])$")
+LSST_DOC_V_TAG = re.compile(r"^v(?P<major>[\d]+)\.(?P<minor>[\d]+)$")
 
 
 class LsstDocTrackingMode(TrackingModeBase):
@@ -103,8 +103,15 @@ class LsstDocVersionTag:
             raise ValueError(
                 "{:r} is not a LSST document version tag".format(version_str)
             )
-        self.major = int(match.group("major"))
-        self.minor = int(match.group("minor"))
+        self.version = (int(match.group("major")), int(match.group("minor")))
+
+    @property
+    def major(self) -> int:
+        return self.version[0]
+
+    @property
+    def minor(self) -> int:
+        return self.version[1]
 
     def __repr__(self) -> str:
         return "LsstDocVersion({:r})".format(self.version_str)
@@ -115,7 +122,7 @@ class LsstDocVersionTag:
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, LsstDocVersionTag):
             raise NotImplementedError
-        return self.major == other.major and self.minor == other.minor
+        return self.version == other.version
 
     def __ne__(self, other: object) -> bool:
         if not isinstance(other, LsstDocVersionTag):
@@ -126,10 +133,8 @@ class LsstDocVersionTag:
         if not isinstance(other, LsstDocVersionTag):
             raise NotImplementedError
 
-        if self.major > other.major:
+        if self.version > other.version:
             return True
-        elif self.major == other.major:
-            return self.minor > other.minor
         else:
             return False
 
