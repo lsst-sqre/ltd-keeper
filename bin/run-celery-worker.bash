@@ -2,4 +2,4 @@
 
 echo $PATH
 which celery
-celery worker -A keeper.celery.celery_app -E -l INFO
+celery -A keeper.celery.celery_app worker -E -l INFO

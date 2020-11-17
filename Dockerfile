@@ -60,3 +60,5 @@ COPY uwsgi.ini bin migrations ./
 USER appuser
 
 EXPOSE 3031
+
+CMD ["uwsgi", "uwsgi.ini"]

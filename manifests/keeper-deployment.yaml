@@ -152,7 +152,7 @@ spec:
           imagePullPolicy: "Always"
           image: "lsstsqre/ltd-keeper:latest"
           command: ["/bin/bash"]
-          args: ["-c", "/ltd-keeper/run-celery-worker.bash"]
+          args: ["-c", "/home/appuser/run-celery-worker.bash"]
           volumeMounts:
             - name: cloudsql
               mountPath: /cloudsql

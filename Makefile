@@ -62,7 +62,7 @@ redis:
 
 .PHONY: worker
 worker:
-	celery worker -A keeper.celery.celery_app -E -l DEBUG
+	celery -A keeper.celery.celery_app worker -E -l DEBUG
 
 .PHONY: flower
 flower:

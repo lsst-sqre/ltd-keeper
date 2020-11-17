@@ -2,7 +2,12 @@
 Change log
 ##########
 
-1.20.2 (2011-11-16)
+1.20.3 (2020-11-17)
+===================
+
+Fix Docker and Kubernetes run commands.
+
+1.20.2 (2020-11-16)
 ===================
 
 Fix name of Docker image in GitHub Actions CI workflow build job.
