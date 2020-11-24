@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 from urllib.parse import urljoin, urlsplit, urlunsplit
 
 import requests
-from celery.utils.log import get_task_logger
+import structlog
 from flask import current_app
 
 from keeper import fastly, s3
@@ -19,8 +19,6 @@ if TYPE_CHECKING:
     import celery.task
 
 __all__ = ["rebuild_edition", "send_edition_updated_event"]
-
-logger = get_task_logger(__name__)
 
 
 @celery_app.task(bind=True)
@@ -44,18 +42,23 @@ def rebuild_edition(
     2. Purge Fastly's cache for this edition.
     2. Send a ``edition.updated`` payload to LTD Events (if configured).
     """
-    logger.info(
-        "Starting rebuild edition URL=%s retry=%d",
-        edition_url,
-        self.request.retries,
+    logger = structlog.get_logger(__file__).bind(
+        task=self.name,
+        task_id=self.request.id,
+        retry=self.request.retries,
+        edition_url=edition_url,
+        edition_id=edition_id,
     )
+
+    logger.info("Starting rebuild_edition")
 
     api_url_parts = urlsplit(edition_url)
     api_root = urlunsplit((api_url_parts[0], api_url_parts[1], "", "", ""))
 
-    # edition = Edition.from_url(edition_url)
     edition = Edition.query.get(edition_id)
     build = edition.build
+
+    logger = logger.bind(product=edition.product.slug)
 
     FASTLY_SERVICE_ID = current_app.config["FASTLY_SERVICE_ID"]
     FASTLY_KEY = current_app.config["FASTLY_KEY"]
@@ -89,17 +92,24 @@ def rebuild_edition(
     else:
         logger.warning("Skipping Fastly purge because credentials are not set")
 
+    logger.info("Setting rebuild_complete")
     edition.set_rebuild_complete()
     db.session.commit()
+    logger.info("Finished setting rebuild_complete")
 
     if LTD_EVENTS_URL is not None:
-        send_edition_updated_event(edition, LTD_EVENTS_URL, api_root)
+        logger.info("Sending edition_updated event")
+        send_edition_updated_event(edition, LTD_EVENTS_URL, api_root, logger)
+        logger.info("Finished sending edition_updated event")
 
     logger.info("Finished rebuild_edition")
 
 
 def send_edition_updated_event(
-    edition: Edition, events_url: str, api_url: str
+    edition: Edition,
+    events_url: str,
+    api_url: str,
+    logger: structlog.BoundLogger,
 ) -> None:
     """Send the ``edition.updated`` event to the LTD Events webhook."""
     product_info = {
@@ -123,12 +133,12 @@ def send_edition_updated_event(
     }
 
     response = requests.post(events_url, json=event_info)
-    logger.info("Sent edition.updated event to %s", events_url)
+    logger.info("Sent edition.updated event", events_url=events_url)
     if response.status_code != 200:
-        message = (
-            "Failure posting edition.updated event to %s. Got status %d. "
-            "Reponse content: %s"
-        )
+        message = "Failure posting edition.updated event."
         logger.warning(
-            message, events_url, response.status_code, response.text
+            message,
+            events_url=events_url,
+            status=response.status_code,
+            content=response.text,
         )

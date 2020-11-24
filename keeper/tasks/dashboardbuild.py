@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import requests
-from celery.utils.log import get_task_logger
+import structlog
 from flask import current_app
 
 from keeper.celery import celery_app
@@ -13,8 +13,6 @@ if TYPE_CHECKING:
     import celery.task
 
 __all__ = ["build_dashboard"]
-
-logger = get_task_logger(__name__)
 
 
 @celery_app.task(bind=True)
@@ -26,11 +24,13 @@ def build_dashboard(self: celery.task.Task, product_url: str) -> None:
     product_url : `str`
         URL of the product resource.
     """
-    logger.info(
-        "Starting dashboard build URL=%s retry=%d",
-        product_url,
-        self.request.retries,
+    logger = structlog.get_logger(__file__).bind(
+        task=self.name,
+        task_id=self.request.id,
+        retry=self.request.retries,
+        product_url=product_url,
     )
+    logger.info("Starting dashboard build")
 
     dasher_url = current_app.config["LTD_DASHER_URL"]
     if dasher_url is None:
@@ -42,6 +42,11 @@ def build_dashboard(self: celery.task.Task, product_url: str) -> None:
     request_data = {"product_urls": [product_url]}
     r = requests.post(dasher_build_url, json=request_data)
     if r.status_code != 202:
+        logger.warning(
+            "Dashboard build failed",
+            dasher_status=r.status_code,
+            content=r.text,
+        )
         raise DasherError("Dasher error (status {0})".format(r.status_code))
 
-    logger.info("Finished triggering dashboard build")
+    logger.info("Finished dashboard build")
