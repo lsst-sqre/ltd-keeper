@@ -8,6 +8,7 @@ from . import (
     dashboards,
     editions,
     errorhandlers,
+    get_products_dashboard,
     post_products_builds,
     products,
     queue,
