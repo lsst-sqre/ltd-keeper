@@ -10,4 +10,4 @@ resources:
 
 images:
   - name: lsstsqre/ltd-keeper
-    newTag: 1.20.3
+    newTag: 1.21.0
