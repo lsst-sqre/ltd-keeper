@@ -2,6 +2,12 @@
 Change log
 ##########
 
+1.21.0 (2020-11-30)
+===================
+
+- New ``GET /products/:product/dashboard`` endpoint that provides bulk metadata for version dashboards (LTD Dasher).
+- Improved logging of celery tasks for better monitoring.
+
 1.20.3 (2020-11-17)
 ===================
 
