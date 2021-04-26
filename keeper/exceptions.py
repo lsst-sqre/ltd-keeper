@@ -24,7 +24,7 @@ class S3Error(Exception):
 
 
 class FastlyError(Exception):
-    """"Errors related to Fastly API usage."""
+    """Errors related to Fastly API usage."""
 
 
 class DasherError(Exception):
