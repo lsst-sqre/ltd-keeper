@@ -14,7 +14,7 @@
 #   - Runs a non-root user.
 #   - Sets up the entrypoint and port.
 
-FROM python:3.8.6-slim-buster AS base-image
+FROM python:3.9.4-slim-buster AS base-image
 
 # Update system packages
 COPY bin/install-base-packages.sh .
