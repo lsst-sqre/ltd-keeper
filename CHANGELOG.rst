@@ -2,6 +2,13 @@
 Change log
 ##########
 
+1.22.0 (2021-04-27)
+===================
+
+- Increase presigned post URL expiration to 24 hrs (from 1 hr).
+  This should give greater flexibility to uploads so that the URLs don't expire during the build upload process.
+- Update development and production dependencies
+
 1.21.0 (2020-11-30)
 ===================
 

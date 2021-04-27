@@ -367,7 +367,7 @@ def _create_presigned_url_for_prefix(
         s3_session=s3_session,
         bucket_name=bucket_name,
         prefix=prefix,
-        expiration=3600,
+        expiration=86400,
         conditions=url_conditions,
         fields=url_fields,
     )
