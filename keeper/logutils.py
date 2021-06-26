@@ -40,6 +40,7 @@ def log_route() -> Callable[[F], F]:
             # Close out the logger
             end_time = timer()
             log.info(
+                "Closing endpoint handler",
                 status=response.status_code,
                 response_time=end_time - start_time,
             )

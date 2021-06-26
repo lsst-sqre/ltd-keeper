@@ -2,6 +2,11 @@
 Change log
 ##########
 
+2.0.0 (Unreleased)
+==================
+
+- Add support the testing mysql and postgres databases locally and in GitHub Actions.
+
 1.20.3 (2020-11-17)
 ===================
 

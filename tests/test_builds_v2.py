@@ -250,7 +250,8 @@ def test_builds_v2(client: TestClient, mocker: Mock) -> None:
     assert r.status == 201
     r = client.get("/products/pipelines/editions/")
     assert len(r.json["editions"]) == 3
-    auto_edition_url = r.json["editions"][-1]
+    editions = sorted(r.json["editions"])  # postgres and sqlite differ orders
+    auto_edition_url = editions[-1]
     r = client.get(auto_edition_url)
     assert r.json["slug"] == "DM-1234"
 

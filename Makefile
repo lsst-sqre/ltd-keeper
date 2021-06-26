@@ -14,7 +14,6 @@ help:
 	@echo "  make docs ...... (make Sphinx docs)"
 	@echo "  make docs-clean  (clean Sphinx docs)"
 	@echo "  make image ..... (make tagged Docker image)"
-	@echo "  make travis-docker-deploy (push image to Docker Hub from Travis CI)"
 	@echo "  make version ... (print the app version)"
 
 .PHONY: update-deps
@@ -29,6 +28,7 @@ init:
 	pip install --upgrade -r requirements/main.txt -r requirements/dev.txt
 	rm -rf .tox
 	pip install --upgrade pre-commit tox
+	pip install --pre --upgrade tox-docker
 	pre-commit install
 
 .PHONY: update
@@ -40,21 +40,36 @@ test:
 
 .PHONY: run
 run:
-	FLASK_APP=keeper LTD_KEEPER_PROFILE=development flask run
+	FLASK_APP=keeper LTD_KEEPER_PROFILE=development LTD_KEEPER_DEV_DB_URL="mysql+pymysql://user:password@localhost:3306/db" flask run
+
+.PHONY: run-pg
+runpg:
+	FLASK_APP=keeper LTD_KEEPER_PROFILE=development LTD_KEEPER_DEV_DB_URL=postgresql+psycopg2://user:password@localhost:3308/db flask run
+
+.PHONY: db-init-pg
+db-init-pg:
+	FLASK_APP=keeper LTD_KEEPER_PROFILE=development LTD_KEEPER_DEV_DB_URL="postgresql+psycopg2://user:password@localhost:3308/db" flask createdb
+	FLASK_APP=keeper LTD_KEEPER_PROFILE=development LTD_KEEPER_DEV_DB_URL="postgresql+psycopg2://user:password@localhost:3308/db" flask init
 
 .PHONY: db-init
 db-init:
-	FLASK_APP=keeper LTD_KEEPER_PROFILE=development flask createdb
-	FLASK_APP=keeper LTD_KEEPER_PROFILE=development flask init
+	FLASK_APP=keeper LTD_KEEPER_PROFILE=development LTD_KEEPER_DEV_DB_URL="mysql+pymysql://user:password@localhost:3306/db" flask createdb
+	FLASK_APP=keeper LTD_KEEPER_PROFILE=development LTD_KEEPER_DEV_DB_URL="mysql+pymysql://user:password@localhost:3306/db" flask init
 
 .PHONY: db-upgrade
 db-upgrade:
-	FLASK_APP=keeper LTD_KEEPER_PROFILE=development flask db upgrade
+	FLASK_APP=keeper LTD_KEEPER_PROFILE=development LTD_KEEPER_DEV_DB_URL="mysql+pymysql://user:password@localhost:3306/db" flask db upgrade
+
+.PHONY: db-upgrade-pg
+db-upgrade-pg:
+	FLASK_APP=keeper LTD_KEEPER_PROFILE=development LTD_KEEPER_DEV_DB_URL="postgresql+psycopg2://user:password@localhost:3308/db" flask db upgrade
 
 .PHONY: db-clean
 db-clean:
-	rm ltd-keeper-dev.sqlite
-	rm ltd-keeper-test.sqlite
+	rm -f ltd-keeper-dev.sqlite
+	rm -f ltd-keeper-test.sqlite
+	rm -rf mysqldb
+	rm -rf pgdb
 
 .PHONY: redis
 redis:

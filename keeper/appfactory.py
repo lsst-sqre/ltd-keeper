@@ -34,7 +34,7 @@ def create_flask_app(profile: Optional[str] = None) -> Flask:
 
     # Add the middleware to respect headers forwarded from the proxy server
     if app.config["PROXY_FIX"]:
-        app.wsgi_app = ProxyFix(  # type: ignore
+        app.wsgi_app = ProxyFix(
             app.wsgi_app,
             x_for=app.config["TRUST_X_FOR"],
             x_proto=app.config["TRUST_X_PROTO"],
