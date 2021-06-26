@@ -14,7 +14,6 @@ help:
 	@echo "  make docs ...... (make Sphinx docs)"
 	@echo "  make docs-clean  (clean Sphinx docs)"
 	@echo "  make image ..... (make tagged Docker image)"
-	@echo "  make travis-docker-deploy (push image to Docker Hub from Travis CI)"
 	@echo "  make version ... (print the app version)"
 
 .PHONY: update-deps
