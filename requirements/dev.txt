@@ -297,6 +297,22 @@ toml==0.10.2 \
     #   coverage
     #   mypy
     #   pytest
+types-mock==0.1.3 \
+    --hash=sha256:9bdafab236c0530fed36dbf18bc942633b2033bfda16551b2e4eb767341a8b8c \
+    --hash=sha256:e052879bb0a7d78547cce3342ffdf4ec3e8d2eff8f237911c3c8e31ac7ea8c86
+    # via -r requirements/dev.in
+types-python-dateutil==0.1.4 \
+    --hash=sha256:39bfe0bde61fc673b8fa28167bd78622d976210f791971b9f3e10877cbf119a4 \
+    --hash=sha256:e6486ca27b6dde73e0ec079a9e1b03e208766e6bc7f1e08964a7e9104a5c7d7a
+    # via -r requirements/dev.in
+types-requests==2.25.0 \
+    --hash=sha256:ee0d0c507210141b7d5b8639cc43eaa726084178775db2a5fb06fbf85c185808 \
+    --hash=sha256:fa5c1e5e832ff6193507d8da7e1159281383908ee193a2f4b37bc08140b51844
+    # via -r requirements/dev.in
+types-setuptools==57.0.0 \
+    --hash=sha256:71ed0f4c71d8fb5f3026a90ae82d163c13749b110e157d82126725ac8f714360 \
+    --hash=sha256:b3ada82b21dcb8e0cafd7658d8a16018a000e55bdb7f6f3cec033223360563ce
+    # via -r requirements/dev.in
 typing-extensions==3.10.0.0 \
     --hash=sha256:0ac0f89795dd19de6b97debb0c6af1c70987fd80a2d62d1958f7e56fcc31b497 \
     --hash=sha256:50b6f157849174217d0656f99dc82fe932884fb250826c18350e159ec6cdf342 \

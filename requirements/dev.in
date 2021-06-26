@@ -18,3 +18,7 @@ Sphinx<4
 sphinx-rtd-theme
 numpydoc
 sphinxcontrib-httpdomain
+types-requests
+types-setuptools
+types-python-dateutil
+types-mock
