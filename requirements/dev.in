@@ -5,6 +5,8 @@
 # After editing, update requirements/dev.txt by running:
 #     make update-deps
 
+-c main.txt
+
 pytest
 responses
 pytest-mock
@@ -12,8 +14,7 @@ sqlalchemy-stubs
 mock
 coverage[toml]
 mypy
-Sphinx
-docutils==0.15.2  # due to boto3
+Sphinx<4
 sphinx-rtd-theme
 numpydoc
 sphinxcontrib-httpdomain
