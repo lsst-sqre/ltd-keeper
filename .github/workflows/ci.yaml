@@ -54,11 +54,16 @@ jobs:
           restore-keys: |
             tox-${{ matrix.python }}-${{ matrix.db }}-${{ hashFiles('requirements/*.txt') }}-
 
-      - name: Run tox
+      - name: Run tox with external services
+        if: ${{ matrix.python == 3.9 && matrix.db == 'postgres' }}
         env:
           LTD_KEEPER_TEST_AWS_ID: ${{ secrets.LTD_KEEPER_TEST_AWS_ID }}
           LTD_KEEPER_TEST_AWS_SECRET: ${{ secrets.LTD_KEEPER_TEST_AWS_SECRET }}
           LTD_KEEPER_TEST_BUCKET: ${{ secrets.LTD_KEEPER_TEST_BUCKET }}
+        run: tox -e typing,${{matrix.db}},coverage-report  # run tox using Python in path
+
+      - name: Run tox without external services
+        if: ${{ !(matrix.python != 3.9 && matrix.db != 'postgres') }}
         run: tox -e typing,${{matrix.db}},coverage-report  # run tox using Python in path
 
   docs:
