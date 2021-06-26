@@ -8,7 +8,16 @@ from __future__ import annotations
 
 import json
 import re
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    List,
+    Optional,
+    SupportsIndex,
+    Tuple,
+    Union,
+)
 
 from dateutil import parser as datetime_parser
 from dateutil.tz import tzutc
@@ -194,7 +203,7 @@ class MutableList(Mutable, list):
         list.__setitem__(self, index, value)
         self.changed()
 
-    def __delitem__(self, index: Union[int, slice]) -> None:
+    def __delitem__(self, index: Union[SupportsIndex, slice]) -> None:
         """Detect list del events and emit change events."""
         list.__delitem__(self, index)
         self.changed()
