@@ -3,14 +3,32 @@ name: CI
 "on": [push]
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+
+      - name: Run pre-commit
+        uses: pre-commit/action@v2.0.3
+
   test:
     runs-on: ubuntu-latest
+    needs: [lint]
 
     strategy:
       matrix:
         python:
-          - 3.8
           - 3.9
+        db:
+          - sqlite
+          - postgres
+          - mysql
 
     steps:
       - uses: actions/checkout@v2
@@ -19,9 +37,6 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python }}
-
-      - name: Run pre-commit
-        uses: pre-commit/action@v2.0.3
 
       - name: Install tox
         run: |
@@ -35,19 +50,20 @@ jobs:
           path: .tox
           # requirements/*.txt and pyproject.toml have versioning info
           # that would impact the tox environment.
-          key: tox-${{ matrix.python }}-${{ hashFiles('requirements/*.txt') }}-${{ hashFiles('pyproject.toml') }}
+          key: tox-${{ matrix.python }}--${{ matrix.db }}-${{ hashFiles('requirements/*.txt') }}-${{ hashFiles('pyproject.toml') }}
           restore-keys: |
-            tox-${{ matrix.python }}-${{ hashFiles('requirements/*.txt') }}-
+            tox-${{ matrix.python }}-${{ matrix.db }}-${{ hashFiles('requirements/*.txt') }}-
 
       - name: Run tox
         env:
           LTD_KEEPER_TEST_AWS_ID: ${{ secrets.LTD_KEEPER_TEST_AWS_ID }}
           LTD_KEEPER_TEST_AWS_SECRET: ${{ secrets.LTD_KEEPER_TEST_AWS_SECRET }}
           LTD_KEEPER_TEST_BUCKET: ${{ secrets.LTD_KEEPER_TEST_BUCKET }}
-        run: tox -e lint,typing,py,postgres,coverage-report  # run tox using Python in path
+        run: tox -e typing,${{matrix.db}},coverage-report  # run tox using Python in path
 
   docs:
     runs-on: ubuntu-latest
+    needs: [lint]
 
     steps:
       - uses: actions/checkout@v2
@@ -55,7 +71,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
-          python-version: 3.8
+          python-version: 3.9
 
       - name: Install Python dependencies
         run: pip install tox ltd-conveyor
@@ -84,8 +100,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [test]
 
-    # Only do Docker builds of ticket branches and tagged releases.
-    if: startsWith(github.ref, 'refs/tags/') || startsWith(github.ref, 'refs/heads/tickets/')
+    # Only do Docker builds of ticket branches and tagged releases, as well
+    # as JSick Codes branches.
+    if: startsWith(github.ref, 'refs/tags/') || startsWith(github.ref, 'refs/heads/tickets/') || startsWith(github.ref, 'refs/heads/u/jsickcodes/')
 
     steps:
       - uses: actions/checkout@v2
