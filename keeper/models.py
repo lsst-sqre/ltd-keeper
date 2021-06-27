@@ -239,6 +239,12 @@ class DashboardTemplate(db.Model):  # type: ignore
     )
     """User who deleted this template."""
 
+    organization = db.relationship(
+        "Organization",
+        back_populates="dashboard_templates",
+        foreign_keys=[organization_id],
+    )
+
 
 class OrganizationLayoutMode(enum.Enum):
     """Layout mode (enum) for organizations."""
@@ -258,12 +264,12 @@ class Organization(db.Model):  # type: ignore
 
     __tablename__ = "organizations"
 
-    id = db.Column(db.Integer, primary_key=True, autoincrement="ignore_fk")
+    id = db.Column(db.Integer, primary_key=True)
     """Primary key for this organization."""
 
-    default_dashboard_template_id = db.Column(db.Integer)
+    default_dashboard_template_id = db.Column(db.Integer, nullable=True)
     """ID of the organization's default dashboard template
-    (`DashboardTemplate).
+    (`DashboardTemplate`), if one is set.
     """
 
     slug = db.Column(db.Unicode(255), nullable=False, unique=True)
@@ -321,12 +327,7 @@ class Organization(db.Model):  # type: ignore
     dashboard_templates = db.relationship(
         DashboardTemplate,
         primaryjoin=id == DashboardTemplate.organization_id,
-    )
-
-    default_dashboard_template = db.relationship(
-        DashboardTemplate,
-        primaryjoin=default_dashboard_template_id == DashboardTemplate.id,
-        post_update=True,
+        back_populates="organization",
     )
 
 
