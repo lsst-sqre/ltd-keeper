@@ -296,6 +296,15 @@ class Organization(db.Model):  # type: ignore
     fastly_domain = db.Column(db.Unicode(255), nullable=True)
     """Fastly CDN domain name."""
 
+    fastly_encrypted_api_key = db.Column(db.String(255), nullable=True)
+    """Fastly API key for this organization.
+
+    The key is persisted as a fernet token.
+    """
+
+    fastly_service_id = db.Column(db.Unicode(255), nullable=True)
+    """Fastly service ID."""
+
     bucket_name = db.Column(db.Unicode(255), nullable=True)
     """Name of the S3 bucket hosting builds."""
 
