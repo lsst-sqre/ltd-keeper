@@ -341,6 +341,11 @@ class Tag(db.Model):  # type: ignore
 
     __tablename__ = "tags"
 
+    __table_args__ = (
+        db.UniqueConstraint("slug", "organization_id"),
+        db.UniqueConstraint("title", "organization_id"),
+    )
+
     id = db.Column(db.Integer, primary_key=True)
     """Primary key for this tag."""
 
@@ -352,14 +357,12 @@ class Tag(db.Model):  # type: ignore
     slug = db.Column(
         db.Unicode(255),
         nullable=False,
-        unique=db.UniqueConstraint("slug", "organization_id"),
     )
     """URL-safe identifier for this tag."""
 
     title = db.Column(
         db.Unicode(255),
         nullable=False,
-        unique=db.UniqueConstraint("title", "organization_id"),
     )
     """Presentational title or label for this tag."""
 
