@@ -10,7 +10,7 @@ import enum
 import urllib.parse
 import uuid
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Type, Union
 
 from flask import current_app, url_for
 from flask_migrate import Migrate
@@ -66,6 +66,35 @@ This is initialized in `keeper.appfactory.create_flask_app`.
 
 edition_tracking_modes = EditionTrackingModes()
 """Tracking modes for editions."""
+
+
+class IntEnum(db.TypeDecorator):  # type: ignore
+    """A custom column type that persists enums as their value, rather than
+    the name.
+
+    Notes
+    -----
+    This code is based on
+    https://michaelcho.me/article/using-python-enums-in-sqlalchemy-models
+    """
+
+    impl = db.Integer
+
+    def __init__(
+        self, enumtype: Type[enum.IntEnum], *args: Any, **kwargs: Any
+    ) -> None:
+        super().__init__(*args, **kwargs)
+        self._enumtype = enumtype
+
+    def process_bind_param(
+        self, value: Union[int, enum.IntEnum], dialect: Any
+    ) -> int:
+        if isinstance(value, int):
+            return value
+        return value.value  # type: ignore
+
+    def process_result_value(self, value: int, dialect: Any) -> enum.IntEnum:
+        return self._enumtype(value)
 
 
 class Permission:
@@ -789,7 +818,7 @@ class Build(db.Model):  # type: ignore
         self.date_ended = datetime.now()
 
 
-class EditionKind(enum.Enum):
+class EditionKind(enum.IntEnum):
     """Classification of the edition.
 
     This classification is primarily used by edition dashboards.
@@ -880,7 +909,7 @@ class Edition(db.Model):  # type: ignore
     """Flag indicating if a rebuild is pending work by the rebuild task."""
 
     kind = db.Column(
-        db.Enum(EditionKind), default=EditionKind.draft, nullable=False
+        IntEnum(EditionKind), default=EditionKind.draft, nullable=False
     )
     """The edition's kind.
 
