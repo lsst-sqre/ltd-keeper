@@ -838,7 +838,7 @@ class EditionKind(enum.IntEnum):
     patch version).
     """
 
-    minor = 2
+    minor = 5
     """An edition that tracks a minor version (for the latest patch.)"""
 
 
