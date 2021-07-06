@@ -77,7 +77,7 @@ redis:
 
 .PHONY: worker
 worker:
-	celery -A keeper.celery.celery_app worker -E -l DEBUG
+	FLASK_APP=keeper LTD_KEEPER_PROFILE=development LTD_KEEPER_DEV_DB_URL="postgresql+psycopg2://user:password@localhost:3308/db" celery -A keeper.celery.celery_app worker -E -l DEBUG
 
 .PHONY: flower
 flower:
