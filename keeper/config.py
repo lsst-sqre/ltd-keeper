@@ -10,6 +10,8 @@ from typing import TYPE_CHECKING, Dict, Optional, Type
 
 import structlog
 
+from keeper.models import EditionKind
+
 if TYPE_CHECKING:
     from flask import Flask
 
@@ -42,6 +44,7 @@ class Config(abc.ABC):
     CELERY_RESULT_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379")
     CELERY_BROKER_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379")
     LTD_EVENTS_URL: Optional[str] = os.getenv("LTD_EVENTS_URL", None)
+    DEFAULT_EDITION_KIND: EditionKind = EditionKind.draft
 
     # Suppresses a warning until Flask-SQLAlchemy 3
     # See http://stackoverflow.com/a/33790196

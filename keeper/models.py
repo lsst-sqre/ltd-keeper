@@ -275,7 +275,7 @@ class DashboardTemplate(db.Model):  # type: ignore
     )
 
 
-class OrganizationLayoutMode(enum.Enum):
+class OrganizationLayoutMode(enum.IntEnum):
     """Layout mode (enum) for organizations."""
 
     subdomain = 1
@@ -915,8 +915,8 @@ class Edition(db.Model):  # type: ignore
 
     Notes
     -----
-    Kind is nullable for the initial schema migration. Code should establish
-    a default kind and ensure that it is set.
+    Kind is nullable for the initial schema migration. If this field is
+    null, use the `Config.DEFAULT_EDITION_KIND` setting instead.
 
     See also
     --------
