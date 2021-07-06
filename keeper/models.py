@@ -308,7 +308,7 @@ class Organization(db.Model):  # type: ignore
     """Presentational title for this organization."""
 
     layout = db.Column(
-        db.Enum(OrganizationLayoutMode),
+        IntEnum(OrganizationLayoutMode),
         nullable=False,
         default=OrganizationLayoutMode.subdomain,
     )
