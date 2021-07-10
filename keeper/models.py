@@ -909,14 +909,9 @@ class Edition(db.Model):  # type: ignore
     """Flag indicating if a rebuild is pending work by the rebuild task."""
 
     kind = db.Column(
-        IntEnum(EditionKind), default=EditionKind.draft, nullable=True
+        IntEnum(EditionKind), default=EditionKind.draft, nullable=False
     )
     """The edition's kind.
-
-    Notes
-    -----
-    Kind is nullable for the initial schema migration. If this field is
-    null, use the `Config.DEFAULT_EDITION_KIND` setting instead.
 
     See also
     --------
