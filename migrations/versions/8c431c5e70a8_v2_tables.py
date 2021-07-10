@@ -36,6 +36,28 @@ def upgrade():
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("slug"),
     )
+    # Create a default organization to associate with any existing
+    # products
+    op.execute(
+        ""
+        "INSERT INTO organizations (\n"
+        "    slug,\n"
+        "    title,\n"
+        "    layout,\n"
+        "    fastly_support,\n"
+        "    root_domain,\n"
+        "    root_path_prefix\n"
+        ")\n"
+        "VALUES\n"
+        "    (\n"
+        "        'default',\n"
+        "        'Default',\n"
+        "        1,\n"
+        "        false,\n"
+        "        'example.com',\n"
+        "        '/'\n"
+        ");\n"
+    )
     op.create_table(
         "dashboardtemplates",
         sa.Column("id", sa.Integer(), nullable=False),
@@ -121,6 +143,10 @@ def upgrade():
         batch_op.create_foreign_key(
             None, "organizations", ["organization_id"], ["id"]
         )
+    # Insert default organization in any existing products
+    op.execute("UPDATE products SET organization_id = 1")
+    # Make products.organization_id non-nullable
+    op.alter_column("products", "organization_id", nullable=False)
 
 
 def downgrade():

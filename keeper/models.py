@@ -426,12 +426,9 @@ class Product(db.Model):  # type: ignore
     """Primary key for this product."""
 
     organization_id = db.Column(
-        db.Integer, db.ForeignKey("organizations.id"), nullable=True
+        db.Integer, db.ForeignKey("organizations.id"), nullable=False
     )
-    """Foreign key of the organization that owns this product.
-
-    This is set to nullable only for the purpose of migration.
-    """
+    """Foreign key of the organization that owns this product."""
 
     slug = db.Column(db.Unicode(255), nullable=False, unique=True)
     """URL/path-safe identifier for this product (unique)."""
