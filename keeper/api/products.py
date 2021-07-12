@@ -10,7 +10,7 @@ from flask_accept import accept_fallback
 from keeper.api import api
 from keeper.auth import permission_required, token_auth
 from keeper.logutils import log_route
-from keeper.models import Edition, Permission, Product, db
+from keeper.models import Edition, Organization, Permission, Product, db
 from keeper.taskrunner import (
     append_task_to_chain,
     insert_task_url_in_response,
@@ -216,8 +216,11 @@ def new_product() -> Tuple[str, int, Dict[str, str]]:
     """
     product = Product()
     try:
+        # Get default organization (v1 API adapter for organizations)
+        org = Organization.query.order_by(Organization.id).first_or_404()
         request_json = request.json
         product.import_data(request_json)
+        product.organization = org
         db.session.add(product)
         db.session.flush()  # Because Edition._validate_slug does not autoflush
 
