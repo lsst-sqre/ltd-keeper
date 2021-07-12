@@ -27,6 +27,7 @@ def test_tags(empty_app: Flask) -> None:
         root_fastly_domain="fastly.example.org",
         bucket_name="example",
         surrogate_key="123",
+        organization=org,
     )
     tagA = Tag(
         organization=org,
