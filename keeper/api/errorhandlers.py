@@ -30,7 +30,7 @@ __all__ = [
 def bad_request(e: Exception) -> Response:
     """Handler for ValidationError exceptions."""
     logger = structlog.get_logger()
-    logger.error(status=400, message=e.args[0])
+    logger.error("bad request", status=400, message=e.args[0])
 
     response = jsonify(
         {"status": 400, "error": "bad request", "message": e.args[0]}
@@ -43,7 +43,7 @@ def bad_request(e: Exception) -> Response:
 def not_found(e: Exception) -> Response:
     """App-wide handler for HTTP 404 errors."""
     logger = structlog.get_logger()
-    logger.error(status=400)
+    logger.error("not found", status=400)
 
     response = jsonify(
         {
@@ -60,7 +60,7 @@ def not_found(e: Exception) -> Response:
 def method_not_supported(e: Exception) -> Response:
     """Handler for HTTP 405 exceptions."""
     logger = structlog.get_logger()
-    logger.error(status=405)
+    logger.error("method not support", status=405)
 
     response = jsonify(
         {
@@ -77,7 +77,7 @@ def method_not_supported(e: Exception) -> Response:
 def internal_server_error(e: Exception) -> Response:
     """App-wide handler for HTTP 500 errors."""
     logger = structlog.get_logger()
-    logger.error(status=500, message=e.args[0])
+    logger.error("internal server error", status=500, message=e.args[0])
 
     response = jsonify(
         {"status": 500, "error": "internal server error", "message": e.args[0]}
