@@ -89,9 +89,10 @@ class IntEnum(db.TypeDecorator):  # type: ignore
     def process_bind_param(
         self, value: Union[int, enum.IntEnum], dialect: Any
     ) -> int:
-        if isinstance(value, int):
+        if isinstance(value, enum.IntEnum):
+            return value.value
+        else:
             return value
-        return value.value  # type: ignore
 
     def process_result_value(self, value: int, dialect: Any) -> enum.IntEnum:
         return self._enumtype(value)
