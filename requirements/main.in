@@ -19,3 +19,4 @@ boto3
 requests
 structlog
 celery[redis]
+pydantic
