@@ -21,6 +21,19 @@ def test_products(client: TestClient, mocker: Mock) -> None:
     """Test various API operations against Product resources."""
     mock_registry.patch_all(mocker)
 
+    # Create default organization
+    from keeper.models import Organization, db
+
+    org = Organization(
+        slug="test",
+        title="Test",
+        root_domain="lsst.io",
+        fastly_domain="global.ssl.fastly.net",
+        bucket_name="bucket-name",
+    )
+    db.session.add(org)
+    db.session.commit()
+
     # ========================================================================
     # Add product /products/ldm-151
     mocker.resetall()
@@ -203,6 +216,19 @@ def test_post_product_auth_anon(anon_client: TestClient) -> None:
 
 
 def test_post_product_auth_product_client(product_client: TestClient) -> None:
+    # Create default organization
+    from keeper.models import Organization, db
+
+    org = Organization(
+        slug="test",
+        title="Test",
+        root_domain="lsst.io",
+        fastly_domain="global.ssl.fastly.net",
+        bucket_name="bucket-name",
+    )
+    db.session.add(org)
+    db.session.commit()
+
     with pytest.raises(ValidationError):
         product_client.post("/products/", {"foo": "bar"})
 

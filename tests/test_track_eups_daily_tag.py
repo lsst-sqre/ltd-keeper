@@ -17,6 +17,19 @@ def test_eups_daily_release_edition(client: TestClient, mocker: Mock) -> None:
     # The celery tasks need to be mocked, but are not checked.
     mock_registry.patch_all(mocker)
 
+    # Create default organization
+    from keeper.models import Organization, db
+
+    org = Organization(
+        slug="test",
+        title="Test",
+        root_domain="lsst.io",
+        fastly_domain="global.ssl.fastly.net",
+        bucket_name="bucket-name",
+    )
+    db.session.add(org)
+    db.session.commit()
+
     # ========================================================================
     # Add product /products/pipelines
     p1_data = {

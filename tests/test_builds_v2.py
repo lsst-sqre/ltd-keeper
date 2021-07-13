@@ -40,6 +40,19 @@ def test_builds_v2(client: TestClient, mocker: Mock) -> None:
         "keeper.api.post_products_builds.open_s3_session"
     )
 
+    # Create default organization
+    from keeper.models import Organization, db
+
+    org = Organization(
+        slug="test",
+        title="Test",
+        root_domain="lsst.io",
+        fastly_domain="global.ssl.fastly.net",
+        bucket_name="bucket-name",
+    )
+    db.session.add(org)
+    db.session.commit()
+
     # ========================================================================
     # Add product /products/pipelines
     mocker.resetall()

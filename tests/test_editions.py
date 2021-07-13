@@ -22,6 +22,19 @@ def test_editions(client: TestClient, mocker: Mock) -> None:
     """Exercise different /edition/ API scenarios."""
     mock_registry.patch_all(mocker)
 
+    # Create default organization
+    from keeper.models import Organization, db
+
+    org = Organization(
+        slug="test",
+        title="Test",
+        root_domain="lsst.io",
+        fastly_domain="global.ssl.fastly.net",
+        bucket_name="bucket-name",
+    )
+    db.session.add(org)
+    db.session.commit()
+
     # ========================================================================
     # Add product /products/ldm-151
     mocker.resetall()

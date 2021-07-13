@@ -6,10 +6,11 @@ Copyright 2014 Miguel Grinberg.
 
 from __future__ import annotations
 
+import enum
 import urllib.parse
 import uuid
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Type, Union
 
 from flask import current_app, url_for
 from flask_migrate import Migrate
@@ -18,11 +19,11 @@ from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from structlog import get_logger
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from . import route53, s3
-from .editiontracking import EditionTrackingModes
-from .exceptions import ValidationError
-from .taskrunner import append_task_to_chain, mock_registry
-from .utils import (
+from keeper import route53, s3
+from keeper.editiontracking import EditionTrackingModes
+from keeper.exceptions import ValidationError
+from keeper.taskrunner import append_task_to_chain, mock_registry
+from keeper.utils import (
     JSONEncodedVARCHAR,
     MutableList,
     format_utc_datetime,
@@ -38,7 +39,11 @@ __all__ = [
     "edition_tracking_modes",
     "Permission",
     "User",
+    "Organization",
+    "DashboardTemplate",
+    "Tag",
     "Product",
+    "product_tags",
     "Build",
     "Edition",
 ]
@@ -61,6 +66,36 @@ This is initialized in `keeper.appfactory.create_flask_app`.
 
 edition_tracking_modes = EditionTrackingModes()
 """Tracking modes for editions."""
+
+
+class IntEnum(db.TypeDecorator):  # type: ignore
+    """A custom column type that persists enums as their value, rather than
+    the name.
+
+    Notes
+    -----
+    This code is based on
+    https://michaelcho.me/article/using-python-enums-in-sqlalchemy-models
+    """
+
+    impl = db.Integer
+
+    def __init__(
+        self, enumtype: Type[enum.IntEnum], *args: Any, **kwargs: Any
+    ) -> None:
+        super().__init__(*args, **kwargs)
+        self._enumtype = enumtype
+
+    def process_bind_param(
+        self, value: Union[int, enum.IntEnum], dialect: Any
+    ) -> int:
+        if isinstance(value, enum.IntEnum):
+            return value.value
+        else:
+            return value
+
+    def process_result_value(self, value: int, dialect: Any) -> enum.IntEnum:
+        return self._enumtype(value)
 
 
 class Permission:
@@ -188,6 +223,197 @@ class User(db.Model):  # type: ignore
         return (self.permissions & permissions) == permissions
 
 
+class DashboardTemplate(db.Model):  # type: ignore
+    """DB model for an edition dashboard template."""
+
+    __tablename__ = "dashboardtemplates"
+
+    id = db.Column(db.Integer, primary_key=True)
+    """Primary key for this dashboard template."""
+
+    organization_id = db.Column(db.Integer, db.ForeignKey("organizations.id"))
+    """ID of the organization associated with this template."""
+
+    comment = db.Column(db.UnicodeText(), nullable=True)
+    """A note about this dashboard template."""
+
+    bucket_prefix = db.Column(db.Unicode(255), nullable=False, unique=True)
+    """S3 bucket prefix where all assets related to this template are
+    persisted.
+    """
+
+    created_by_id = db.Column(db.Integer, db.ForeignKey("users.id"))
+    """ID of user who created this template."""
+
+    date_created = db.Column(db.DateTime, default=datetime.now, nullable=False)
+    """DateTime when this template was created."""
+
+    deleted_by_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=True
+    )
+    """ID of user who deleted this template."""
+
+    date_deleted = db.Column(db.DateTime, default=None, nullable=True)
+    """DateTime when this template was deleted (or null if the template has
+    not been deleted.
+    """
+
+    created_by = db.relationship(
+        "User",
+        primaryjoin="DashboardTemplate.created_by_id == User.id",
+    )
+    """User who created this template."""
+
+    deleted_by = db.relationship(
+        "User", primaryjoin="DashboardTemplate.deleted_by_id == User.id"
+    )
+    """User who deleted this template."""
+
+    organization = db.relationship(
+        "Organization",
+        back_populates="dashboard_templates",
+        foreign_keys=[organization_id],
+    )
+
+
+class OrganizationLayoutMode(enum.IntEnum):
+    """Layout mode (enum) for organizations."""
+
+    subdomain = 1
+    """Layout based on a subdomain for each project."""
+
+    path = 2
+    """Layout based on a path prefix for each project."""
+
+
+class Organization(db.Model):  # type: ignore
+    """DB model for an organization resource.
+
+    Organizations own products (`Product`).
+    """
+
+    __tablename__ = "organizations"
+
+    id = db.Column(db.Integer, primary_key=True)
+    """Primary key for this organization."""
+
+    default_dashboard_template_id = db.Column(db.Integer, nullable=True)
+    """ID of the organization's default dashboard template
+    (`DashboardTemplate`), if one is set.
+    """
+
+    slug = db.Column(db.Unicode(255), nullable=False, unique=True)
+    """URL-safe identifier for this organization (unique)."""
+
+    title = db.Column(db.Unicode(255), nullable=False)
+    """Presentational title for this organization."""
+
+    layout = db.Column(
+        IntEnum(OrganizationLayoutMode),
+        nullable=False,
+        default=OrganizationLayoutMode.subdomain,
+    )
+    """Layout mode.
+
+    See also
+    --------
+    OrganizationLayoutMode
+    """
+
+    fastly_support = db.Column(db.Boolean, nullable=False, default=True)
+    """Flag Fastly CDN support."""
+
+    root_domain = db.Column(db.Unicode(255), nullable=False)
+    """Root domain name serving docs (e.g., lsst.io)."""
+
+    root_path_prefix = db.Column(db.Unicode(255), nullable=False, default="/")
+    """Root path prefix for serving products."""
+
+    fastly_domain = db.Column(db.Unicode(255), nullable=True)
+    """Fastly CDN domain name."""
+
+    fastly_encrypted_api_key = db.Column(db.String(255), nullable=True)
+    """Fastly API key for this organization.
+
+    The key is persisted as a fernet token.
+    """
+
+    fastly_service_id = db.Column(db.Unicode(255), nullable=True)
+    """Fastly service ID."""
+
+    bucket_name = db.Column(db.Unicode(255), nullable=True)
+    """Name of the S3 bucket hosting builds."""
+
+    products = db.relationship(
+        "Product", back_populates="organization", lazy="dynamic"
+    )
+    """Relationship to `Product` objects owned by this organization."""
+
+    tags = db.relationship("Tag", backref="organization", lazy="dynamic")
+    """One-to-many relationship to all `Tag` objects related to this
+    organization.
+    """
+
+    dashboard_templates = db.relationship(
+        DashboardTemplate,
+        primaryjoin=id == DashboardTemplate.organization_id,
+        back_populates="organization",
+    )
+
+
+product_tags = db.Table(
+    "producttags",
+    db.Column(
+        "tag_id", db.Integer, db.ForeignKey("tags.id"), primary_key=True
+    ),
+    db.Column(
+        "product_id",
+        db.Integer,
+        db.ForeignKey("products.id"),
+        primary_key=True,
+    ),
+)
+"""A table that associates the `Product` and `Tag` models."""
+
+
+class Tag(db.Model):  # type: ignore
+    """DB model for tags in an `Organization`."""
+
+    __tablename__ = "tags"
+
+    __table_args__ = (
+        db.UniqueConstraint("slug", "organization_id"),
+        db.UniqueConstraint("title", "organization_id"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    """Primary key for this tag."""
+
+    organization_id = db.Column(
+        db.Integer, db.ForeignKey("organizations.id"), index=True
+    )
+    """ID of the organization that this tag belongs to."""
+
+    slug = db.Column(
+        db.Unicode(255),
+        nullable=False,
+    )
+    """URL-safe identifier for this tag."""
+
+    title = db.Column(
+        db.Unicode(255),
+        nullable=False,
+    )
+    """Presentational title or label for this tag."""
+
+    comment = db.Column(db.UnicodeText(), nullable=True)
+    """A note about this tag."""
+
+    products = db.relationship(
+        "Product", secondary=product_tags, back_populates="tags"
+    )
+
+
 class Product(db.Model):  # type: ignore
     """DB model for software products.
 
@@ -199,6 +425,11 @@ class Product(db.Model):  # type: ignore
 
     id = db.Column(db.Integer, primary_key=True)
     """Primary key for this product."""
+
+    organization_id = db.Column(
+        db.Integer, db.ForeignKey("organizations.id"), nullable=False
+    )
+    """Foreign key of the organization that owns this product."""
 
     slug = db.Column(db.Unicode(255), nullable=False, unique=True)
     """URL/path-safe identifier for this product (unique)."""
@@ -224,6 +455,12 @@ class Product(db.Model):  # type: ignore
     Editions and Builds have independent surrogate keys.
     """
 
+    organization = db.relationship(
+        "Organization",
+        back_populates="products",
+    )
+    """Relationship to the parent organization."""
+
     builds = db.relationship("Build", backref="product", lazy="dynamic")
     """One-to-many relationship to all `Build` objects related to this Product.
     """
@@ -232,6 +469,11 @@ class Product(db.Model):  # type: ignore
     """One-to-many relationship to all `Edition` objects related to this
     Product.
     """
+
+    tags = db.relationship(
+        "Tag", secondary=product_tags, back_populates="products"
+    )
+    """Tags associated with this product."""
 
     @classmethod
     def from_url(cls, product_url: str) -> "Product":
@@ -374,9 +616,7 @@ class Build(db.Model):  # type: ignore
     This slug is also used as a pseudo-POSIX directory prefix in the S3 bucket.
     """
 
-    date_created = db.Column(
-        db.DateTime, default=datetime.now(), nullable=False
-    )
+    date_created = db.Column(db.DateTime, default=datetime.now, nullable=False)
     """DateTime when this build was created.
     """
 
@@ -395,10 +635,29 @@ class Build(db.Model):  # type: ignore
     repository products may have multiple git refs.
 
     This field is encoded as JSON (`JSONEndedVARCHAR`).
+
+    TODO: deprecate this field after deprecation of the v1 API to use git_ref
+    (singular) exclusively.
+    """
+
+    git_ref = db.Column(db.Unicode(255), nullable=True)
+    """The git ref that this build corresponds to.
+
+    A git ref is typically a branch or tag name.
+
+    This column replaces `git_refs`.
     """
 
     github_requester = db.Column(db.Unicode(255), nullable=True)
     """github handle of person requesting the build (optional).
+    """
+
+    uploaded_by_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=True
+    )
+    """Foreign key of the user that uploaded this build.
+
+    This key is nullable during the transition.
     """
 
     uploaded = db.Column(db.Boolean, default=False)
@@ -411,6 +670,12 @@ class Build(db.Model):  # type: ignore
 
     # Relationships
     # product - from Product class
+
+    uploaded_by = db.relationship(
+        "User", primaryjoin="Build.uploaded_by_id == User.id"
+    )
+    """User who uploaded this build.
+    """
 
     @classmethod
     def from_url(cls, build_url: str) -> "Build":
@@ -551,6 +816,30 @@ class Build(db.Model):  # type: ignore
         self.date_ended = datetime.now()
 
 
+class EditionKind(enum.IntEnum):
+    """Classification of the edition.
+
+    This classification is primarily used by edition dashboards.
+    """
+
+    main = 1
+    """The main (default) edition."""
+
+    release = 2
+    """A release."""
+
+    draft = 3
+    """A draft edition (not a release)."""
+
+    major = 4
+    """An edition that tracks a major version (for the latest minor or
+    patch version).
+    """
+
+    minor = 5
+    """An edition that tracks a minor version (for the latest patch.)"""
+
+
 class Edition(db.Model):  # type: ignore
     """DB model for Editions. Editions are fixed-location publications of the
     docs. Editions are updated by new builds; though not all builds are used
@@ -599,14 +888,10 @@ class Edition(db.Model):  # type: ignore
     title = db.Column(db.Unicode(256), nullable=False)
     """Human-readable title for edition."""
 
-    date_created = db.Column(
-        db.DateTime, default=datetime.now(), nullable=False
-    )
+    date_created = db.Column(db.DateTime, default=datetime.now, nullable=False)
     """DateTime when this edition was initially created."""
 
-    date_rebuilt = db.Column(
-        db.DateTime, default=datetime.now(), nullable=False
-    )
+    date_rebuilt = db.Column(db.DateTime, default=datetime.now, nullable=False)
     """DateTime when the Edition was last rebuild.
     """
 
@@ -620,6 +905,16 @@ class Edition(db.Model):  # type: ignore
 
     pending_rebuild = db.Column(db.Boolean, default=False, nullable=False)
     """Flag indicating if a rebuild is pending work by the rebuild task."""
+
+    kind = db.Column(
+        IntEnum(EditionKind), default=EditionKind.draft, nullable=False
+    )
+    """The edition's kind.
+
+    See also
+    --------
+    EditionKind
+    """
 
     # Relationships
     build = db.relationship("Build", uselist=False)

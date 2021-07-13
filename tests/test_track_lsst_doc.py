@@ -28,6 +28,19 @@ def test_lsst_doc_edition(client: TestClient, mocker: Mock) -> None:
     """
     mock_registry.patch_all(mocker)
 
+    # Create default organization
+    from keeper.models import Organization, db
+
+    org = Organization(
+        slug="test",
+        title="Test",
+        root_domain="lsst.io",
+        fastly_domain="global.ssl.fastly.net",
+        bucket_name="bucket-name",
+    )
+    db.session.add(org)
+    db.session.commit()
+
     # ========================================================================
     # Add product /products/ldm-151
     mocker.resetall()

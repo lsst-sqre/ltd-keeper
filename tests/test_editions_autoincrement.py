@@ -18,6 +18,19 @@ def test_editions_autoincrement(client: TestClient, mocker: Mock) -> None:
     """Test creating editions with autoincrement=True."""
     mock_registry.patch_all(mocker)
 
+    # Create default organization
+    from keeper.models import Organization, db
+
+    org = Organization(
+        slug="test",
+        title="Test",
+        root_domain="lsst.io",
+        fastly_domain="global.ssl.fastly.net",
+        bucket_name="bucket-name",
+    )
+    db.session.add(org)
+    db.session.commit()
+
     # ========================================================================
     # Add product /products/testr-000
     mocker.resetall()
