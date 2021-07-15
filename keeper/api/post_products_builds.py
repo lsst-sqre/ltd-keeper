@@ -6,7 +6,7 @@ import uuid
 from copy import deepcopy
 from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple
 
-from flask import current_app, jsonify, request
+from flask import current_app, request
 from flask_accept import accept_fallback
 from structlog import get_logger
 
@@ -23,12 +23,14 @@ from keeper.s3 import (
 )
 from keeper.taskrunner import (
     append_task_to_chain,
-    insert_task_url_in_response,
     launch_task_chain,
     mock_registry,
 )
 from keeper.tasks.dashboardbuild import build_dashboard
 from keeper.utils import auto_slugify_edition
+
+from ._models import BuildResponse
+from ._urls import url_for_build
 
 if TYPE_CHECKING:
     import boto3
@@ -162,13 +164,9 @@ def post_products_builds_v1(slug: str) -> Tuple[str, int, Dict[str, str]]:
     """
     build, task = _handle_new_build_for_product_slug(slug)
 
-    build_resource_json = build.export_data()
-    build_url = build.get_url()
-    build_resource_json = insert_task_url_in_response(
-        build_resource_json, task
-    )
-
-    return jsonify(build_resource_json), 201, {"Location": build_url}
+    build_response = BuildResponse.from_build(build, task=task)
+    build_url = url_for_build(build)
+    return build_response.json(), 201, {"Location": build_url}
 
 
 @post_products_builds_v1.support(v2_json_type)
@@ -180,11 +178,6 @@ def post_products_builds_v2(slug: str) -> Tuple[str, int, Dict[str, str]]:
     logger = get_logger(__name__)
 
     build, task = _handle_new_build_for_product_slug(slug)
-    build_resource_json = build.export_data()
-    build_url = build.get_url()
-    build_resource_json = insert_task_url_in_response(
-        build_resource_json, task
-    )
 
     # Create the presigned post URL or URLs for each declared directory
     # prefix
@@ -214,7 +207,7 @@ def post_products_builds_v2(slug: str) -> Tuple[str, int, Dict[str, str]]:
             s3_session=s3_session,
             bucket_name=build.product.bucket_name,
             prefix=bucket_prefix,
-            surrogate_key=build_resource_json["surrogate_key"],
+            surrogate_key=build.surrogate_key,
         )
         presigned_prefix_urls[d] = deepcopy(presigned_prefix_url)
 
@@ -222,12 +215,10 @@ def post_products_builds_v2(slug: str) -> Tuple[str, int, Dict[str, str]]:
             s3_session=s3_session,
             bucket_name=build.product.bucket_name,
             key=dir_key,
-            surrogate_key=build_resource_json["surrogate_key"],
+            surrogate_key=build.surrogate_key,
         )
         presigned_dir_urls[d] = deepcopy(presigned_dir_url)
 
-    build_resource_json["post_prefix_urls"] = presigned_prefix_urls
-    build_resource_json["post_dir_urls"] = presigned_dir_urls
     logger.info(
         "Created presigned POST URLs for prefixes",
         post_urls=presigned_prefix_urls,
@@ -236,7 +227,15 @@ def post_products_builds_v2(slug: str) -> Tuple[str, int, Dict[str, str]]:
         "Created presigned POST URLs for dirs", post_urls=presigned_dir_urls
     )
 
-    return jsonify(build_resource_json), 201, {"Location": build_url}
+    build_response = BuildResponse.from_build(
+        build,
+        task=task,
+        post_prefix_urls=presigned_prefix_urls,
+        post_dir_urls=presigned_dir_urls,
+    )
+    build_url = url_for_build(build)
+
+    return build_response.json(), 201, {"Location": build_url}
 
 
 def _handle_new_build_for_product_slug(
@@ -280,11 +279,6 @@ def _create_build(product: Product) -> Build:
 
         db.session.add(build)
         db.session.commit()
-
-        # Load for route return. With multiple DB commits, stuff can get
-        # lost from the session.
-        # build_resource_json = build.export_data()
-        # build_url = build.get_url()
     except Exception:
         db.session.rollback()
         raise

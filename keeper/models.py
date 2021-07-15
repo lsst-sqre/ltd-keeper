@@ -684,7 +684,7 @@ class Build(db.Model):  # type: ignore
         Parameters
         ----------
         build_url : `str`
-            API URL of the build. This is the same as `Build.get_url`.
+            External API URL of the build.
 
         Returns
         -------
@@ -718,27 +718,6 @@ class Build(db.Model):  # type: ignore
             "",
         )
         return urllib.parse.urlunparse(parts)
-
-    def get_url(self) -> str:
-        """API URL for this entity."""
-        return url_for("api.get_build", id=self.id, _external=True)
-
-    def export_data(self) -> Dict[str, Any]:
-        """Export entity as JSON-compatible dict."""
-        return {
-            "self_url": self.get_url(),
-            "product_url": self.product.get_url(),
-            "slug": self.slug,
-            "date_created": format_utc_datetime(self.date_created),
-            "date_ended": format_utc_datetime(self.date_ended),
-            "uploaded": self.uploaded,
-            "bucket_name": self.product.bucket_name,
-            "bucket_root_dir": self.bucket_root_dirname,
-            "git_refs": self.git_refs,
-            "github_requester": self.github_requester,
-            "published_url": self.published_url,
-            "surrogate_key": self.surrogate_key,
-        }
 
     def import_data(self, data: Dict[str, Any]) -> "Build":
         """Convert a dict `data` into a table row."""
@@ -979,15 +958,15 @@ class Edition(db.Model):  # type: ignore
 
     def export_data(self) -> Dict[str, Any]:
         """Export entity as JSON-compatible dict."""
-        if self.build is not None:
-            build_url = self.build.get_url()
-        else:
-            build_url = None
+        # Temporary while transitions export_data methods from models
+        from keeper.api._urls import url_for_build
 
         data = {
             "self_url": self.get_url(),
             "product_url": self.product.get_url(),
-            "build_url": build_url,
+            "build_url": (
+                url_for_build(self.build) if self.build is not None else None
+            ),
             "mode": self.mode_name,
             "tracked_refs": self.tracked_refs,
             "slug": self.slug,
@@ -1200,11 +1179,9 @@ class Edition(db.Model):  # type: ignore
                 "will not be accepted."
             )
         if build.uploaded is False:
-            raise ValidationError(
-                f"Build has not been uploaded: {build.get_url()}"
-            )
+            raise ValidationError(f"Build has not been uploaded: {build.slug}")
         if build.date_ended is not None:
-            raise ValidationError(f"Build was deprecated: {build.get_url()}")
+            raise ValidationError(f"Build was deprecated: {build.slug}")
 
         # Set the desired state
         self.build = build
