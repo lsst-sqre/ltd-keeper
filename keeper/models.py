@@ -26,7 +26,6 @@ from keeper.taskrunner import append_task_to_chain, mock_registry
 from keeper.utils import (
     JSONEncodedVARCHAR,
     MutableList,
-    format_utc_datetime,
     split_url,
     validate_path_slug,
     validate_product_slug,
@@ -952,41 +951,6 @@ class Edition(db.Model):  # type: ignore
             )
         return urllib.parse.urlunparse(parts)
 
-    def get_url(self) -> str:
-        """API URL for this entity."""
-        return url_for("api.get_edition", id=self.id, _external=True)
-
-    def export_data(self) -> Dict[str, Any]:
-        """Export entity as JSON-compatible dict."""
-        # Temporary while transitions export_data methods from models
-        from keeper.api._urls import url_for_build
-
-        data = {
-            "self_url": self.get_url(),
-            "product_url": self.product.get_url(),
-            "build_url": (
-                url_for_build(self.build) if self.build is not None else None
-            ),
-            "mode": self.mode_name,
-            "tracked_refs": self.tracked_refs,
-            "slug": self.slug,
-            "title": self.title,
-            "published_url": self.published_url,
-            "date_created": format_utc_datetime(self.date_created),
-            "date_rebuilt": format_utc_datetime(self.date_rebuilt),
-            "date_ended": format_utc_datetime(self.date_ended),
-            "surrogate_key": self.surrogate_key,
-            "pending_rebuild": self.pending_rebuild,
-        }
-
-        if self.mode_name != "git_refs":
-            # Force tracked_refs to None/null if it is not applicable.
-            data["tracked_refs"] = None
-        else:
-            data["tracked_refs"] = self.tracked_refs
-
-        return data
-
     def import_data(self, data: Dict[str, Any]) -> "Edition":
         """Initialize the edition on POST.
 
@@ -1040,6 +1004,9 @@ class Edition(db.Model):  # type: ignore
 
     def patch_data(self, data: Dict[str, Any]) -> None:
         """Partial update of the Edition."""
+        # shim during refactoring
+        from keeper.api._urls import url_for_edition
+
         logger = get_logger(__name__)
 
         if "tracked_refs" in data:
@@ -1066,7 +1033,7 @@ class Edition(db.Model):  # type: ignore
         if "pending_rebuild" in data:
             logger.warning(
                 "Manual reset of Edition.pending_rebuild",
-                edition=self.get_url(),
+                edition=url_for_edition(self),
                 prev_pending_rebuild=self.pending_rebuild,
                 new_pending_rebuild=data["pending_rebuild"],
             )
@@ -1092,9 +1059,14 @@ class Edition(db.Model):  # type: ignore
             `True` if the edition should be rebuilt using this Build, or
             `False` otherwise.
         """
+        # shim during refactoring
+        from keeper.api._urls import url_for_edition
+
         logger = get_logger(__name__)
 
-        logger.debug("Edition {!r} in should_rebuild".format(self.get_url()))
+        logger.debug(
+            "Edition {!r} in should_rebuild".format(url_for_edition(self))
+        )
 
         if build is not None:
             candidate_build = build
@@ -1116,7 +1088,7 @@ class Edition(db.Model):  # type: ignore
             tracking_mode = edition_tracking_modes[self.default_mode_id]
             logger.warning(
                 "Edition {!r} has an unknown tracking"
-                "mode".format(self.get_url())
+                "mode".format(url_for_edition(self))
             )
 
         return tracking_mode.should_update(self, candidate_build)
@@ -1189,9 +1161,14 @@ class Edition(db.Model):  # type: ignore
 
         # Add the rebuild_edition task
         # Lazy load the task because it references the db/Edition model
+        # shim for refactoring
+        from keeper.api._urls import url_for_edition
+
         from .tasks.editionrebuild import rebuild_edition
 
-        append_task_to_chain(rebuild_edition.si(self.get_url(), self.id))
+        edition_url = url_for_edition(self)
+
+        append_task_to_chain(rebuild_edition.si(edition_url, self.id))
 
     def set_rebuild_complete(self) -> None:
         """Confirm that the rebuild is complete and the declared state is

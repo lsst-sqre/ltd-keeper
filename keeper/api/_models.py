@@ -9,12 +9,12 @@ from pydantic import BaseModel, HttpUrl, SecretStr
 
 from keeper.utils import format_utc_datetime
 
-from ._urls import url_for_build, url_for_task
+from ._urls import url_for_build, url_for_edition, url_for_task
 
 if TYPE_CHECKING:
     import celery
 
-    from keeper.models import Build
+    from keeper.models import Build, Edition
 
 
 class AuthTokenResponse(BaseModel):
@@ -183,3 +183,105 @@ class BuildUrlListingResponse(BaseModel):
     """The listing of build resource URLs."""
 
     builds: List[HttpUrl]
+
+
+class EditionResponse(BaseModel):
+    """The edition resource."""
+
+    self_url: HttpUrl
+    """The URL of the edition resource."""
+
+    product_url: HttpUrl
+    """The URL or the edition's associated product resource."""
+
+    build_url: Optional[HttpUrl]
+    """The URL or the build's associated product resource. This is null if
+    the edition doesn't have a build yet.
+    """
+
+    published_url: HttpUrl
+    """The web URL for this edition."""
+
+    slug: str
+    """The edition's URL-safe slug."""
+
+    title: str
+    """The edition's title."""
+
+    date_created: datetime.datetime
+    """The date when the build was created (UTC)."""
+
+    date_rebuilt: datetime.datetime
+    """The date when associated build was last updated (UTC)."""
+
+    date_ended: Optional[datetime.datetime]
+    """The date when the build was created (UTC). Is null if the edition
+    has not been deleted.
+    """
+
+    surrogate_key: str
+    """The surrogate key attached to the headers of all files on S3 belonging
+    to this edition. This allows LTD Keeper to notify Fastly when an Edition is
+    being re-pointed to a new build. The client is responsible for uploading
+    files with this value as the ``x-amz-meta-surrogate-key`` value.
+    """
+
+    pending_rebuild: bool
+    """Flag indicating if the edition is currently being rebuilt with a new
+    build.
+    """
+
+    tracked_refs: Optional[List[str]]
+    """Git ref(s) that describe the version of the Product that this this
+    Edition is intended to point to when using the ``git_refs`` tracking mode.
+    """
+
+    mode: str
+    """The edition tracking mode."""
+
+    queue_url: Optional[HttpUrl] = None
+    """The URL of any queued task resource."""
+
+    @classmethod
+    def from_edition(
+        cls,
+        edition: Edition,
+        task: celery.Task = None,
+    ) -> EditionResponse:
+        """Create an EditionResponse from the Edition ORM model instance."""
+        obj: Dict[str, Any] = {
+            "self_url": url_for_edition(edition),
+            "product_url": edition.product.get_url(),
+            "build_url": (
+                url_for_build(edition.build)
+                if edition.build is not None
+                else None
+            ),
+            "published_url": edition.published_url,
+            "slug": edition.slug,
+            "title": edition.title,
+            "date_created": edition.date_created,
+            "date_rebuilt": edition.date_rebuilt,
+            "date_ended": edition.date_ended,
+            "mode": edition.mode_name,
+            "tracked_refs": (
+                edition.tracked_refs
+                if edition.mode_name == "git_refs"
+                else None
+            ),
+            "pending_rebuild": edition.pending_rebuild,
+            "surrogate_key": edition.surrogate_key,
+            "queue_url": url_for_task(task) if task is not None else None,
+        }
+        return cls.parse_obj(obj)
+
+    class Config:
+        json_encoders = {
+            datetime.datetime: format_utc_datetime,
+        }
+
+
+class EditionUrlListingResponse(BaseModel):
+    """The listing of edition resource URLs."""
+
+    editions: List[HttpUrl]

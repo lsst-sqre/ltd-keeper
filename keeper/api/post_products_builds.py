@@ -30,7 +30,7 @@ from keeper.tasks.dashboardbuild import build_dashboard
 from keeper.utils import auto_slugify_edition
 
 from ._models import BuildResponse
-from ._urls import url_for_build
+from ._urls import url_for_build, url_for_edition
 
 if TYPE_CHECKING:
     import boto3
@@ -314,7 +314,7 @@ def _create_edition(product: Product, build: Build) -> Optional[Edition]:
 
             logger.info(
                 "Created edition because of a build",
-                url=edition.get_url(),
+                url=url_for_edition(edition),
                 id=edition.id,
                 tracked_refs=edition.tracked_refs,
             )
