@@ -11,7 +11,11 @@ from flask import url_for
 if TYPE_CHECKING:
     import celery
 
-    from keeper.models import Build, Edition
+    from keeper.models import Build, Edition, Product
+
+
+def url_for_product(product: Product) -> str:
+    return url_for("api.get_product", slug=product.slug, _external=True)
 
 
 def url_for_edition(edition: Edition) -> str:

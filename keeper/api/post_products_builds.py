@@ -30,7 +30,7 @@ from keeper.tasks.dashboardbuild import build_dashboard
 from keeper.utils import auto_slugify_edition
 
 from ._models import BuildResponse
-from ._urls import url_for_build, url_for_edition
+from ._urls import url_for_build, url_for_edition, url_for_product
 
 if TYPE_CHECKING:
     import boto3
@@ -257,7 +257,7 @@ def _handle_new_build_for_product_slug(
         The *launched* celery task chain.
     """
     product = Product.query.filter_by(slug=product_slug).first_or_404()
-    product_url = product.get_url()  # load for dashboard build
+    product_url = url_for_product(product)  # load for dashboard build
 
     build = _create_build(product)
     # As a bonus, create an edition to track this Git ref set

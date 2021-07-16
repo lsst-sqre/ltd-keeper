@@ -9,12 +9,17 @@ from pydantic import BaseModel, HttpUrl, SecretStr
 
 from keeper.utils import format_utc_datetime
 
-from ._urls import url_for_build, url_for_edition, url_for_task
+from ._urls import (
+    url_for_build,
+    url_for_edition,
+    url_for_product,
+    url_for_task,
+)
 
 if TYPE_CHECKING:
     import celery
 
-    from keeper.models import Build, Edition
+    from keeper.models import Build, Edition, Product
 
 
 class AuthTokenResponse(BaseModel):
@@ -156,7 +161,7 @@ class BuildResponse(BaseModel):
         """Create a BuildResponse from the Build ORM model instance."""
         obj: Dict[str, Any] = {
             "self_url": url_for_build(build),
-            "product_url": build.product.get_url(),
+            "product_url": url_for_product(build.product),
             "slug": build.slug,
             "date_created": build.date_created,
             "date_ended": build.date_ended,
@@ -251,7 +256,7 @@ class EditionResponse(BaseModel):
         """Create an EditionResponse from the Edition ORM model instance."""
         obj: Dict[str, Any] = {
             "self_url": url_for_edition(edition),
-            "product_url": edition.product.get_url(),
+            "product_url": url_for_product(edition.product),
             "build_url": (
                 url_for_build(edition.build)
                 if edition.build is not None
@@ -285,3 +290,77 @@ class EditionUrlListingResponse(BaseModel):
     """The listing of edition resource URLs."""
 
     editions: List[HttpUrl]
+
+
+class ProductResponse(BaseModel):
+    """The product resource."""
+
+    self_url: HttpUrl
+    """The URL of the product resource."""
+
+    slug: str
+    """URL/path-safe identifier for this product (unique)."""
+
+    doc_repo: HttpUrl
+    """URL of the associated source repository (GitHub homepage)."""
+
+    title: str
+    """Title of this product."""
+
+    root_domain: str
+    """Root domain name serving docs (e.g., lsst.io)."""
+
+    root_fastly_domain: str
+    """Fastly CDN domain name (without doc's domain prepended)."""
+
+    domain: str
+    """Domain where docs for this product are served from.
+
+    (E.g. ``product.lsst.io`` if ``product`` is the slug and ``lsst.io``
+    is the ``root_domain``.)
+    """
+
+    fastly_domain: str
+    """Domain where Fastly serves content from for this product."""
+
+    bucket_name: Optional[str]
+    """Name of the S3 bucket hosting builds."""
+
+    published_url: HttpUrl
+    """URL where this product's main edition is published on the web."""
+
+    surrogate_key: str
+    """surrogate_key for Fastly quick purges of dashboards.
+
+    Editions and Builds have independent surrogate keys.
+    """
+
+    @classmethod
+    def from_product(
+        cls,
+        product: Product,
+        task: celery.Task = None,
+    ) -> ProductResponse:
+        """Create a ProductResponse from the Product ORM model instance."""
+        obj: Dict[str, Any] = {
+            "self_url": url_for_product(product),
+            "slug": product.slug,
+            "doc_repo": product.doc_repo,
+            "title": product.title,
+            "root_domain": product.root_domain,
+            "root_fastly_domain": product.root_fastly_domain,
+            "domain": product.domain,
+            "fastly_domain": product.fastly_domain,
+            "bucket_name": product.bucket_name,
+            "published_url": product.published_url,
+            "surrogate_key": product.surrogate_key,
+            "queue_url": url_for_task(task) if task is not None else None,
+        }
+        return cls.parse_obj(obj)
+
+
+class ProductUrlListingResponse(BaseModel):
+    """The listing of product resource URLs."""
+
+    products: List[HttpUrl]
+    """Listing of product resource URLs."""

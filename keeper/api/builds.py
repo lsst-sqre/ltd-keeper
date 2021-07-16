@@ -19,7 +19,7 @@ from keeper.taskrunner import (
 from keeper.tasks.dashboardbuild import build_dashboard
 
 from ._models import BuildResponse, BuildUrlListingResponse, QueuedResponse
-from ._urls import url_for_build
+from ._urls import url_for_build, url_for_product
 
 if TYPE_CHECKING:
     from flask import Response
@@ -97,7 +97,8 @@ def patch_build(id: int) -> Tuple[str, int, Dict[str, str]]:
         db.session.commit()
 
         # Run the task queue
-        append_task_to_chain(build_dashboard.si(build.product.get_url()))
+        product_url = url_for_product(build.product)
+        append_task_to_chain(build_dashboard.si(product_url))
         task = launch_task_chain()
     except Exception:
         db.session.rollback()

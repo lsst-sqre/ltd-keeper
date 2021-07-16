@@ -19,7 +19,7 @@ from keeper.taskrunner import (
 from keeper.tasks.dashboardbuild import build_dashboard
 
 from ._models import EditionResponse, EditionUrlListingResponse, QueuedResponse
-from ._urls import url_for_edition
+from ._urls import url_for_edition, url_for_product
 
 if TYPE_CHECKING:
     from flask import Response
@@ -113,7 +113,8 @@ def new_edition(slug: str) -> Tuple[str, int, Dict[str, str]]:
         db.session.commit()
 
         # Run the task queue
-        append_task_to_chain(build_dashboard.si(product.get_url()))
+        product_url = url_for_product(product)
+        append_task_to_chain(build_dashboard.si(product_url))
         task = launch_task_chain()
     except Exception:
         db.session.rollback()
@@ -176,7 +177,8 @@ def deprecate_edition(id: int) -> Tuple[str, int]:
     edition.deprecate()
     db.session.commit()
 
-    append_task_to_chain(build_dashboard.si(edition.product.get_url()))
+    product_url = url_for_product(edition.product)
+    append_task_to_chain(build_dashboard.si(product_url))
     task = launch_task_chain()
 
     response = QueuedResponse.from_task(task)
@@ -417,7 +419,8 @@ def edit_edition(id: int) -> str:
         db.session.commit()
 
         # Run the task queue
-        append_task_to_chain(build_dashboard.si(edition.product.get_url()))
+        product_url = url_for_product(edition.product)
+        append_task_to_chain(build_dashboard.si(product_url))
         task = launch_task_chain()
     except Exception:
         db.session.rollback()

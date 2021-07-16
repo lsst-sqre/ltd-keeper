@@ -12,7 +12,7 @@ import uuid
 from datetime import datetime
 from typing import Any, Dict, Optional, Type, Union
 
-from flask import current_app, url_for
+from flask import current_app
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
@@ -528,26 +528,6 @@ class Product(db.Model):  # type: ignore
         """URL where this product is published to the end-user."""
         parts = ("https", self.domain, "", "", "", "")
         return urllib.parse.urlunparse(parts)
-
-    def get_url(self) -> str:
-        """API URL for this entity."""
-        return url_for("api.get_product", slug=self.slug, _external=True)
-
-    def export_data(self) -> Dict[str, Any]:
-        """Export entity as JSON-compatible dict."""
-        return {
-            "self_url": self.get_url(),
-            "slug": self.slug,
-            "doc_repo": self.doc_repo,
-            "title": self.title,
-            "root_domain": self.root_domain,
-            "root_fastly_domain": self.root_fastly_domain,
-            "domain": self.domain,
-            "fastly_domain": self.fastly_domain,
-            "bucket_name": self.bucket_name,
-            "published_url": self.published_url,
-            "surrogate_key": self.surrogate_key,
-        }
 
     def import_data(self, data: Dict[str, Any]) -> "Product":
         """Convert a dict `data` into a table row."""
