@@ -37,7 +37,7 @@ class AuthTokenResponse(BaseModel):
 class RootLinks(BaseModel):
     """Sub-resource containing links to APIs."""
 
-    self: HttpUrl
+    self_url: HttpUrl
     """The URL of this resource."""
 
     token: HttpUrl

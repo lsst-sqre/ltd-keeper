@@ -21,6 +21,6 @@ def test_root(client: TestClient) -> None:
     assert "documentation" in data["data"]
     assert "message" in data["data"]
     assert "links" in data
-    assert "self" in data["links"]
+    assert "self_url" in data["links"]
     assert "products" in data["links"]
     assert "token" in data["links"]

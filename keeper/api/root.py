@@ -25,9 +25,9 @@ def get_root() -> str:
         ),
     )
     links = RootLinks(
-        self=url_for("api.get_root", _external=True),
+        self_url=url_for("api.get_root", _external=True),
         token=url_for("api.get_auth_token", _external=True),
         products=url_for("api.get_products", _external=True),
     )
     response = RootResponse(data=root_data, links=links)
-    return response.json()
+    return response.json(by_alias=True)
