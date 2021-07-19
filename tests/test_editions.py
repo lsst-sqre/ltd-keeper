@@ -52,7 +52,7 @@ def test_editions(client: TestClient, mocker: Mock) -> None:
 
     assert r.status == 201
     mock_registry[
-        "keeper.api.products.append_task_to_chain"
+        "keeper.services.createproduct.append_task_to_chain"
     ].assert_called_with(build_dashboard.si(product_url))
     mock_registry["keeper.api.products.launch_task_chain"].assert_called_once()
 

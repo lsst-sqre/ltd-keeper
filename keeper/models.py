@@ -19,7 +19,7 @@ from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from structlog import get_logger
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from keeper import route53, s3
+from keeper import s3
 from keeper.editiontracking import EditionTrackingModes
 from keeper.exceptions import ValidationError
 from keeper.taskrunner import append_task_to_chain, mock_registry
@@ -28,7 +28,6 @@ from keeper.utils import (
     MutableList,
     split_url,
     validate_path_slug,
-    validate_product_slug,
 )
 
 __all__ = [
@@ -528,39 +527,6 @@ class Product(db.Model):  # type: ignore
         """URL where this product is published to the end-user."""
         parts = ("https", self.domain, "", "", "", "")
         return urllib.parse.urlunparse(parts)
-
-    def import_data(self, data: Dict[str, Any]) -> "Product":
-        """Convert a dict `data` into a table row."""
-        try:
-            self.slug = data["slug"]
-            self.doc_repo = data["doc_repo"]
-            self.title = data["title"]
-            self.root_domain = data["root_domain"]
-            self.root_fastly_domain = data["root_fastly_domain"]
-            self.bucket_name = data["bucket_name"]
-        except KeyError as e:
-            raise ValidationError("Invalid Product: missing " + e.args[0])
-
-        # clean any full stops pre-pended on inputted fully qualified domains
-        self.root_domain = self.root_domain.lstrip(".")
-        self.root_fastly_domain = self.root_fastly_domain.lstrip(".")
-
-        # Validate slug; raises ValidationError
-        validate_product_slug(self.slug)
-
-        # Create a surrogate key on demand
-        if self.surrogate_key is None:
-            self.surrogate_key = uuid.uuid4().hex
-
-        # Setup Fastly CNAME with Route53
-        AWS_ID = current_app.config["AWS_ID"]
-        AWS_SECRET = current_app.config["AWS_SECRET"]
-        if AWS_ID is not None and AWS_SECRET is not None:
-            route53.create_cname(
-                self.domain, self.fastly_domain, AWS_ID, AWS_SECRET
-            )
-
-        return self
 
     def patch_data(self, data: Dict[str, Any]) -> None:
         """Partial update of fields from PUT requests on an existing product.

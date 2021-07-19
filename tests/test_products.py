@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import pydantic
 import pytest
 import werkzeug.exceptions
 
-from keeper.exceptions import ValidationError
 from keeper.taskrunner import mock_registry
 from keeper.tasks.dashboardbuild import build_dashboard
 
@@ -61,7 +61,7 @@ def test_products(client: TestClient, mocker: Mock) -> None:
     assert r.status == 201
 
     mock_registry[
-        "keeper.api.products.append_task_to_chain"
+        "keeper.services.createproduct.append_task_to_chain"
     ].assert_called_with(build_dashboard.si(p1_url))
     mock_registry["keeper.api.products.launch_task_chain"].assert_called_once()
 
@@ -96,7 +96,7 @@ def test_products(client: TestClient, mocker: Mock) -> None:
 
     assert r.status == 201
     mock_registry[
-        "keeper.api.products.append_task_to_chain"
+        "keeper.services.createproduct.append_task_to_chain"
     ].assert_called_with(build_dashboard.si(p2_url))
     mock_registry["keeper.api.products.launch_task_chain"].assert_called_once()
 
@@ -104,7 +104,7 @@ def test_products(client: TestClient, mocker: Mock) -> None:
     # Add product with slug that will fail validation
     mocker.resetall()
 
-    with pytest.raises(ValidationError):
+    with pytest.raises(pydantic.ValidationError):
         client.post(
             "/products/",
             {
@@ -116,7 +116,7 @@ def test_products(client: TestClient, mocker: Mock) -> None:
                 "bucket_name": "bucket-name",
             },
         )
-    with pytest.raises(ValidationError):
+    with pytest.raises(pydantic.ValidationError):
         client.post(
             "/products/",
             {
@@ -128,7 +128,7 @@ def test_products(client: TestClient, mocker: Mock) -> None:
                 "bucket_name": "bucket-name",
             },
         )
-    with pytest.raises(ValidationError):
+    with pytest.raises(pydantic.ValidationError):
         client.post(
             "/products/",
             {
@@ -229,7 +229,7 @@ def test_post_product_auth_product_client(product_client: TestClient) -> None:
     db.session.add(org)
     db.session.commit()
 
-    with pytest.raises(ValidationError):
+    with pytest.raises(pydantic.ValidationError):
         product_client.post("/products/", {"foo": "bar"})
 
 

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import pydantic
 import structlog
 from flask import jsonify
 
@@ -19,11 +20,25 @@ if TYPE_CHECKING:
     from flask import Response
 
 __all__ = [
+    "validation_error",
     "bad_request",
     "not_found",
     "method_not_supported",
     "internal_server_error",
 ]
+
+
+@api.errorhandler(pydantic.ValidationError)
+def validation_error(e: Exception) -> Response:
+    """Handler for pydantic.ValidationError exceptions."""
+    logger = structlog.get_logger()
+    logger.error("bad request", status=400, message=e.args[0])
+
+    response = jsonify(
+        {"status": 400, "error": "bad request", "message": e.args[0]}
+    )
+    response.status_code = 400
+    return response
 
 
 @api.errorhandler(ValidationError)

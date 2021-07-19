@@ -10,7 +10,8 @@ from flask_accept import accept_fallback
 from keeper.api import api
 from keeper.auth import permission_required, token_auth
 from keeper.logutils import log_route
-from keeper.models import Edition, Organization, Permission, Product, db
+from keeper.models import Organization, Permission, Product, db
+from keeper.services.createproduct import create_product
 from keeper.taskrunner import (
     append_task_to_chain,
     launch_task_chain,
@@ -18,7 +19,12 @@ from keeper.taskrunner import (
 )
 from keeper.tasks.dashboardbuild import build_dashboard
 
-from ._models import ProductResponse, ProductUrlListingResponse, QueuedResponse
+from ._models import (
+    ProductPostRequest,
+    ProductResponse,
+    ProductUrlListingResponse,
+    QueuedResponse,
+)
 from ._urls import url_for_product
 
 # Register imports of celery task chain launchers
@@ -218,39 +224,28 @@ def new_product() -> Tuple[str, int, Dict[str, str]]:
 
     :statuscode 201: No error.
     """
-    product = Product()
+    product_request = ProductPostRequest.parse_obj(request.json)
+
+    # Get default organization (v1 API adapter for organizations)
+    org = Organization.query.order_by(Organization.id).first_or_404()
     try:
-        # Get default organization (v1 API adapter for organizations)
-        org = Organization.query.order_by(Organization.id).first_or_404()
-        request_json = request.json
-        product.import_data(request_json)
-        product.organization = org
-        db.session.add(product)
-        db.session.flush()  # Because Edition._validate_slug does not autoflush
-
-        # Create a default edition for the product
-        edition_data = {
-            "tracked_refs": ["master"],
-            "slug": "main",
-            "title": "Latest",
-        }
-        if "main_mode" in request_json:
-            edition_data["mode"] = request_json["main_mode"]
-        else:
-            # Default tracking mode
-            edition_data["mode"] = "git_refs"
-
-        edition = Edition(product=product)
-        edition.import_data(edition_data)
-        db.session.add(edition)
+        product, main_edition = create_product(
+            org=org,
+            slug=product_request.slug,
+            doc_repo=product_request.doc_repo,
+            title=product_request.title,
+            default_edition_mode=(
+                product_request.main_mode
+                if product_request.main_mode is not None
+                else None
+            ),
+        )
         db.session.commit()
-
-        # Run the task queue
-        append_task_to_chain(build_dashboard.si(url_for_product(product)))
-        task = launch_task_chain()
     except Exception:
         db.session.rollback()
         raise
+
+    task = launch_task_chain()
 
     response = ProductResponse.from_product(product, task=task)
     product_url = url_for_product(product)

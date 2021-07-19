@@ -5,9 +5,11 @@ from __future__ import annotations
 import datetime
 from typing import TYPE_CHECKING, Any, Dict, List, Mapping, Optional
 
-from pydantic import BaseModel, HttpUrl, SecretStr
+from pydantic import BaseModel, HttpUrl, SecretStr, validator
 
-from keeper.utils import format_utc_datetime
+from keeper.editiontracking import EditionTrackingModes
+from keeper.exceptions import ValidationError
+from keeper.utils import format_utc_datetime, validate_product_slug
 
 from ._urls import (
     url_for_build,
@@ -364,3 +366,47 @@ class ProductUrlListingResponse(BaseModel):
 
     products: List[HttpUrl]
     """Listing of product resource URLs."""
+
+
+class ProductPostRequest(BaseModel):
+    """Model for a POST /products/ request body."""
+
+    slug: str
+    """URL/path-safe identifier for this product (unique)."""
+
+    doc_repo: HttpUrl
+    """URL of the associated source repository (GitHub homepage)."""
+
+    title: str
+    """Title of this product."""
+
+    root_domain: str
+    """Root domain name serving docs (e.g., lsst.io)."""
+
+    root_fastly_domain: str
+    """Fastly CDN domain name (without doc's domain prepended)."""
+
+    bucket_name: Optional[str]
+    """Name of the S3 bucket hosting builds."""
+
+    main_mode: Optional[str]
+    """Tracking mode of the main edition."""
+
+    @validator("slug")
+    def check_slug(cls, v: str) -> str:
+        try:
+            validate_product_slug(v)
+        except ValidationError:
+            raise ValueError(f"Slug {v!r} is incorrectly formatted.")
+        return v
+
+    @validator("main_mode")
+    def check_main_mode(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return None
+
+        modes = EditionTrackingModes()
+        if v in modes:
+            return v
+        else:
+            raise ValueError(f"Tracking mode {v!r} is not known.")
