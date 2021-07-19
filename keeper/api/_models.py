@@ -410,3 +410,18 @@ class ProductPostRequest(BaseModel):
             return v
         else:
             raise ValueError(f"Tracking mode {v!r} is not known.")
+
+
+class ProductPatchRequest(BaseModel):
+    """Model for a PATCH /products/<slug> request body."""
+
+    doc_repo: Optional[HttpUrl] = None
+    """New URL of the associated source repository (GitHub homepage)."""
+
+    title: Optional[str] = None
+    """New title of this product."""
+
+    class Config:
+        # We want to invalidate requests that attempt to patch and fields
+        # that aren't mutable.
+        extra = "forbid"

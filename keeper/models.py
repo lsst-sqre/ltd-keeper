@@ -528,17 +528,6 @@ class Product(db.Model):  # type: ignore
         parts = ("https", self.domain, "", "", "", "")
         return urllib.parse.urlunparse(parts)
 
-    def patch_data(self, data: Dict[str, Any]) -> None:
-        """Partial update of fields from PUT requests on an existing product.
-
-        Currently only updates to doc_repo and title are supported.
-        """
-        if "doc_repo" in data:
-            self.doc_repo = data["doc_repo"]
-
-        if "title" in data:
-            self.title = data["title"]
-
 
 class Build(db.Model):  # type: ignore
     """DB model for documentation builds."""

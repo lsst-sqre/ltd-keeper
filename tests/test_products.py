@@ -182,7 +182,7 @@ def test_products(client: TestClient, mocker: Mock) -> None:
     mocker.resetall()
 
     p2v2 = dict(p2)
-    p2v2["title"] = "Qserve Data Access"
+    p2v2 = {"title": "Qserve Data Access"}
 
     # Throws werkzeug.exceptions.NotFound rather than emitting 404 response
     with pytest.raises(werkzeug.exceptions.NotFound):
@@ -201,7 +201,7 @@ def test_products(client: TestClient, mocker: Mock) -> None:
         assert r.json[k] == v
 
     mock_registry[
-        "keeper.api.products.append_task_to_chain"
+        "keeper.services.updateproduct.append_task_to_chain"
     ].assert_called_with(build_dashboard.si(p2_url))
     mock_registry["keeper.api.products.launch_task_chain"].assert_called_once()
 

@@ -12,6 +12,7 @@ from keeper.auth import permission_required, token_auth
 from keeper.logutils import log_route
 from keeper.models import Organization, Permission, Product, db
 from keeper.services.createproduct import create_product
+from keeper.services.updateproduct import update_product
 from keeper.taskrunner import (
     append_task_to_chain,
     launch_task_chain,
@@ -20,6 +21,7 @@ from keeper.taskrunner import (
 from keeper.tasks.dashboardbuild import build_dashboard
 
 from ._models import (
+    ProductPatchRequest,
     ProductPostRequest,
     ProductResponse,
     ProductUrlListingResponse,
@@ -313,18 +315,19 @@ def edit_product(slug: str) -> Tuple[str, int, Dict[str, str]]:
     :statuscode 404: Product not found.
     """
     product = Product.query.filter_by(slug=slug).first_or_404()
+    request_data = ProductPatchRequest.parse_obj(request.json)
     try:
-        product.patch_data(request.json)
-        db.session.add(product)
+        product = update_product(
+            product=product,
+            new_doc_repo=request_data.doc_repo,
+            new_title=request_data.title,
+        )
         db.session.commit()
-
-        # Run the task queue
-        append_task_to_chain(build_dashboard.si(url_for_product(product)))
-        task = launch_task_chain()
     except Exception:
         db.session.rollback()
         raise
 
+    task = launch_task_chain()
     response = ProductResponse.from_product(product, task=task)
     product_url = url_for_product(product)
     return response.json(), 200, {"Location": product_url}
