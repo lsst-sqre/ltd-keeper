@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import pydantic
 import pytest
 from werkzeug.exceptions import NotFound
 
@@ -54,6 +55,10 @@ def test_builds(client: TestClient, mocker: Mock) -> None:
         "keeper.services.createproduct.append_task_to_chain"
     ].assert_called_with(build_dashboard.si(product_url))
     mock_registry["keeper.api.products.launch_task_chain"].assert_called_once()
+
+    # Check that the default edition was made
+    r = client.get("/products/pipelines/editions/")
+    assert len(r.json["editions"]) == 1
 
     # ========================================================================
     # Add a sample edition
@@ -185,13 +190,6 @@ def test_builds(client: TestClient, mocker: Mock) -> None:
     assert r.status == 201
     assert r.json["slug"] == "1"
 
-    mock_registry[
-        "keeper.api.post_products_builds.append_task_to_chain"
-    ].assert_called_with(build_dashboard.si(product_url))
-    mock_registry[
-        "keeper.api.post_products_builds.launch_task_chain"
-    ].assert_called_once()
-
     # ========================================================================
     # Add an auto-slugged build
     mocker.resetall()
@@ -202,19 +200,12 @@ def test_builds(client: TestClient, mocker: Mock) -> None:
     assert r.status == 201
     assert r.json["slug"] == "2"
 
-    mock_registry[
-        "keeper.api.post_products_builds.append_task_to_chain"
-    ].assert_called_with(build_dashboard.si(product_url))
-    mock_registry[
-        "keeper.api.post_products_builds.launch_task_chain"
-    ].assert_called_once()
-
     # ========================================================================
     # Add a build missing 'git_refs'
     mocker.resetall()
 
     b4 = {"slug": "bad-build"}
-    with pytest.raises(ValidationError):
+    with pytest.raises(pydantic.ValidationError):
         r = client.post("/products/pipelines/builds/", b4)
 
     # ========================================================================
@@ -222,7 +213,7 @@ def test_builds(client: TestClient, mocker: Mock) -> None:
     mocker.resetall()
 
     b5 = {"slug": "another-bad-build", "git_refs": "master"}
-    with pytest.raises(ValidationError):
+    with pytest.raises(pydantic.ValidationError):
         r = client.post("/products/pipelines/builds/", b5)
 
     # ========================================================================

@@ -653,50 +653,6 @@ class Build(db.Model):  # type: ignore
         )
         return urllib.parse.urlunparse(parts)
 
-    def import_data(self, data: Dict[str, Any]) -> "Build":
-        """Convert a dict `data` into a table row."""
-        try:
-            git_refs = data["git_refs"]
-            if isinstance(git_refs, str):
-                raise ValidationError(
-                    "Invalid Build: git_refs must be an " "array of strings"
-                )
-            self.git_refs = git_refs
-        except KeyError as e:
-            raise ValidationError("Invalid Build: missing " + e.args[0])
-
-        if "github_requester" in data:
-            self.github_requester = data["github_requester"]
-
-        if "slug" in data:
-            identical_slugs = len(
-                Build.query.autoflush(False)
-                .filter(Build.product == self.product)
-                .filter(Build.slug == data["slug"])
-                .all()
-            )
-            if identical_slugs > 0:
-                raise ValidationError("Invalid Build, slug already exists")
-            self.slug = data["slug"]
-        else:
-            # auto-create a slug
-            all_builds = (
-                Build.query.autoflush(False)
-                .filter(Build.product == self.product)
-                .all()
-            )
-            slugs = [b.slug for b in all_builds]
-            trial_slug_n = 1
-            while str(trial_slug_n) in slugs:
-                trial_slug_n += 1
-            self.slug = str(trial_slug_n)
-
-        validate_path_slug(self.slug)
-
-        self.date_created = datetime.now()
-
-        return self
-
     def patch_data(self, data: Dict[str, Any]) -> None:
         """Modify build via PATCH.
 

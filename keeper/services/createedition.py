@@ -27,7 +27,7 @@ def create_edition(
     tracking_mode: Optional[str] = None,
     slug: Optional[str] = None,
     autoincrement_slug: bool = False,
-    default_tracked_ref: str = "master",
+    tracked_ref: str = "master",
 ) -> Edition:
     """Create a new edition.
 
@@ -51,7 +51,7 @@ def create_edition(
         If True, rather then use the provided ``slug``, the slug is an
         integer that is incremented by one from the previously-existing integer
         slug.
-    default_tracked_ref : str, optional
+    tracked_ref : str, optional
         The name of the Git ref that this edition tracks, if ``tracking_mode``
         is ``"git_refs"``.
 
@@ -73,7 +73,7 @@ def create_edition(
         edition.set_mode(edition.default_mode_name)
 
     if edition.mode_name == "git_refs":
-        edition.tracked_refs = [default_tracked_ref]
+        edition.tracked_refs = [tracked_ref]
 
     db.session.add(edition)
 

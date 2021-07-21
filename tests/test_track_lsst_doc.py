@@ -133,10 +133,6 @@ def test_lsst_doc_edition(client: TestClient, mocker: Mock) -> None:
     r = client.post("/products/ldm-151/builds/", b2_data)
     b2_url = r.headers["Location"]
 
-    mock_registry[
-        "keeper.api.post_products_builds.launch_task_chain"
-    ].assert_called_once()
-
     # ========================================================================
     # Confirm ticket branch build
     mocker.resetall()
@@ -165,13 +161,6 @@ def test_lsst_doc_edition(client: TestClient, mocker: Mock) -> None:
     }
     r = client.post("/products/ldm-151/builds/", b3_data)
     b3_url = r.headers["Location"]
-
-    mock_registry[
-        "keeper.api.post_products_builds.append_task_to_chain"
-    ].assert_called_with(build_dashboard.si(p1_url))
-    mock_registry[
-        "keeper.api.post_products_builds.launch_task_chain"
-    ].assert_called_once()
 
     # ========================================================================
     # Confirm v1.0 build

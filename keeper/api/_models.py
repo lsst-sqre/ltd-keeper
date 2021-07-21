@@ -5,11 +5,15 @@ from __future__ import annotations
 import datetime
 from typing import TYPE_CHECKING, Any, Dict, List, Mapping, Optional
 
-from pydantic import BaseModel, HttpUrl, SecretStr, validator
+from pydantic import BaseModel, Field, HttpUrl, SecretStr, validator
 
 from keeper.editiontracking import EditionTrackingModes
 from keeper.exceptions import ValidationError
-from keeper.utils import format_utc_datetime, validate_product_slug
+from keeper.utils import (
+    format_utc_datetime,
+    validate_path_slug,
+    validate_product_slug,
+)
 
 from ._urls import (
     url_for_build,
@@ -190,6 +194,42 @@ class BuildUrlListingResponse(BaseModel):
     """The listing of build resource URLs."""
 
     builds: List[HttpUrl]
+
+
+class BuildPostRequest(BaseModel):
+    """Model for a POST /products/<slug>/builds endpoint."""
+
+    git_refs: List[str]
+
+    github_requester: Optional[str] = None
+
+    slug: Optional[str] = None
+
+    @validator("slug")
+    def check_slug(cls, v: str) -> str:
+        try:
+            validate_path_slug(v)
+        except ValidationError:
+            raise ValueError(f"Slug {v!r} is incorrectly formatted.")
+        return v
+
+
+class BuildPostRequestWithDirs(BuildPostRequest):
+    """Model for a POST /products/<slug>/builds endpoint with
+    application/vnd.ltdkeeper.v2+json application type.
+    """
+
+    directories: List[str] = Field(default_factory=lambda: ["/"])
+
+    @validator("directories")
+    def check_directories(cls, v: List[str]) -> List[str]:
+        new_list: List[str] = []
+        for d in v:
+            d = d.strip()
+            if not d.endswith("/"):
+                d = f"{d}/"
+            new_list.append(d)
+        return new_list
 
 
 class EditionResponse(BaseModel):
