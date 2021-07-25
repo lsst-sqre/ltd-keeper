@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 # Register imports of celery task chain launchers
 mock_registry.extend(
     [
-        "keeper.services.createproduct.append_task_to_chain",
+        "keeper.services.createedition.append_task_to_chain",
     ]
 )
 
@@ -28,6 +28,7 @@ def create_edition(
     slug: Optional[str] = None,
     autoincrement_slug: bool = False,
     tracked_ref: str = "master",
+    build_url: Optional[str] = None,
 ) -> Edition:
     """Create a new edition.
 
@@ -54,9 +55,13 @@ def create_edition(
     tracked_ref : str, optional
         The name of the Git ref that this edition tracks, if ``tracking_mode``
         is ``"git_refs"``.
+    build_url : str, optional
+        The URL of the build to initially publish with this edition.
 
     Returns
     -------
+    edition : `keeper.models.Edition`
+        The edition, which is also added to the current database session.
     """
     edition = Edition(product=product, surrogate_key=uuid.uuid4().hex)
 
@@ -66,6 +71,8 @@ def create_edition(
     else:
         edition.slug = slug
         edition.title = title
+    assert isinstance(edition.slug, str)  # for type checking
+    edition._validate_slug(edition.slug)
 
     if tracking_mode is not None:
         edition.set_mode(tracking_mode)
@@ -74,6 +81,10 @@ def create_edition(
 
     if edition.mode_name == "git_refs":
         edition.tracked_refs = [tracked_ref]
+
+    if build_url is not None:
+        # FIXME refactor this into a service.
+        edition.set_pending_rebuild(build_url)
 
     db.session.add(edition)
 

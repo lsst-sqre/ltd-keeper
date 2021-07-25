@@ -11,6 +11,7 @@ from keeper.api import api
 from keeper.auth import permission_required, token_auth
 from keeper.logutils import log_route
 from keeper.models import Edition, Permission, Product, db
+from keeper.services.createedition import create_edition
 from keeper.taskrunner import (
     append_task_to_chain,
     launch_task_chain,
@@ -18,7 +19,12 @@ from keeper.taskrunner import (
 )
 from keeper.tasks.dashboardbuild import build_dashboard
 
-from ._models import EditionResponse, EditionUrlListingResponse, QueuedResponse
+from ._models import (
+    EditionPostRequest,
+    EditionResponse,
+    EditionUrlListingResponse,
+    QueuedResponse,
+)
 from ._urls import url_for_edition, url_for_product
 
 if TYPE_CHECKING:
@@ -106,20 +112,27 @@ def new_edition(slug: str) -> Tuple[str, int, Dict[str, str]]:
     :statuscode 404: Product not found.
     """
     product = Product.query.filter_by(slug=slug).first_or_404()
-    edition = Edition(product=product)
+    request_data = EditionPostRequest.parse_obj(request.json)
     try:
-        edition.import_data(request.json)
-        db.session.add(edition)
+        edition = create_edition(
+            product=product,
+            title=request_data.title,
+            tracking_mode=request_data.mode,
+            slug=request_data.slug,
+            autoincrement_slug=request_data.autoincrement,
+            tracked_ref=(
+                request_data.tracked_refs[0]
+                if isinstance(request_data.tracked_refs, list)
+                else None
+            ),
+            build_url=request_data.build_url,
+        )
         db.session.commit()
-
-        # Run the task queue
-        product_url = url_for_product(product)
-        append_task_to_chain(build_dashboard.si(product_url))
-        task = launch_task_chain()
     except Exception:
         db.session.rollback()
         raise
 
+    task = launch_task_chain()
     response = EditionResponse.from_edition(edition, task=task)
     edition_url = url_for_edition(edition)
 

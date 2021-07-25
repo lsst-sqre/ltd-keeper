@@ -334,6 +334,77 @@ class EditionUrlListingResponse(BaseModel):
     editions: List[HttpUrl]
 
 
+class EditionPostRequest(BaseModel):
+    """The request body for the POST /products/<product>/editions endpoint."""
+
+    title: Optional[str] = None
+    """The human-readable title of the edition. Can be left as None if
+    autoincrement is true.
+    """
+
+    slug: Optional[str] = None
+    """The edition's path-safe slug."""
+
+    autoincrement: Optional[bool] = False
+    """Assigned a slug as an auto-incremented integer, rather than use
+    ``slug``.
+    """
+
+    build_url: Optional[HttpUrl] = None
+    """URL of the build to initially publish with the edition, if available.
+    """
+
+    mode: str = "git_refs"
+    """Tracking mode."""
+
+    tracked_refs: Optional[List[str]] = None
+    """Git refs being tracked if mode is ``git_refs``."""
+
+    @validator("slug")
+    def check_slug(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return None
+        else:
+            try:
+                validate_path_slug(v)
+            except ValidationError:
+                raise ValueError(f"Slug {v!r} is incorrectly formatted.")
+            return v
+
+    @validator("mode")
+    def check_main_mode(cls, v: str) -> str:
+        modes = EditionTrackingModes()
+        if v not in modes:
+            raise ValueError(f"Tracking mode {v!r} is not known.")
+        return v
+
+    @validator("autoincrement")
+    def check_autoincrement(cls, v: bool, values: Mapping[str, Any]) -> bool:
+        """Verify that autoincrement is False if a slug is given, and that
+        a title is given if autoincrement is False.
+        """
+        slug_is_none = values.get("slug") is None
+        if slug_is_none and v is False:
+            raise ValueError("A slug must be set if autoincrement is false.")
+        elif not slug_is_none and v is True:
+            raise ValueError(
+                "A slug cannot be set in conjunction with "
+                "autoincrement = true"
+            )
+
+        if values.get("title") is None and v is False:
+            raise ValueError("A title is required if autoincrement is false")
+        return v
+
+    @validator("tracked_refs")
+    def check_tracked_refs(
+        cls, v: Optional[List[str]], values: Mapping[str, Any]
+    ) -> Optional[List[str]]:
+        if values.get("mode") == "git_refs" and v is None:
+            raise ValueError('tracked_refs must be set is mode is "git_refs"')
+        return v
+
+
 class ProductResponse(BaseModel):
     """The product resource."""
 

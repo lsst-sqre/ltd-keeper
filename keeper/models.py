@@ -842,57 +842,6 @@ class Edition(db.Model):  # type: ignore
             )
         return urllib.parse.urlunparse(parts)
 
-    def import_data(self, data: Dict[str, Any]) -> "Edition":
-        """Initialize the edition on POST.
-
-        The Product is set on object initialization.
-        """
-        # Set up the edition's slug and title (either automatic or manually
-        # set)
-        if "autoincrement" in data and data["autoincrement"]:
-            self.slug = self._compute_autoincremented_slug()
-            self.title = self.slug
-        else:
-            try:
-                self.slug = data["slug"]
-                self.title = data["title"]
-            except KeyError as e:
-                raise ValidationError("Invalid Product: missing " + e.args[0])
-        self._validate_slug(self.slug)
-
-        # Set up the edition's build tracking mode
-        if "mode" in data:
-            self.set_mode(data["mode"])
-        else:
-            # Set default
-            self.set_mode(self.default_mode_name)
-
-        # git_refs is only required for git_refs tracking mode
-        if self.mode == edition_tracking_modes.name_to_id("git_refs"):
-            try:
-                tracked_refs = data["tracked_refs"]
-            except KeyError as e:
-                raise ValidationError("Invalid Edition: missing " + e.args[0])
-
-            if isinstance(tracked_refs, str):
-                raise ValidationError(
-                    "Invalid Edition: tracked_refs must be "
-                    "an array of strings"
-                )
-
-            self.tracked_refs = tracked_refs
-
-        if self.surrogate_key is None:
-            self.surrogate_key = uuid.uuid4().hex
-
-        # Indicate rebuild it needed
-        if "build_url" in data:
-            self.set_pending_rebuild(build_url=data["build_url"])
-
-        self.date_created = datetime.now()
-
-        return self
-
     def patch_data(self, data: Dict[str, Any]) -> None:
         """Partial update of the Edition."""
         # shim during refactoring

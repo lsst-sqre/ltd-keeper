@@ -146,7 +146,7 @@ def test_editions(client: TestClient, mocker: Mock) -> None:
     assert r.json["pending_rebuild"] is True
 
     mock_registry[
-        "keeper.api.editions.append_task_to_chain"
+        "keeper.services.createedition.append_task_to_chain"
     ].assert_called_with(build_dashboard.si(product_url))
     mock_registry["keeper.models.append_task_to_chain"].assert_called_with(
         rebuild_edition.si(e1_url, 2)
