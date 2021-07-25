@@ -372,7 +372,7 @@ class EditionPostRequest(BaseModel):
             return v
 
     @validator("mode")
-    def check_main_mode(cls, v: str) -> str:
+    def check_mode(cls, v: str) -> str:
         modes = EditionTrackingModes()
         if v not in modes:
             raise ValueError(f"Tracking mode {v!r} is not known.")
@@ -402,6 +402,54 @@ class EditionPostRequest(BaseModel):
     ) -> Optional[List[str]]:
         if values.get("mode") == "git_refs" and v is None:
             raise ValueError('tracked_refs must be set is mode is "git_refs"')
+        return v
+
+
+class EditionPatchRequest(BaseModel):
+    """The model for a PATCH /editions/:id request."""
+
+    slug: Optional[str] = None
+    """The edition's URL-safe slug."""
+
+    title: Optional[str] = None
+    """The edition's title."""
+
+    pending_rebuild: Optional[bool] = None
+    """Flag indicating if the edition is currently being rebuilt with a new
+    build.
+    """
+
+    tracked_refs: Optional[List[str]] = None
+    """Git ref(s) that describe the version of the Product that this this
+    Edition is intended to point to when using the ``git_refs`` tracking mode.
+    """
+
+    mode: Optional[str] = None
+    """The edition tracking mode."""
+
+    build_url: Optional[HttpUrl] = None
+    """URL of the build to initially publish with the edition, if available.
+    """
+
+    @validator("slug")
+    def check_slug(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return None
+        else:
+            try:
+                validate_path_slug(v)
+            except ValidationError:
+                raise ValueError(f"Slug {v!r} is incorrectly formatted.")
+            return v
+
+    @validator("mode")
+    def check_mode(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return None
+
+        modes = EditionTrackingModes()
+        if v not in modes:
+            raise ValueError(f"Tracking mode {v!r} is not known.")
         return v
 
 

@@ -12,6 +12,7 @@ from keeper.auth import permission_required, token_auth
 from keeper.logutils import log_route
 from keeper.models import Edition, Permission, Product, db
 from keeper.services.createedition import create_edition
+from keeper.services.updateedition import update_edition
 from keeper.taskrunner import (
     append_task_to_chain,
     launch_task_chain,
@@ -20,6 +21,7 @@ from keeper.taskrunner import (
 from keeper.tasks.dashboardbuild import build_dashboard
 
 from ._models import (
+    EditionPatchRequest,
     EditionPostRequest,
     EditionResponse,
     EditionUrlListingResponse,
@@ -426,18 +428,28 @@ def edit_edition(id: int) -> str:
     :statuscode 404: Edition resource not found.
     """
     edition = Edition.query.get_or_404(id)
+    request_data = EditionPatchRequest.parse_obj(request.json)
     try:
-        edition.patch_data(request.json)
-        db.session.add(edition)
+        edition = update_edition(
+            edition=edition,
+            build_url=request_data.build_url,
+            title=request_data.title,
+            slug=request_data.slug,
+            tracking_mode=request_data.mode,
+            tracked_ref=(
+                request_data.tracked_refs[0]
+                if isinstance(request_data.tracked_refs, list)
+                else None
+            ),
+            pending_rebuild=request_data.pending_rebuild,
+        )
         db.session.commit()
-
-        # Run the task queue
-        product_url = url_for_product(edition.product)
-        append_task_to_chain(build_dashboard.si(product_url))
-        task = launch_task_chain()
     except Exception:
         db.session.rollback()
         raise
+
+    # Run the task queue
+    task = launch_task_chain()
 
     response = EditionResponse.from_edition(edition, task=task)
     return response.json()

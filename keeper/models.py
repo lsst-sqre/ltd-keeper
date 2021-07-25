@@ -842,43 +842,6 @@ class Edition(db.Model):  # type: ignore
             )
         return urllib.parse.urlunparse(parts)
 
-    def patch_data(self, data: Dict[str, Any]) -> None:
-        """Partial update of the Edition."""
-        # shim during refactoring
-        from keeper.api._urls import url_for_edition
-
-        logger = get_logger(__name__)
-
-        if "tracked_refs" in data:
-            tracked_refs = data["tracked_refs"]
-            if isinstance(tracked_refs, str):
-                raise ValidationError(
-                    "Invalid Edition: tracked_refs must "
-                    "be an array of strings"
-                )
-            self.tracked_refs = data["tracked_refs"]
-
-        if "mode" in data:
-            self.set_mode(data["mode"])
-
-        if "title" in data:
-            self.title = data["title"]
-
-        if "build_url" in data:
-            self.set_pending_rebuild(build_url=data["build_url"])
-
-        if "slug" in data:
-            self.update_slug(data["slug"])
-
-        if "pending_rebuild" in data:
-            logger.warning(
-                "Manual reset of Edition.pending_rebuild",
-                edition=url_for_edition(self),
-                prev_pending_rebuild=self.pending_rebuild,
-                new_pending_rebuild=data["pending_rebuild"],
-            )
-            self.pending_rebuild = data["pending_rebuild"]
-
     def should_rebuild(
         self, build_url: Optional[str] = None, build: Optional[Build] = None
     ) -> bool:
