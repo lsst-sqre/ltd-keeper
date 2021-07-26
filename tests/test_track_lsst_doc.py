@@ -59,7 +59,7 @@ def test_lsst_doc_edition(client: TestClient, mocker: Mock) -> None:
 
     assert r.status == 201
     mock_registry[
-        "keeper.api.products.append_task_to_chain"
+        "keeper.services.createproduct.append_task_to_chain"
     ].assert_called_with(build_dashboard.si(p1_url))
     mock_registry["keeper.api.products.launch_task_chain"].assert_called_once()
 
@@ -133,10 +133,6 @@ def test_lsst_doc_edition(client: TestClient, mocker: Mock) -> None:
     r = client.post("/products/ldm-151/builds/", b2_data)
     b2_url = r.headers["Location"]
 
-    mock_registry[
-        "keeper.api.post_products_builds.launch_task_chain"
-    ].assert_called_once()
-
     # ========================================================================
     # Confirm ticket branch build
     mocker.resetall()
@@ -166,22 +162,15 @@ def test_lsst_doc_edition(client: TestClient, mocker: Mock) -> None:
     r = client.post("/products/ldm-151/builds/", b3_data)
     b3_url = r.headers["Location"]
 
-    mock_registry[
-        "keeper.api.post_products_builds.append_task_to_chain"
-    ].assert_called_with(build_dashboard.si(p1_url))
-    mock_registry[
-        "keeper.api.post_products_builds.launch_task_chain"
-    ].assert_called_once()
-
     # ========================================================================
     # Confirm v1.0 build
     mocker.resetall()
 
     r = client.patch(b3_url, {"uploaded": True})
 
-    mock_registry["keeper.api.builds.append_task_to_chain"].assert_called_with(
-        build_dashboard.si(p1_url)
-    )
+    mock_registry[
+        "keeper.services.updatebuild.append_task_to_chain"
+    ].assert_called_with(build_dashboard.si(p1_url))
 
     mock_registry["keeper.api.builds.launch_task_chain"].assert_called_once()
     # Rebuilds for the main and v1-0 editions were triggered

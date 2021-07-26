@@ -11,13 +11,16 @@ from keeper.api import api
 from keeper.auth import permission_required, token_auth
 from keeper.logutils import log_route
 from keeper.models import Build, Permission, Product, db
-from keeper.taskrunner import (
-    append_task_to_chain,
-    insert_task_url_in_response,
-    launch_task_chain,
-    mock_registry,
+from keeper.services.updatebuild import update_build
+from keeper.taskrunner import launch_task_chain, mock_registry
+
+from ._models import (
+    BuildPatchRequest,
+    BuildResponse,
+    BuildUrlListingResponse,
+    QueuedResponse,
 )
-from keeper.tasks.dashboardbuild import build_dashboard
+from ._urls import url_for_build
 
 if TYPE_CHECKING:
     from flask import Response
@@ -26,7 +29,6 @@ if TYPE_CHECKING:
 mock_registry.extend(
     [
         "keeper.api.builds.launch_task_chain",
-        "keeper.api.builds.append_task_to_chain",
     ]
 )
 
@@ -36,7 +38,7 @@ mock_registry.extend(
 @log_route()
 @token_auth.login_required
 @permission_required(Permission.UPLOAD_BUILD)
-def patch_build(id: int) -> Tuple[Response, int, Dict[str, str]]:
+def patch_build(id: int) -> Tuple[str, int, Dict[str, str]]:
     """Mark a build as uploaded.
 
     This method should be called when the documentation has been successfully
@@ -89,19 +91,25 @@ def patch_build(id: int) -> Tuple[Response, int, Dict[str, str]]:
     :statuscode 404: Build not found.
     """
     build = Build.query.get_or_404(id)
+    request_data = BuildPatchRequest.parse_obj(request.json)
     try:
-        build.patch_data(request.json)
-        build_url = build.get_url()
+        build = update_build(build=build, uploaded=request_data.uploaded)
         db.session.commit()
 
-        # Run the task queue
-        append_task_to_chain(build_dashboard.si(build.product.get_url()))
-        task = launch_task_chain()
-        response = insert_task_url_in_response({}, task)
     except Exception:
         db.session.rollback()
         raise
-    return jsonify(response), 200, {"Location": build_url}
+
+    # Run the task queue
+    task = launch_task_chain()
+
+    build_url = url_for_build(build)
+    response = QueuedResponse.from_task(task)
+    return (
+        response.json(),
+        200,
+        {"Location": build_url},
+    )
 
 
 @api.route("/builds/<int:id>", methods=["DELETE"])
@@ -157,7 +165,7 @@ def deprecate_build(id: int) -> Tuple[Response, int]:
 @api.route("/products/<slug>/builds/", methods=["GET"])
 @accept_fallback
 @log_route()
-def get_product_builds(slug: str) -> Response:
+def get_product_builds(slug: str) -> str:
     """List all builds for a product.
 
     **Example request**
@@ -191,19 +199,20 @@ def get_product_builds(slug: str) -> Response:
     :statuscode 404: Product not found.
     """
     build_urls = [
-        build.get_url()
+        url_for_build(build)
         for build in Build.query.join(Product, Product.id == Build.product_id)
         .filter(Product.slug == slug)
         .filter(Build.date_ended == None)  # noqa: E711
         .all()
     ]
-    return jsonify({"builds": build_urls})
+    response = BuildUrlListingResponse(builds=build_urls)
+    return response.json()
 
 
 @api.route("/builds/<int:id>", methods=["GET"])
 @accept_fallback
 @log_route()
-def get_build(id: int) -> Response:
+def get_build(id: int) -> str:
     """Show metadata for a single build.
 
     **Example request**
@@ -270,4 +279,6 @@ def get_build(id: int) -> Response:
     :statuscode 200: No error.
     :statuscode 404: Build not found.
     """
-    return jsonify(Build.query.get_or_404(id).export_data())
+    build = Build.query.get_or_404(id)
+    response = BuildResponse.from_build(build)
+    return response.json()

@@ -63,7 +63,12 @@ def launch_task_chain() -> celery.chain:
 def insert_task_url_in_response(
     json_data: Dict[str, Any], task: Optional[celery.Task]
 ) -> Dict[str, Any]:
-    """Insert the task status URL into the JSON response body."""
+    """Insert the task status URL into the JSON response body.
+
+    Notes
+    -----
+    Use keeper.api._urls.url_for_task to get the v1 API url instead.
+    """
     if task is not None:
         url = url_for("api.get_task_status", id=task.id, _external=True)
         json_data["queue_url"] = url

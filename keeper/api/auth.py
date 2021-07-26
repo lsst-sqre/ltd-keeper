@@ -2,24 +2,21 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
-from flask import g, jsonify
+from flask import g
 from flask_accept import accept_fallback
 
 from keeper.api import api
 from keeper.auth import password_auth
 from keeper.logutils import log_route
 
-if TYPE_CHECKING:
-    from flask import Response
+from ._models import AuthTokenResponse
 
 
 @api.route("/token")
 @accept_fallback
 @log_route()
 @password_auth.login_required
-def get_auth_token() -> Response:
+def get_auth_token() -> str:
     """Obtain a token for API users.
 
     **Example request**
@@ -56,4 +53,4 @@ def get_auth_token() -> Response:
     :statuscode 200: No errors.
     :statuscode 401: Not authenticated.
     """
-    return jsonify({"token": g.user.generate_auth_token()})
+    return AuthTokenResponse(token=g.user.generate_auth_token()).json()

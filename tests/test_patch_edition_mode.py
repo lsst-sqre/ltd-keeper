@@ -61,7 +61,7 @@ def test_pach_lsst_doc_edition(client: TestClient, mocker: Mock) -> None:
     assert r.status == 201
 
     mock_registry[
-        "keeper.api.products.append_task_to_chain"
+        "keeper.services.createproduct.append_task_to_chain"
     ].assert_called_with(build_dashboard.si(product_url))
     mock_registry["keeper.api.products.launch_task_chain"].assert_called_once()
 
@@ -127,9 +127,9 @@ def test_pach_lsst_doc_edition(client: TestClient, mocker: Mock) -> None:
     mock_registry["keeper.models.append_task_to_chain"].assert_called_with(
         rebuild_edition.si(e2_url, 2)
     )
-    mock_registry["keeper.api.builds.append_task_to_chain"].assert_called_with(
-        build_dashboard.si(product_url)
-    )
+    mock_registry[
+        "keeper.services.updatebuild.append_task_to_chain"
+    ].assert_called_with(build_dashboard.si(product_url))
     mock_registry["keeper.api.builds.launch_task_chain"].assert_called_once()
 
     # Check pending_rebuild semaphore and manually reset it since the celery
@@ -181,9 +181,9 @@ def test_pach_lsst_doc_edition(client: TestClient, mocker: Mock) -> None:
     mock_registry["keeper.models.append_task_to_chain"].assert_any_call(
         rebuild_edition.si(e3_url, 3)
     )
-    mock_registry["keeper.api.builds.append_task_to_chain"].assert_called_with(
-        build_dashboard.si(product_url)
-    )
+    mock_registry[
+        "keeper.services.updatebuild.append_task_to_chain"
+    ].assert_called_with(build_dashboard.si(product_url))
     mock_registry["keeper.api.builds.launch_task_chain"].assert_called_once()
 
     # Check pending_rebuild semaphore and manually reset it since the celery

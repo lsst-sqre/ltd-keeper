@@ -52,7 +52,7 @@ def test_editions(client: TestClient, mocker: Mock) -> None:
 
     assert r.status == 201
     mock_registry[
-        "keeper.api.products.append_task_to_chain"
+        "keeper.services.createproduct.append_task_to_chain"
     ].assert_called_with(build_dashboard.si(product_url))
     mock_registry["keeper.api.products.launch_task_chain"].assert_called_once()
 
@@ -82,9 +82,9 @@ def test_editions(client: TestClient, mocker: Mock) -> None:
     mock_registry["keeper.models.append_task_to_chain"].assert_called_with(
         rebuild_edition.si("http://example.test/editions/1", 1)
     )
-    mock_registry["keeper.api.builds.append_task_to_chain"].assert_called_with(
-        build_dashboard.si(product_url)
-    )
+    mock_registry[
+        "keeper.services.updatebuild.append_task_to_chain"
+    ].assert_called_with(build_dashboard.si(product_url))
     mock_registry["keeper.api.builds.launch_task_chain"].assert_called_once()
 
     # Check pending_rebuild semaphore and manually reset it since the celery
@@ -110,9 +110,9 @@ def test_editions(client: TestClient, mocker: Mock) -> None:
     mock_registry["keeper.models.append_task_to_chain"].assert_called_with(
         rebuild_edition.si("http://example.test/editions/1", 1)
     )
-    mock_registry["keeper.api.builds.append_task_to_chain"].assert_called_with(
-        build_dashboard.si(product_url)
-    )
+    mock_registry[
+        "keeper.services.updatebuild.append_task_to_chain"
+    ].assert_called_with(build_dashboard.si(product_url))
     mock_registry["keeper.api.builds.launch_task_chain"].assert_called_once()
 
     # Check pending_rebuild semaphore and manually reset it since the celery
@@ -146,7 +146,7 @@ def test_editions(client: TestClient, mocker: Mock) -> None:
     assert r.json["pending_rebuild"] is True
 
     mock_registry[
-        "keeper.api.editions.append_task_to_chain"
+        "keeper.services.createedition.append_task_to_chain"
     ].assert_called_with(build_dashboard.si(product_url))
     mock_registry["keeper.models.append_task_to_chain"].assert_called_with(
         rebuild_edition.si(e1_url, 2)
@@ -169,7 +169,7 @@ def test_editions(client: TestClient, mocker: Mock) -> None:
         rebuild_edition.si(e1_url, 2)
     )
     mock_registry[
-        "keeper.api.editions.append_task_to_chain"
+        "keeper.services.updateedition.append_task_to_chain"
     ].assert_called_with(build_dashboard.si(product_url))
     mock_registry["keeper.api.editions.launch_task_chain"].assert_called_once()
 
@@ -186,7 +186,7 @@ def test_editions(client: TestClient, mocker: Mock) -> None:
     assert r.json["pending_rebuild"] is False
 
     mock_registry[
-        "keeper.api.editions.append_task_to_chain"
+        "keeper.services.updateedition.append_task_to_chain"
     ].assert_called_with(build_dashboard.si(product_url))
     mock_registry["keeper.api.editions.launch_task_chain"].assert_called_once()
 
@@ -198,11 +198,10 @@ def test_editions(client: TestClient, mocker: Mock) -> None:
 
     assert r.status == 200
     assert r.json["tracked_refs"][0] == "tickets/DM-9999"
-    assert r.json["tracked_refs"][1] == "master"
     assert r.json["pending_rebuild"] is False  # no need to rebuild
 
     mock_registry[
-        "keeper.api.editions.append_task_to_chain"
+        "keeper.services.updateedition.append_task_to_chain"
     ].assert_called_with(build_dashboard.si(product_url))
     mock_registry["keeper.api.editions.launch_task_chain"].assert_called_once()
 

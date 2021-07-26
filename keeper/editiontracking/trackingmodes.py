@@ -44,6 +44,13 @@ class EditionTrackingModes:
             key = self.name_to_id(key)
         return self._modes[key]
 
+    def __contains__(self, name: str) -> bool:
+        """Check if name is one of the tracking modes."""
+        if name in self._name_map.keys():
+            return True
+        else:
+            return False
+
     def name_to_id(self, mode: str) -> int:
         """Convert a mode name (string used by the web API) to a mode ID
         (integer) used by the DB.

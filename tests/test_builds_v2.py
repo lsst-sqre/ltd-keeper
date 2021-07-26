@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import pydantic
 import pytest
 from mock import MagicMock
 from werkzeug.exceptions import NotFound
@@ -28,16 +29,15 @@ def test_builds_v2(client: TestClient, mocker: Mock) -> None:
         "fields": {"key": "a/b/${filename}"},
     }
     presign_post_mock = mocker.patch(
-        "keeper.api.post_products_builds.presign_post_url_for_prefix",
+        "keeper.services.createbuild.presign_post_url_for_prefix",
         new=MagicMock(return_value=mock_presigned_url),
     )
     presign_post_mock = mocker.patch(
-        "keeper.api.post_products_builds"
-        ".presign_post_url_for_directory_object",
+        "keeper.services.createbuild.presign_post_url_for_directory_object",
         new=MagicMock(return_value=mock_presigned_url),
     )
     s3_session_mock = mocker.patch(
-        "keeper.api.post_products_builds.open_s3_session"
+        "keeper.services.createbuild.open_s3_session"
     )
 
     # Create default organization
@@ -152,9 +152,9 @@ def test_builds_v2(client: TestClient, mocker: Mock) -> None:
     mock_registry["keeper.models.append_task_to_chain"].assert_any_call(
         rebuild_edition.si("http://example.test/editions/2", 2)
     )
-    mock_registry["keeper.api.builds.append_task_to_chain"].assert_called_with(
-        build_dashboard.si(product_url)
-    )
+    mock_registry[
+        "keeper.services.updatebuild.append_task_to_chain"
+    ].assert_called_with(build_dashboard.si(product_url))
     mock_registry["keeper.api.builds.launch_task_chain"].assert_called_once()
 
     # Check pending_rebuild semaphore and manually reset it since the celery
@@ -208,13 +208,6 @@ def test_builds_v2(client: TestClient, mocker: Mock) -> None:
     assert r.status == 201
     assert r.json["slug"] == "1"
 
-    mock_registry[
-        "keeper.api.post_products_builds.append_task_to_chain"
-    ].assert_called_with(build_dashboard.si(product_url))
-    mock_registry[
-        "keeper.api.post_products_builds.launch_task_chain"
-    ].assert_called_once()
-
     # ========================================================================
     # Add an auto-slugged build
     mocker.resetall()
@@ -227,19 +220,12 @@ def test_builds_v2(client: TestClient, mocker: Mock) -> None:
     assert r.status == 201
     assert r.json["slug"] == "2"
 
-    mock_registry[
-        "keeper.api.post_products_builds.append_task_to_chain"
-    ].assert_called_with(build_dashboard.si(product_url))
-    mock_registry[
-        "keeper.api.post_products_builds.launch_task_chain"
-    ].assert_called_once()
-
     # ========================================================================
     # Add a build missing 'git_refs'
     mocker.resetall()
 
     b4 = {"slug": "bad-build"}
-    with pytest.raises(ValidationError):
+    with pytest.raises(pydantic.ValidationError):
         r = client.post("/products/pipelines/builds/", b4)
 
     # ========================================================================
@@ -247,7 +233,7 @@ def test_builds_v2(client: TestClient, mocker: Mock) -> None:
     mocker.resetall()
 
     b5 = {"slug": "another-bad-build", "git_refs": "master"}
-    with pytest.raises(ValidationError):
+    with pytest.raises(pydantic.ValidationError):
         r = client.post(
             "/products/pipelines/builds/", b5, headers={"Accept": v2_json_type}
         )

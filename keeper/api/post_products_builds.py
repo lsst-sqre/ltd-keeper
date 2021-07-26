@@ -2,47 +2,25 @@
 
 from __future__ import annotations
 
-import uuid
-from copy import deepcopy
-from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple
+from typing import Dict, Tuple
 
-from flask import current_app, jsonify, request
+from flask import request
 from flask_accept import accept_fallback
-from structlog import get_logger
 
 from keeper.api import api
-from keeper.auth import is_authorized, permission_required, token_auth
+from keeper.auth import permission_required, token_auth
 from keeper.logutils import log_route
 from keeper.mediatypes import v2_json_type
-from keeper.models import Build, Edition, Permission, Product, db
-from keeper.s3 import (
-    format_bucket_prefix,
-    open_s3_session,
-    presign_post_url_for_directory_object,
-    presign_post_url_for_prefix,
+from keeper.models import Permission, Product, db
+from keeper.services.createbuild import (
+    create_build,
+    create_presigned_post_urls,
 )
-from keeper.taskrunner import (
-    append_task_to_chain,
-    insert_task_url_in_response,
-    launch_task_chain,
-    mock_registry,
-)
-from keeper.tasks.dashboardbuild import build_dashboard
-from keeper.utils import auto_slugify_edition
 
-if TYPE_CHECKING:
-    import boto3
-    from celery import Task
+from ._models import BuildPostRequest, BuildPostRequestWithDirs, BuildResponse
+from ._urls import url_for_build
 
 __all__ = ["post_products_builds_v1", "post_products_builds_v2"]
-
-# Register imports of celery task chain launchers
-mock_registry.extend(
-    [
-        "keeper.api.post_products_builds.launch_task_chain",
-        "keeper.api.post_products_builds.append_task_to_chain",
-    ]
-)
 
 
 @api.route("/products/<slug>/builds/", methods=["POST"])
@@ -160,15 +138,24 @@ def post_products_builds_v1(slug: str) -> Tuple[str, int, Dict[str, str]]:
     :statuscode 201: No error.
     :statuscode 404: Product not found.
     """
-    build, task = _handle_new_build_for_product_slug(slug)
+    product = Product.query.filter_by(slug=slug).first_or_404()
+    request_data = BuildPostRequest.parse_obj(request.json)
 
-    build_resource_json = build.export_data()
-    build_url = build.get_url()
-    build_resource_json = insert_task_url_in_response(
-        build_resource_json, task
-    )
+    try:
+        build, edition = create_build(
+            product=product,
+            git_ref=request_data.git_refs[0],
+            github_requester=request_data.github_requester,
+            slug=request_data.slug,
+        )
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        raise
 
-    return jsonify(build_resource_json), 201, {"Location": build_url}
+    build_response = BuildResponse.from_build(build=build)
+    build_url = url_for_build(build)
+    return build_response.json(), 201, {"Location": build_url}
 
 
 @post_products_builds_v1.support(v2_json_type)
@@ -177,230 +164,31 @@ def post_products_builds_v1(slug: str) -> Tuple[str, int, Dict[str, str]]:
 @permission_required(Permission.UPLOAD_BUILD)
 def post_products_builds_v2(slug: str) -> Tuple[str, int, Dict[str, str]]:
     """Handle POST /products/../builds/ (version 2)."""
-    logger = get_logger(__name__)
+    product = Product.query.filter_by(slug=slug).first_or_404()
+    request_data = BuildPostRequestWithDirs.parse_obj(request.json)
 
-    build, task = _handle_new_build_for_product_slug(slug)
-    build_resource_json = build.export_data()
-    build_url = build.get_url()
-    build_resource_json = insert_task_url_in_response(
-        build_resource_json, task
-    )
-
-    # Create the presigned post URL or URLs for each declared directory
-    # prefix
-    request_data = request.get_json()
-    if "directories" in request_data:
-        directories = []
-        for d in request_data["directories"]:
-            d = d.strip()
-            if not d.endswith("/"):
-                d = f"{d}/"
-            directories.append(d)
-    else:
-        directories = ["/"]
-
-    logger.info("Creating presigned POST URLs", dirnames=directories)
-    s3_session = open_s3_session(
-        key_id=current_app.config["AWS_ID"],
-        access_key=current_app.config["AWS_SECRET"],
-    )
-    presigned_prefix_urls = {}
-    presigned_dir_urls = {}
-    for d in set(directories):
-        bucket_prefix = format_bucket_prefix(build.bucket_root_dirname, d)
-        dir_key = bucket_prefix.rstrip("/")
-
-        presigned_prefix_url = _create_presigned_url_for_prefix(
-            s3_session=s3_session,
-            bucket_name=build.product.bucket_name,
-            prefix=bucket_prefix,
-            surrogate_key=build_resource_json["surrogate_key"],
-        )
-        presigned_prefix_urls[d] = deepcopy(presigned_prefix_url)
-
-        presigned_dir_url = _create_presigned_url_for_directory(
-            s3_session=s3_session,
-            bucket_name=build.product.bucket_name,
-            key=dir_key,
-            surrogate_key=build_resource_json["surrogate_key"],
-        )
-        presigned_dir_urls[d] = deepcopy(presigned_dir_url)
-
-    build_resource_json["post_prefix_urls"] = presigned_prefix_urls
-    build_resource_json["post_dir_urls"] = presigned_dir_urls
-    logger.info(
-        "Created presigned POST URLs for prefixes",
-        post_urls=presigned_prefix_urls,
-    )
-    logger.info(
-        "Created presigned POST URLs for dirs", post_urls=presigned_dir_urls
-    )
-
-    return jsonify(build_resource_json), 201, {"Location": build_url}
-
-
-def _handle_new_build_for_product_slug(
-    product_slug: str,
-) -> Tuple[Build, Task]:
-    """Generic handler for ``POST /products/../builds/`` that creates a new
-    build for a product.
-
-    Parameters
-    ----------
-    product_slug : `str`
-        The slug of the product that the build is being registered for.
-
-    Returns
-    -------
-    build
-        The build instance.
-    task
-        The *launched* celery task chain.
-    """
-    product = Product.query.filter_by(slug=product_slug).first_or_404()
-    product_url = product.get_url()  # load for dashboard build
-
-    build = _create_build(product)
-    # As a bonus, create an edition to track this Git ref set
-    _create_edition(product, build)
-
-    # Run the task queue
-    append_task_to_chain(build_dashboard.si(product_url))
-    task = launch_task_chain()
-
-    return build, task
-
-
-def _create_build(product: Product) -> Build:
-    """Create a build for a product."""
-    surrogate_key = uuid.uuid4().hex
-    build = Build(product=product, surrogate_key=surrogate_key)
     try:
-        build.import_data(request.json)
+        build, edition = create_build(
+            product=product,
+            git_ref=request_data.git_refs[0],
+            github_requester=request_data.github_requester,
+            slug=request_data.slug,
+        )
 
-        db.session.add(build)
+        presigned_prefix_urls, presigned_dir_urls = create_presigned_post_urls(
+            build=build, directories=request_data.directories
+        )
+
         db.session.commit()
-
-        # Load for route return. With multiple DB commits, stuff can get
-        # lost from the session.
-        # build_resource_json = build.export_data()
-        # build_url = build.get_url()
     except Exception:
         db.session.rollback()
         raise
-    return build
 
-
-def _create_edition(product: Product, build: Build) -> Optional[Edition]:
-    """Create an edition to track the Git ref of a build, if not tracking
-    edition already exists.
-    """
-    logger = get_logger(__name__)
-
-    edition = None
-
-    edition_count = (
-        Edition.query.filter(Edition.product == product)
-        .filter(Edition.tracked_refs == build.git_refs)
-        .count()
+    build_response = BuildResponse.from_build(
+        build,
+        post_prefix_urls=presigned_prefix_urls,
+        post_dir_urls=presigned_dir_urls,
     )
-    if edition_count == 0 and is_authorized(Permission.ADMIN_EDITION):
-        try:
-            edition_slug = auto_slugify_edition(build.git_refs)
-            edition = Edition(product=product)
-            edition.import_data(
-                {
-                    "tracked_refs": build.git_refs,
-                    "slug": edition_slug,
-                    "title": edition_slug,
-                }
-            )
-            db.session.add(edition)
-            db.session.commit()
+    build_url = url_for_build(build)
 
-            logger.info(
-                "Created edition because of a build",
-                url=edition.get_url(),
-                id=edition.id,
-                tracked_refs=edition.tracked_refs,
-            )
-        except Exception:
-            logger.exception("Error while automatically creating an edition")
-            db.session.rollback()
-    else:
-        logger.info(
-            "Did not create a new edition because of a build",
-            authorized=is_authorized(Permission.ADMIN_EDITION),
-            edition_count=edition_count,
-        )
-
-    return edition
-
-
-def _create_presigned_url_for_prefix(
-    *,
-    s3_session: boto3.session.Session,
-    bucket_name: str,
-    prefix: str,
-    surrogate_key: str,
-) -> Dict[str, Any]:
-    # These conditions become part of the URL's presigned policy
-    url_conditions = [
-        {"acl": "public-read"},
-        {"Cache-Control": "max-age=31536000"},
-        # Make sure the surrogate-key is always consistent
-        {"x-amz-meta-surrogate-key": surrogate_key},
-        # Allow any Content-Type header
-        ["starts-with", "$Content-Type", ""],
-        # This is the default. It means for a success (204), no content
-        # is returned by S3. This is what we want.
-        {"success_action_status": "204"},
-    ]
-    # These fields are pre-populated for clients
-    url_fields = {
-        "acl": "public-read",
-        "Cache-Control": "max-age=31536000",
-        "x-amz-meta-surrogate-key": surrogate_key,
-        "success_action_status": "204",
-    }
-    return presign_post_url_for_prefix(
-        s3_session=s3_session,
-        bucket_name=bucket_name,
-        prefix=prefix,
-        expiration=3600,
-        conditions=url_conditions,
-        fields=url_fields,
-    )
-
-
-def _create_presigned_url_for_directory(
-    *,
-    s3_session: boto3.session.Session,
-    bucket_name: str,
-    key: str,
-    surrogate_key: str,
-) -> Dict[str, Any]:
-    # These conditions become part of the URL's presigned policy
-    url_conditions = [
-        {"acl": "public-read"},
-        {"Cache-Control": "max-age=31536000"},
-        # Make sure the surrogate-key is always consistent
-        {"x-amz-meta-surrogate-key": surrogate_key},
-        # This is the default. It means for a success (204), no content
-        # is returned by S3. This is what we want.
-        {"success_action_status": "204"},
-    ]
-    url_fields = {
-        "acl": "public-read",
-        "Cache-Control": "max-age=31536000",
-        "x-amz-meta-surrogate-key": surrogate_key,
-        "success_action_status": "204",
-    }
-    return presign_post_url_for_directory_object(
-        s3_session=s3_session,
-        bucket_name=bucket_name,
-        key=key,
-        fields=url_fields,
-        conditions=url_conditions,
-        expiration=3600,
-    )
+    return build_response.json(), 201, {"Location": build_url}

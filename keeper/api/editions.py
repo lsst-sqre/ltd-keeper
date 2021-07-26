@@ -4,20 +4,30 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Dict, Tuple
 
-from flask import jsonify, request
+from flask import request
 from flask_accept import accept_fallback
 
 from keeper.api import api
 from keeper.auth import permission_required, token_auth
 from keeper.logutils import log_route
 from keeper.models import Edition, Permission, Product, db
+from keeper.services.createedition import create_edition
+from keeper.services.updateedition import update_edition
 from keeper.taskrunner import (
     append_task_to_chain,
-    insert_task_url_in_response,
     launch_task_chain,
     mock_registry,
 )
 from keeper.tasks.dashboardbuild import build_dashboard
+
+from ._models import (
+    EditionPatchRequest,
+    EditionPostRequest,
+    EditionResponse,
+    EditionUrlListingResponse,
+    QueuedResponse,
+)
+from ._urls import url_for_edition, url_for_product
 
 if TYPE_CHECKING:
     from flask import Response
@@ -36,7 +46,7 @@ mock_registry.extend(
 @log_route()
 @token_auth.login_required
 @permission_required(Permission.ADMIN_EDITION)
-def new_edition(slug: str) -> Tuple[Response, int, Dict[str, str]]:
+def new_edition(slug: str) -> Tuple[str, int, Dict[str, str]]:
     """Create a new Edition for a Product.
 
     **Authorization**
@@ -104,22 +114,31 @@ def new_edition(slug: str) -> Tuple[Response, int, Dict[str, str]]:
     :statuscode 404: Product not found.
     """
     product = Product.query.filter_by(slug=slug).first_or_404()
-    edition = Edition(product=product)
+    request_data = EditionPostRequest.parse_obj(request.json)
     try:
-        edition.import_data(request.json)
-        db.session.add(edition)
+        edition = create_edition(
+            product=product,
+            title=request_data.title,
+            tracking_mode=request_data.mode,
+            slug=request_data.slug,
+            autoincrement_slug=request_data.autoincrement,
+            tracked_ref=(
+                request_data.tracked_refs[0]
+                if isinstance(request_data.tracked_refs, list)
+                else None
+            ),
+            build_url=request_data.build_url,
+        )
         db.session.commit()
-
-        edition_url = edition.get_url()
-
-        # Run the task queue
-        append_task_to_chain(build_dashboard.si(product.get_url()))
-        task = launch_task_chain()
-        response = insert_task_url_in_response({}, task)
     except Exception:
         db.session.rollback()
         raise
-    return jsonify(response), 201, {"Location": edition_url}
+
+    task = launch_task_chain()
+    response = EditionResponse.from_edition(edition, task=task)
+    edition_url = url_for_edition(edition)
+
+    return response.json(), 201, {"Location": edition_url}
 
 
 @api.route("/editions/<int:id>", methods=["DELETE"])
@@ -127,7 +146,7 @@ def new_edition(slug: str) -> Tuple[Response, int, Dict[str, str]]:
 @log_route()
 @token_auth.login_required
 @permission_required(Permission.ADMIN_EDITION)
-def deprecate_edition(id: int) -> Tuple[Response, int]:
+def deprecate_edition(id: int) -> Tuple[str, int]:
     """Deprecate an Edition of a Product.
 
     When an Edition is deprecated, the current time is added to the
@@ -173,11 +192,12 @@ def deprecate_edition(id: int) -> Tuple[Response, int]:
     edition.deprecate()
     db.session.commit()
 
-    append_task_to_chain(build_dashboard.si(edition.product.get_url()))
+    product_url = url_for_product(edition.product)
+    append_task_to_chain(build_dashboard.si(product_url))
     task = launch_task_chain()
-    response = insert_task_url_in_response({}, task)
 
-    return jsonify(response), 200
+    response = QueuedResponse.from_task(task)
+    return response.json(), 200
 
 
 @api.route("/products/<slug>/editions/", methods=["GET"])
@@ -216,7 +236,7 @@ def get_product_editions(slug: str) -> Response:
     :statuscode 404: Product not found.
     """
     edition_urls = [
-        edition.get_url()
+        url_for_edition(edition)
         for edition in Edition.query.join(
             Product, Product.id == Edition.product_id
         )
@@ -224,13 +244,14 @@ def get_product_editions(slug: str) -> Response:
         .filter(Edition.date_ended == None)  # noqa: E711
         .all()
     ]
-    return jsonify({"editions": edition_urls})
+    response = EditionUrlListingResponse(editions=edition_urls)
+    return response.json()
 
 
 @api.route("/editions/<int:id>", methods=["GET"])
 @accept_fallback
 @log_route()
-def get_edition(id: int) -> Response:
+def get_edition(id: int) -> str:
     """Show metadata for an Edition.
 
     **Example request**
@@ -292,7 +313,8 @@ def get_edition(id: int) -> Response:
     :statuscode 200: No errors.
     :statuscode 404: Edition not found.
     """
-    return jsonify(Edition.query.get_or_404(id).export_data())
+    edition = Edition.query.get_or_404(id)
+    return EditionResponse.from_edition(edition).json()
 
 
 @api.route("/editions/<int:id>", methods=["PATCH"])
@@ -300,7 +322,7 @@ def get_edition(id: int) -> Response:
 @log_route()
 @token_auth.login_required
 @permission_required(Permission.ADMIN_EDITION)
-def edit_edition(id: int) -> Response:
+def edit_edition(id: int) -> str:
     """Edit an Edition.
 
     This PATCH method allows you to specify a subset of JSON fields to replace
@@ -406,18 +428,28 @@ def edit_edition(id: int) -> Response:
     :statuscode 404: Edition resource not found.
     """
     edition = Edition.query.get_or_404(id)
+    request_data = EditionPatchRequest.parse_obj(request.json)
     try:
-        edition.patch_data(request.json)
-        db.session.add(edition)
+        edition = update_edition(
+            edition=edition,
+            build_url=request_data.build_url,
+            title=request_data.title,
+            slug=request_data.slug,
+            tracking_mode=request_data.mode,
+            tracked_ref=(
+                request_data.tracked_refs[0]
+                if isinstance(request_data.tracked_refs, list)
+                else None
+            ),
+            pending_rebuild=request_data.pending_rebuild,
+        )
         db.session.commit()
-
-        edition_json = edition.export_data()
-
-        # Run the task queue
-        append_task_to_chain(build_dashboard.si(edition.product.get_url()))
-        task = launch_task_chain()
-        edition_json = insert_task_url_in_response(edition_json, task)
     except Exception:
         db.session.rollback()
         raise
-    return jsonify(edition_json)
+
+    # Run the task queue
+    task = launch_task_chain()
+
+    response = EditionResponse.from_edition(edition, task=task)
+    return response.json()

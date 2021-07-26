@@ -4,20 +4,30 @@ from __future__ import annotations
 
 from typing import Dict, Tuple
 
-from flask import jsonify, request
+from flask import request
 from flask_accept import accept_fallback
 
 from keeper.api import api
 from keeper.auth import permission_required, token_auth
 from keeper.logutils import log_route
-from keeper.models import Edition, Organization, Permission, Product, db
+from keeper.models import Organization, Permission, Product, db
+from keeper.services.createproduct import create_product
+from keeper.services.updateproduct import update_product
 from keeper.taskrunner import (
     append_task_to_chain,
-    insert_task_url_in_response,
     launch_task_chain,
     mock_registry,
 )
 from keeper.tasks.dashboardbuild import build_dashboard
+
+from ._models import (
+    ProductPatchRequest,
+    ProductPostRequest,
+    ProductResponse,
+    ProductUrlListingResponse,
+    QueuedResponse,
+)
+from ._urls import url_for_product
 
 # Register imports of celery task chain launchers
 mock_registry.extend(
@@ -61,9 +71,10 @@ def get_products() -> str:
 
     :statuscode 200: No error.
     """
-    return jsonify(
-        {"products": [product.get_url() for product in Product.query.all()]}
+    response = ProductUrlListingResponse(
+        products=[url_for_product(product) for product in Product.query.all()]
     )
+    return response.json()
 
 
 @api.route("/products/<slug>", methods=["GET"])
@@ -135,7 +146,8 @@ def get_product(slug: str) -> str:
     :statuscode 404: Product not found.
     """
     product = Product.query.filter_by(slug=slug).first_or_404()
-    return jsonify(product.export_data())
+    response = ProductResponse.from_product(product)
+    return response.json()
 
 
 @api.route("/products/", methods=["POST"])
@@ -214,43 +226,32 @@ def new_product() -> Tuple[str, int, Dict[str, str]]:
 
     :statuscode 201: No error.
     """
-    product = Product()
+    product_request = ProductPostRequest.parse_obj(request.json)
+
+    # Get default organization (v1 API adapter for organizations)
+    org = Organization.query.order_by(Organization.id).first_or_404()
     try:
-        # Get default organization (v1 API adapter for organizations)
-        org = Organization.query.order_by(Organization.id).first_or_404()
-        request_json = request.json
-        product.import_data(request_json)
-        product.organization = org
-        db.session.add(product)
-        db.session.flush()  # Because Edition._validate_slug does not autoflush
-
-        # Create a default edition for the product
-        edition_data = {
-            "tracked_refs": ["master"],
-            "slug": "main",
-            "title": "Latest",
-        }
-        if "main_mode" in request_json:
-            edition_data["mode"] = request_json["main_mode"]
-        else:
-            # Default tracking mode
-            edition_data["mode"] = "git_refs"
-
-        edition = Edition(product=product)
-        edition.import_data(edition_data)
-        db.session.add(edition)
-
+        product, main_edition = create_product(
+            org=org,
+            slug=product_request.slug,
+            doc_repo=product_request.doc_repo,
+            title=product_request.title,
+            default_edition_mode=(
+                product_request.main_mode
+                if product_request.main_mode is not None
+                else None
+            ),
+        )
         db.session.commit()
-
-        # Run the task queue
-        append_task_to_chain(build_dashboard.si(product.get_url()))
-        task = launch_task_chain()
-        response = insert_task_url_in_response({}, task)
     except Exception:
         db.session.rollback()
         raise
 
-    return jsonify(response), 201, {"Location": product.get_url()}
+    task = launch_task_chain()
+
+    response = ProductResponse.from_product(product, task=task)
+    product_url = url_for_product(product)
+    return response.json(), 201, {"Location": product_url}
 
 
 @api.route("/products/<slug>", methods=["PATCH"])
@@ -314,20 +315,22 @@ def edit_product(slug: str) -> Tuple[str, int, Dict[str, str]]:
     :statuscode 404: Product not found.
     """
     product = Product.query.filter_by(slug=slug).first_or_404()
+    request_data = ProductPatchRequest.parse_obj(request.json)
     try:
-        product.patch_data(request.json)
-        db.session.add(product)
+        product = update_product(
+            product=product,
+            new_doc_repo=request_data.doc_repo,
+            new_title=request_data.title,
+        )
         db.session.commit()
-
-        # Run the task queue
-        append_task_to_chain(build_dashboard.si(product.get_url()))
-        task = launch_task_chain()
-        response = insert_task_url_in_response({}, task)
     except Exception:
         db.session.rollback()
         raise
 
-    return jsonify(response), 200, {"Location": product.get_url()}
+    task = launch_task_chain()
+    response = ProductResponse.from_product(product, task=task)
+    product_url = url_for_product(product)
+    return response.json(), 200, {"Location": product_url}
 
 
 @api.route("/products/<slug>/dashboard", methods=["POST"])
@@ -351,7 +354,8 @@ def rebuild_product_dashboard(slug: str) -> Tuple[str, int, Dict[str, str]]:
     - :http:post:`/dashboards`
     """
     product = Product.query.filter_by(slug=slug).first_or_404()
-    append_task_to_chain(build_dashboard.si(product.get_url()))
+    product_url = url_for_product(product)
+    append_task_to_chain(build_dashboard.si(product_url))
     task = launch_task_chain()
-    response = insert_task_url_in_response({}, task)
-    return jsonify(response), 202, {}
+    response = QueuedResponse.from_task(task)
+    return response.json(), 202, {}

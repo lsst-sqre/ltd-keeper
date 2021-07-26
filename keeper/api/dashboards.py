@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Dict, Tuple
 
-from flask import jsonify
 from flask_accept import accept_fallback
 
 from keeper.api import api
@@ -12,11 +11,13 @@ from keeper.auth import permission_required, token_auth
 from keeper.models import Permission, Product
 from keeper.taskrunner import (
     append_task_to_chain,
-    insert_task_url_in_response,
     launch_task_chain,
     mock_registry,
 )
 from keeper.tasks.dashboardbuild import build_dashboard
+
+from ._models import QueuedResponse
+from ._urls import url_for_product
 
 if TYPE_CHECKING:
     from flask import Response
@@ -51,7 +52,8 @@ def rebuild_all_dashboards() -> Tuple[Response, int, Dict[str, str]]:
       rebuilds.
     """
     for product in Product.query.all():
-        append_task_to_chain(build_dashboard.si(product.get_url()))
+        product_url = url_for_product(product)
+        append_task_to_chain(build_dashboard.si(product_url))
     task = launch_task_chain()
-    response = insert_task_url_in_response({}, task)
-    return jsonify(response), 202, {}
+    response = QueuedResponse.from_task(task)
+    return response.json(), 202, {}
