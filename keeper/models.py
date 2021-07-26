@@ -10,7 +10,7 @@ import enum
 import urllib.parse
 import uuid
 from datetime import datetime
-from typing import Any, Dict, Optional, Type, Union
+from typing import Any, Optional, Type, Union
 
 from flask import current_app
 from flask_migrate import Migrate
@@ -652,16 +652,6 @@ class Build(db.Model):  # type: ignore
             "",
         )
         return urllib.parse.urlunparse(parts)
-
-    def patch_data(self, data: Dict[str, Any]) -> None:
-        """Modify build via PATCH.
-
-        Only allowed modification is to set 'uploaded' field to True to
-        acknowledge a build upload to the bucket.
-        """
-        if "uploaded" in data:
-            if data["uploaded"] is True:
-                self.register_uploaded_build()
 
     def register_uploaded_build(self) -> None:
         """Hook for when a build has been uploaded."""

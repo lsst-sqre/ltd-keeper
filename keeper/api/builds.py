@@ -11,15 +11,16 @@ from keeper.api import api
 from keeper.auth import permission_required, token_auth
 from keeper.logutils import log_route
 from keeper.models import Build, Permission, Product, db
-from keeper.taskrunner import (
-    append_task_to_chain,
-    launch_task_chain,
-    mock_registry,
-)
-from keeper.tasks.dashboardbuild import build_dashboard
+from keeper.services.updatebuild import update_build
+from keeper.taskrunner import launch_task_chain, mock_registry
 
-from ._models import BuildResponse, BuildUrlListingResponse, QueuedResponse
-from ._urls import url_for_build, url_for_product
+from ._models import (
+    BuildPatchRequest,
+    BuildResponse,
+    BuildUrlListingResponse,
+    QueuedResponse,
+)
+from ._urls import url_for_build
 
 if TYPE_CHECKING:
     from flask import Response
@@ -28,7 +29,6 @@ if TYPE_CHECKING:
 mock_registry.extend(
     [
         "keeper.api.builds.launch_task_chain",
-        "keeper.api.builds.append_task_to_chain",
     ]
 )
 
@@ -91,19 +91,19 @@ def patch_build(id: int) -> Tuple[str, int, Dict[str, str]]:
     :statuscode 404: Build not found.
     """
     build = Build.query.get_or_404(id)
+    request_data = BuildPatchRequest.parse_obj(request.json)
     try:
-        build.patch_data(request.json)
-        build_url = url_for_build(build)
+        build = update_build(build=build, uploaded=request_data.uploaded)
         db.session.commit()
 
-        # Run the task queue
-        product_url = url_for_product(build.product)
-        append_task_to_chain(build_dashboard.si(product_url))
-        task = launch_task_chain()
     except Exception:
         db.session.rollback()
         raise
 
+    # Run the task queue
+    task = launch_task_chain()
+
+    build_url = url_for_build(build)
     response = QueuedResponse.from_task(task)
     return (
         response.json(),

@@ -152,9 +152,9 @@ def test_builds_v2(client: TestClient, mocker: Mock) -> None:
     mock_registry["keeper.models.append_task_to_chain"].assert_any_call(
         rebuild_edition.si("http://example.test/editions/2", 2)
     )
-    mock_registry["keeper.api.builds.append_task_to_chain"].assert_called_with(
-        build_dashboard.si(product_url)
-    )
+    mock_registry[
+        "keeper.services.updatebuild.append_task_to_chain"
+    ].assert_called_with(build_dashboard.si(product_url))
     mock_registry["keeper.api.builds.launch_task_chain"].assert_called_once()
 
     # Check pending_rebuild semaphore and manually reset it since the celery

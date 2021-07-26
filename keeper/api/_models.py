@@ -232,6 +232,14 @@ class BuildPostRequestWithDirs(BuildPostRequest):
         return new_list
 
 
+class BuildPatchRequest(BaseModel):
+    """Model for a PATCH /builds/:id endpoint."""
+
+    uploaded: Optional[bool] = None
+    """True if the built documentation has been uploaded to the S3 bucket.
+    """
+
+
 class EditionResponse(BaseModel):
     """The edition resource."""
 

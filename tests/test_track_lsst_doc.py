@@ -168,9 +168,9 @@ def test_lsst_doc_edition(client: TestClient, mocker: Mock) -> None:
 
     r = client.patch(b3_url, {"uploaded": True})
 
-    mock_registry["keeper.api.builds.append_task_to_chain"].assert_called_with(
-        build_dashboard.si(p1_url)
-    )
+    mock_registry[
+        "keeper.services.updatebuild.append_task_to_chain"
+    ].assert_called_with(build_dashboard.si(p1_url))
 
     mock_registry["keeper.api.builds.launch_task_chain"].assert_called_once()
     # Rebuilds for the main and v1-0 editions were triggered
