@@ -80,6 +80,8 @@ class Config(abc.ABC):
     TRUST_X_PREFIX: int = int(os.getenv("LTD_KEEPER_X_PREFIX", "0"))
     """Number of values to trust for X-Forwarded-Prefix."""
 
+    ENABLE_TASKS: bool = bool(int(os.getenv("LTD_KEEPER_ENABLE_TASKS", "1")))
+
     @abc.abstractclassmethod
     def init_app(cls, app: Flask) -> None:
         pass
@@ -136,6 +138,7 @@ class TestConfig(Config):
     SQLALCHEMY_DATABASE_URI = os.environ.get(
         "LTD_KEEPER_TEST_DB_URL"
     ) or "sqlite:///" + os.path.join(BASEDIR, "ltd-keeper-test.sqlite")
+    ENABLE_TASKS = False
 
     @classmethod
     def init_app(cls, app: Flask) -> None:
