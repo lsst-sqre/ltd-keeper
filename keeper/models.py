@@ -22,7 +22,6 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from keeper import s3
 from keeper.editiontracking import EditionTrackingModes
 from keeper.exceptions import ValidationError
-from keeper.taskrunner import append_task_to_chain, mock_registry
 from keeper.utils import (
     JSONEncodedVARCHAR,
     MutableList,
@@ -31,7 +30,6 @@ from keeper.utils import (
 )
 
 __all__ = [
-    "mock_registry",
     "db",
     "migrate",
     "edition_tracking_modes",
@@ -45,10 +43,6 @@ __all__ = [
     "Build",
     "Edition",
 ]
-
-# Register imports of celery task chain launchers
-mock_registry.extend(["keeper.models.append_task_to_chain"])
-
 
 db = SQLAlchemy()
 """Database connection.
@@ -955,13 +949,14 @@ class Edition(db.Model):  # type: ignore
         # Add the rebuild_edition task
         # Lazy load the task because it references the db/Edition model
         # shim for refactoring
-        from keeper.api._urls import url_for_edition
+        # from keeper.api._urls import url_for_edition
 
-        from .tasks.editionrebuild import rebuild_edition
+        # from .tasks.editionrebuild import rebuild_edition
 
-        edition_url = url_for_edition(self)
+        # edition_url = url_for_edition(self)
 
-        append_task_to_chain(rebuild_edition.si(edition_url, self.id))
+        # FIXME commented out until this is refactored into a service
+        # append_task_to_chain(rebuild_edition.si(edition_url, self.id))
 
     def set_rebuild_complete(self) -> None:
         """Confirm that the rebuild is complete and the declared state is
