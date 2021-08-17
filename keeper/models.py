@@ -22,12 +22,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from keeper import s3
 from keeper.editiontracking import EditionTrackingModes
 from keeper.exceptions import ValidationError
-from keeper.utils import (
-    JSONEncodedVARCHAR,
-    MutableList,
-    split_url,
-    validate_path_slug,
-)
+from keeper.utils import JSONEncodedVARCHAR, MutableList, validate_path_slug
 
 __all__ = [
     "db",
@@ -467,38 +462,6 @@ class Product(db.Model):  # type: ignore
     )
     """Tags associated with this product."""
 
-    @classmethod
-    def from_url(cls, product_url: str) -> "Product":
-        """Get a Product given its API URL.
-
-        Parameters
-        ----------
-        product_url : `str`
-            API URL of the product. This is the same as `Product.get_url`.
-
-        Returns
-        -------
-        product : `Product`
-            The `Product` instance corresponding to the URL.
-        """
-        logger = get_logger(__name__)
-
-        # Get new Product ID from the product resource's URL
-        product_endpoint, product_args = split_url(product_url)
-        if product_endpoint != "api.get_product" or "slug" not in product_args:
-            logger.debug(
-                "Invalid product_url",
-                product_endpoint=product_endpoint,
-                product_args=product_args,
-            )
-            raise ValidationError(
-                "Invalid product_url: {}".format(product_url)
-            )
-        slug = product_args["slug"]
-        product = cls.query.filter_by(slug=slug).first_or_404()
-
-        return product
-
     @property
     def domain(self) -> str:
         """Domain where docs for this product are served from.
@@ -604,30 +567,6 @@ class Build(db.Model):  # type: ignore
     )
     """User who uploaded this build.
     """
-
-    @classmethod
-    def from_url(cls, build_url: str) -> "Build":
-        """Get a Build given its API URL.
-
-        Parameters
-        ----------
-        build_url : `str`
-            External API URL of the build.
-
-        Returns
-        -------
-        build : `Build`
-            The Build instance corresponding to the URL.
-        """
-        # Get new Build ID from the build resource's URL
-        build_endpoint, build_args = split_url(build_url)
-        if build_endpoint != "api.get_build" or "id" not in build_args:
-            raise ValidationError("Invalid build_url: {}".format(build_url))
-        build = cls.query.get(build_args["id"])
-        if build is None:
-            raise ValidationError("Invalid build_url: " + build_url)
-
-        return build
 
     @property
     def bucket_root_dirname(self) -> str:
@@ -773,37 +712,6 @@ class Edition(db.Model):  # type: ignore
     build = db.relationship("Build", uselist=False)
     """One-to-one relationship with the `Build` resource."""
 
-    @classmethod
-    def from_url(cls, edition_url: str) -> "Edition":
-        """Get an Edition given its API URL.
-
-        Parameters
-        ----------
-        edition_url : `str`
-            API URL of the edition. This is the same as `Edition.get_url`.
-
-        Returns
-        -------
-        edition : `Edition`
-            The `Edition` instance corresponding to the URL.
-        """
-        logger = get_logger(__name__)
-
-        # Get new Product ID from the product resource's URL
-        edition_endpoint, endpoint_args = split_url(edition_url)
-        if edition_endpoint != "api.get_edition" or "id" not in endpoint_args:
-            logger.debug(
-                "Invalid edition_url",
-                edition_endpoint=edition_endpoint,
-                endpoint_args=endpoint_args,
-            )
-            raise ValidationError(
-                "Invalid edition_url: {}".format(edition_url)
-            )
-        edition = cls.query.get(endpoint_args["id"])
-
-        return edition
-
     @property
     def bucket_root_dirname(self) -> str:
         """Directory in the bucket where the edition is located."""
@@ -826,19 +734,14 @@ class Edition(db.Model):  # type: ignore
             )
         return urllib.parse.urlunparse(parts)
 
-    def should_rebuild(
-        self, build_url: Optional[str] = None, build: Optional[Build] = None
-    ) -> bool:
+    def should_rebuild(self, build: Build) -> bool:
         """Determine whether the edition should be rebuilt to show a certain
         build given the tracking mode.
 
         Parameters
         ----------
-        build_url : `str`, optional
-            API URL of the build resource. Optional if ``build`` is provided
-            instead.
-        build : `Build`, optional
-            `Build` object. Optional if ``build_url`` is provided instead.
+        build : `Build`
+            `Build` object.
 
         Returns
         -------
@@ -855,12 +758,7 @@ class Edition(db.Model):  # type: ignore
             "Edition {!r} in should_rebuild".format(url_for_edition(self))
         )
 
-        if build is not None:
-            candidate_build = build
-        elif build_url is not None:
-            candidate_build = Build.from_url(build_url)
-        else:
-            raise RuntimeError("Provide either a build or build_url arg.")
+        candidate_build = build
 
         # Prefilter
         if candidate_build.product != self.product:
@@ -880,9 +778,7 @@ class Edition(db.Model):  # type: ignore
 
         return tracking_mode.should_update(self, candidate_build)
 
-    def set_pending_rebuild(
-        self, build_url: Optional[str] = None, build: Optional["Build"] = None
-    ) -> None:
+    def set_pending_rebuild(self, build: Build) -> None:
         """Update the build this edition is declared to point to and set it
         to a pending state.
 
@@ -892,11 +788,8 @@ class Edition(db.Model):  # type: ignore
 
         Parameters
         ----------
-        build_url : `str`, optional
-            API URL of the build resource. Optional if ``build`` is provided
-            instead.
-        build : `Build`, optional
-            `Build` object. Optional if ``build_url`` is provided instead.
+        build : `Build`
+            `Build` object.
 
         See also
         --------
@@ -922,11 +815,6 @@ class Edition(db.Model):  # type: ignore
         and calls the `Edition.set_rebuild_complete` method to confirm that
         the rebuild is complete.
         """
-        if build is None:
-            if build_url is None:
-                raise RuntimeError("Provide a build_url if build is None")
-            build = Build.from_url(build_url)
-
         # Create a surrogate-key for the edition if it doesn't have one
         if self.surrogate_key is None:
             self.surrogate_key = uuid.uuid4().hex

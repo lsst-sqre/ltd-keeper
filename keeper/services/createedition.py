@@ -8,7 +8,7 @@ from keeper.taskrunner import append_task_to_chain, mock_registry
 from keeper.tasks.dashboardbuild import build_dashboard
 
 if TYPE_CHECKING:
-    from keeper.models import Product
+    from keeper.models import Build, Product
 
 
 # Register imports of celery task chain launchers
@@ -27,7 +27,7 @@ def create_edition(
     slug: Optional[str] = None,
     autoincrement_slug: bool = False,
     tracked_ref: str = "master",
-    build_url: Optional[str] = None,
+    build: Optional[Build] = None,
 ) -> Edition:
     """Create a new edition.
 
@@ -54,8 +54,8 @@ def create_edition(
     tracked_ref : str, optional
         The name of the Git ref that this edition tracks, if ``tracking_mode``
         is ``"git_refs"``.
-    build_url : str, optional
-        The URL of the build to initially publish with this edition.
+    build : Build, optional
+        The build to initially publish with this edition.
 
     Returns
     -------
@@ -81,9 +81,9 @@ def create_edition(
     if edition.mode_name == "git_refs":
         edition.tracked_refs = [tracked_ref]
 
-    if build_url is not None:
+    if build is not None:
         # FIXME refactor this into a service.
-        edition.set_pending_rebuild(build_url)
+        edition.set_pending_rebuild(build=build)
 
     db.session.add(edition)
 

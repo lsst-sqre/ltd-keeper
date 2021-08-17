@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Dict, Tuple
+from typing import TYPE_CHECKING, Dict, Optional, Tuple
 
 from flask import request
 from flask_accept import accept_fallback
@@ -27,10 +27,12 @@ from ._models import (
     EditionUrlListingResponse,
     QueuedResponse,
 )
-from ._urls import url_for_edition
+from ._urls import build_from_url, url_for_edition
 
 if TYPE_CHECKING:
     from flask import Response
+
+    from keeper.models import Build
 
 # Register imports of celery task chain launchers
 mock_registry.extend(
@@ -116,6 +118,10 @@ def new_edition(slug: str) -> Tuple[str, int, Dict[str, str]]:
     product = Product.query.filter_by(slug=slug).first_or_404()
     request_data = EditionPostRequest.parse_obj(request.json)
     try:
+        if request_data.build_url:
+            build: Optional[Build] = build_from_url(request_data.build_url)
+        else:
+            build = None
         edition = create_edition(
             product=product,
             title=request_data.title,
@@ -127,7 +133,7 @@ def new_edition(slug: str) -> Tuple[str, int, Dict[str, str]]:
                 if isinstance(request_data.tracked_refs, list)
                 else None
             ),
-            build_url=request_data.build_url,
+            build=build,
         )
         db.session.commit()
     except Exception:
@@ -429,9 +435,13 @@ def edit_edition(id: int) -> str:
     edition = Edition.query.get_or_404(id)
     request_data = EditionPatchRequest.parse_obj(request.json)
     try:
+        if request_data.build_url:
+            build: Optional[Build] = build_from_url(request_data.build_url)
+        else:
+            build = None
         edition = update_edition(
             edition=edition,
-            build_url=request_data.build_url,
+            build=build,
             title=request_data.title,
             slug=request_data.slug,
             tracking_mode=request_data.mode,

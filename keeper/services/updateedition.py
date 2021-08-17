@@ -13,7 +13,7 @@ from keeper.taskrunner import append_task_to_chain, mock_registry
 from keeper.tasks.dashboardbuild import build_dashboard
 
 if TYPE_CHECKING:
-    from keeper.models import Edition
+    from keeper.models import Build, Edition
 
 
 # Register imports of celery task chain launchers
@@ -27,7 +27,7 @@ mock_registry.extend(
 def update_edition(
     *,
     edition: Edition,
-    build_url: Optional[str] = None,
+    build: Optional[Build] = None,
     title: Optional[str] = None,
     slug: Optional[str] = None,
     tracking_mode: Optional[str] = None,
@@ -48,8 +48,8 @@ def update_edition(
     if title is not None:
         edition.title = title
 
-    if build_url is not None:
-        edition.set_pending_rebuild(build_url=build_url)
+    if build is not None:
+        edition.set_pending_rebuild(build=build)
 
     if slug is not None:
         edition.update_slug(slug)
