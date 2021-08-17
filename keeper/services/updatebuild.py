@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Optional
 
-# FIXME refactor arg for tasks
-from keeper.api._urls import url_for_product
 from keeper.models import db
 from keeper.taskrunner import append_task_to_chain, mock_registry
 from keeper.tasks.dashboardbuild import build_dashboard
@@ -44,7 +42,6 @@ def update_build(*, build: Build, uploaded: Optional[bool]) -> Build:
 
     db.session.add(build)
 
-    product_url = url_for_product(build.product)
-    append_task_to_chain(build_dashboard.si(product_url))
+    append_task_to_chain(build_dashboard.si(build.product.id))
 
     return build

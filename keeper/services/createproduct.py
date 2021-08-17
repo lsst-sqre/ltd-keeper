@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING, Optional, Tuple
 from flask import current_app
 
 import keeper.route53
-from keeper.api._urls import url_for_product  # FIXME refactor arg for tasks
 from keeper.models import Product, db
 from keeper.taskrunner import append_task_to_chain, mock_registry
 from keeper.tasks.dashboardbuild import build_dashboard
@@ -87,8 +86,7 @@ def create_product(
     )
     db.session.add(edition)
 
-    product_url = url_for_product(product)
-    append_task_to_chain(build_dashboard.si(product_url))
+    append_task_to_chain(build_dashboard.si(product.id))
 
     return product, edition
 

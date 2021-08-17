@@ -27,7 +27,7 @@ from ._models import (
     EditionUrlListingResponse,
     QueuedResponse,
 )
-from ._urls import url_for_edition, url_for_product
+from ._urls import url_for_edition
 
 if TYPE_CHECKING:
     from flask import Response
@@ -192,8 +192,7 @@ def deprecate_edition(id: int) -> Tuple[str, int]:
     edition.deprecate()
     db.session.commit()
 
-    product_url = url_for_product(edition.product)
-    append_task_to_chain(build_dashboard.si(product_url))
+    append_task_to_chain(build_dashboard.si(edition.product.id))
     task = launch_task_chain()
 
     response = QueuedResponse.from_task(task)

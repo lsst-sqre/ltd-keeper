@@ -17,7 +17,6 @@ from keeper.taskrunner import (
 from keeper.tasks.dashboardbuild import build_dashboard
 
 from ._models import QueuedResponse
-from ._urls import url_for_product
 
 if TYPE_CHECKING:
     from flask import Response
@@ -52,8 +51,7 @@ def rebuild_all_dashboards() -> Tuple[Response, int, Dict[str, str]]:
       rebuilds.
     """
     for product in Product.query.all():
-        product_url = url_for_product(product)
-        append_task_to_chain(build_dashboard.si(product_url))
+        append_task_to_chain(build_dashboard.si(product.id))
     task = launch_task_chain()
     response = QueuedResponse.from_task(task)
     return response.json(), 202, {}

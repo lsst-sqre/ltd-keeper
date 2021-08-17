@@ -354,8 +354,7 @@ def rebuild_product_dashboard(slug: str) -> Tuple[str, int, Dict[str, str]]:
     - :http:post:`/dashboards`
     """
     product = Product.query.filter_by(slug=slug).first_or_404()
-    product_url = url_for_product(product)
-    append_task_to_chain(build_dashboard.si(product_url))
+    append_task_to_chain(build_dashboard.si(product.id))
     task = launch_task_chain()
     response = QueuedResponse.from_task(task)
     return response.json(), 202, {}

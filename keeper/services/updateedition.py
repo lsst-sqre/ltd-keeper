@@ -8,8 +8,6 @@ from typing import TYPE_CHECKING, Optional
 
 from structlog import get_logger
 
-# FIXME refactor arg for tasks
-from keeper.api._urls import url_for_edition, url_for_product
 from keeper.models import db
 from keeper.taskrunner import append_task_to_chain, mock_registry
 from keeper.tasks.dashboardbuild import build_dashboard
@@ -56,10 +54,13 @@ def update_edition(
     if slug is not None:
         edition.update_slug(slug)
 
+    product = edition.product
+
     if pending_rebuild is not None:
         logger.warning(
             "Manual reset of Edition.pending_rebuild",
-            edition=url_for_edition(edition),
+            edition_slug=edition.slug,
+            project_slug=product.slug,
             prev_pending_rebuild=edition.pending_rebuild,
             new_pending_rebuild=pending_rebuild,
         )
@@ -67,7 +68,6 @@ def update_edition(
 
     db.session.add(edition)
 
-    product_url = url_for_product(edition.product)
-    append_task_to_chain(build_dashboard.si(product_url))
+    append_task_to_chain(build_dashboard.si(product.id))
 
     return edition

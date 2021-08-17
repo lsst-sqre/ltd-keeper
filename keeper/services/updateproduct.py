@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Optional
 
-from keeper.api._urls import url_for_product  # FIXME refactor arg for tasks
 from keeper.models import db
 from keeper.taskrunner import append_task_to_chain, mock_registry
 from keeper.tasks.dashboardbuild import build_dashboard
@@ -51,7 +50,6 @@ def update_product(
 
     db.session.add(product)
 
-    product_url = url_for_product(product)
-    append_task_to_chain(build_dashboard.si(product_url))
+    append_task_to_chain(build_dashboard.si(product.id))
 
     return product
