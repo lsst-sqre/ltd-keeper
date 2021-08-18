@@ -7,21 +7,12 @@ from flask import current_app
 
 import keeper.route53
 from keeper.models import Product, db
-from keeper.taskrunner import append_task_to_chain, mock_registry
-from keeper.tasks.dashboardbuild import build_dashboard
+from keeper.taskrunner import queue_task_command
 
 from .createedition import create_edition
 
 if TYPE_CHECKING:
     from keeper.models import Edition, Organization
-
-
-# Register imports of celery task chain launchers
-mock_registry.extend(
-    [
-        "keeper.services.createproduct.append_task_to_chain",
-    ]
-)
 
 
 def create_product(
@@ -34,10 +25,9 @@ def create_product(
 ) -> Tuple[Product, Edition]:
     """Create a new product, along with its main edition.
 
-    The product and edition are added to the current database session. A
-    dashboard rebuild task is also appended to the task chain. The caller is
-    responsible for committing the database session and launching the celery
-    task.
+    The product and edition are added to the current database session and
+    committed. A dashboard rebuild task is also appended to the task chain.
+    The caller is responsible for launching the celery task.
 
     The route 53 CNAME for the product is also created via `configure_cname`.
 
@@ -85,8 +75,11 @@ def create_product(
         title="Latest",
     )
     db.session.add(edition)
+    db.session.commit()
 
-    append_task_to_chain(build_dashboard.si(product.id))
+    queue_task_command(
+        command="build_dashboard", data={"product_id": edition.product.id}
+    )
 
     return product, edition
 

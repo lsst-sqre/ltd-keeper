@@ -12,10 +12,13 @@ from collections import namedtuple
 from typing import TYPE_CHECKING, Any, Dict, Optional
 from urllib.parse import urlsplit, urlunsplit
 
+from keeper.api._urls import build_from_url, edition_from_url
+from keeper.models import db
+
 if TYPE_CHECKING:
     from flask import Flask
 
-__all__ = ["response", "TestClient"]
+__all__ = ["response", "TestClient", "simulate_edition_rebuild_v1api"]
 
 response = namedtuple("response", "status headers json")
 
@@ -114,3 +117,14 @@ class TestClient:
         self, url: str, headers: Optional[Dict[str, str]] = None
     ) -> response:
         return self.send(url, "DELETE", headers=headers)
+
+
+def simulate_edition_rebuild_v1api(edition_url: str, build_url: str) -> None:
+    """Simulate the rebuild_edition task in terms of updating database state
+    with the new build_url and ensuring that edition.pending_rebuild is False.
+    """
+    edition = edition_from_url(edition_url)
+    build = build_from_url(build_url)
+    edition.build = build
+    edition.pending_rebuild = False
+    db.session.commit()

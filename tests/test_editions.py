@@ -9,6 +9,7 @@ from werkzeug.exceptions import NotFound
 
 from keeper.exceptions import ValidationError
 from keeper.taskrunner import mock_registry
+from keeper.testutils import simulate_edition_rebuild_v1api
 
 # from keeper.tasks.dashboardbuild import build_dashboard
 
@@ -80,6 +81,8 @@ def test_editions(client: TestClient, mocker: Mock) -> None:
 
     client.patch(b1_url, {"uploaded": True})
 
+    simulate_edition_rebuild_v1api(e0_url, b1_url)
+
     # FIXME
     # mock_registry["keeper.models.append_task_to_chain"].assert_called_with(
     #     rebuild_edition.si("http://example.test/editions/1", 1)
@@ -92,8 +95,8 @@ def test_editions(client: TestClient, mocker: Mock) -> None:
     # Check pending_rebuild semaphore and manually reset it since the celery
     # task is mocked.
     e0 = client.get(e0_url).json
-    assert e0["pending_rebuild"] is True
-    r = client.patch(e0_url, {"pending_rebuild": False})
+    assert e0["pending_rebuild"] is False
+    # r = client.patch(e0_url, {"pending_rebuild": False})
 
     # ========================================================================
     # Create a second build of the 'master' branch
@@ -109,6 +112,8 @@ def test_editions(client: TestClient, mocker: Mock) -> None:
 
     client.patch(b2_url, {"uploaded": True})
 
+    simulate_edition_rebuild_v1api(e0_url, b2_url)
+
     # FIXME
     # mock_registry["keeper.models.append_task_to_chain"].assert_called_with(
     #     rebuild_edition.si("http://example.test/editions/1", 1)
@@ -121,8 +126,8 @@ def test_editions(client: TestClient, mocker: Mock) -> None:
     # Check pending_rebuild semaphore and manually reset it since the celery
     # task is mocked.
     e0 = client.get(e0_url).json
-    assert e0["pending_rebuild"] is True
-    r = client.patch(e0_url, {"pending_rebuild": False})
+    assert e0["pending_rebuild"] is False
+    # r = client.patch(e0_url, {"pending_rebuild": False})
 
     # ========================================================================
     # Setup an edition also tracking master called 'latest'
@@ -137,6 +142,8 @@ def test_editions(client: TestClient, mocker: Mock) -> None:
     r = client.post(product_url + "/editions/", e1)
     e1_url = r.headers["Location"]
 
+    simulate_edition_rebuild_v1api(e1_url, b1_url)
+
     r = client.get(e1_url)
     assert r.status == 200
     assert r.json["tracked_refs"][0] == e1["tracked_refs"][0]
@@ -146,7 +153,7 @@ def test_editions(client: TestClient, mocker: Mock) -> None:
     assert r.json["date_created"] is not None
     assert r.json["date_ended"] is None
     assert r.json["published_url"] == "https://pipelines.lsst.io/v/latest"
-    assert r.json["pending_rebuild"] is True
+    assert r.json["pending_rebuild"] is False
 
     # FIXME
     # mock_registry[
@@ -158,7 +165,7 @@ def test_editions(client: TestClient, mocker: Mock) -> None:
     mock_registry["keeper.api.editions.launch_task_chain"].assert_called_once()
 
     # Manually reset pending_rebuild since the rebuild_edition task is mocked
-    r = client.patch(e1_url, {"pending_rebuild": False})
+    # r = client.patch(e1_url, {"pending_rebuild": False})
 
     # ========================================================================
     # Re-build the edition with the second build
@@ -167,6 +174,10 @@ def test_editions(client: TestClient, mocker: Mock) -> None:
     r = client.patch(e1_url, {"build_url": b2_url})
 
     assert r.status == 200
+
+    simulate_edition_rebuild_v1api(e1_url, b2_url)
+
+    r = client.get(e1_url)
     assert r.json["build_url"] == b2_url
 
     # FIXME
@@ -179,7 +190,7 @@ def test_editions(client: TestClient, mocker: Mock) -> None:
     # mock_registry["keeper.api.editions.launch_task_chain"].assert_called_once()
 
     # Manually reset pending_rebuild since the rebuild_edition task is mocked
-    r = client.patch(e1_url, {"pending_rebuild": False})
+    # r = client.patch(e1_url, {"pending_rebuild": False})
 
     # ========================================================================
     # Change the title with PATCH

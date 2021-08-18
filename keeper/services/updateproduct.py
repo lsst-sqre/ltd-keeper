@@ -3,19 +3,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Optional
 
 from keeper.models import db
-from keeper.taskrunner import append_task_to_chain, mock_registry
-from keeper.tasks.dashboardbuild import build_dashboard
+from keeper.taskrunner import queue_task_command
 
 if TYPE_CHECKING:
     from keeper.models import Product
-
-
-# Register imports of celery task chain launchers
-mock_registry.extend(
-    [
-        "keeper.services.updateproduct.append_task_to_chain",
-    ]
-)
 
 
 def update_product(
@@ -23,10 +14,9 @@ def update_product(
 ) -> Product:
     """Modify an existing product.
 
-    The updated product is added to the current database session. A
-    dashboard rebuild task is also appended to the task chain. The caller is
-    responsible for committing the database session and launching the celery
-    task.
+    The updated product is added to the current database session and
+    committed. A dashboard rebuild task is also appended to the task chain.
+    The caller is responsible for launching the celery task.
 
     Parameters
     ----------
@@ -49,7 +39,10 @@ def update_product(
         product.title = new_title
 
     db.session.add(product)
+    db.session.commit()
 
-    append_task_to_chain(build_dashboard.si(product.id))
+    queue_task_command(
+        command="build_dashboard", data={"product_id": product.id}
+    )
 
     return product

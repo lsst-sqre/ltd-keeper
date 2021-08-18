@@ -4,19 +4,12 @@ import uuid
 from typing import TYPE_CHECKING, Optional
 
 from keeper.models import Edition, db
-from keeper.taskrunner import append_task_to_chain, mock_registry
-from keeper.tasks.dashboardbuild import build_dashboard
+from keeper.taskrunner import queue_task_command
+
+from .requesteditionrebuild import request_edition_rebuild
 
 if TYPE_CHECKING:
     from keeper.models import Build, Product
-
-
-# Register imports of celery task chain launchers
-mock_registry.extend(
-    [
-        "keeper.services.createedition.append_task_to_chain",
-    ]
-)
 
 
 def create_edition(
@@ -31,9 +24,9 @@ def create_edition(
 ) -> Edition:
     """Create a new edition.
 
-    The edition is added to the current database session. A dashboard rebuild
-    task is also appended to the task chain. The caller is responsible for
-    committing the database session and launching the celery task.
+    The edition is added to the current database session and comitted.
+    A dashboard rebuild task is also appended to the task chain. The caller is
+    responsible for launching the celery task.
 
     Parameters
     ----------
@@ -62,7 +55,9 @@ def create_edition(
     edition : `keeper.models.Edition`
         The edition, which is also added to the current database session.
     """
-    edition = Edition(product=product, surrogate_key=uuid.uuid4().hex)
+    edition = Edition(
+        product=product, surrogate_key=uuid.uuid4().hex, pending_rebuild=False
+    )
 
     if autoincrement_slug:
         edition.slug = edition._compute_autoincremented_slug()
@@ -81,12 +76,14 @@ def create_edition(
     if edition.mode_name == "git_refs":
         edition.tracked_refs = [tracked_ref]
 
-    if build is not None:
-        # FIXME refactor this into a service.
-        edition.set_pending_rebuild(build=build)
-
     db.session.add(edition)
+    db.session.commit()
 
-    append_task_to_chain(build_dashboard.si(product.id))
+    if build is not None:
+        request_edition_rebuild(edition=edition, build=build)
+
+    queue_task_command(
+        command="build_dashboard", data={"product_id": edition.product.id}
+    )
 
     return edition

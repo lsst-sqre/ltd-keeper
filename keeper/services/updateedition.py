@@ -9,19 +9,12 @@ from typing import TYPE_CHECKING, Optional
 from structlog import get_logger
 
 from keeper.models import db
-from keeper.taskrunner import append_task_to_chain, mock_registry
-from keeper.tasks.dashboardbuild import build_dashboard
+from keeper.taskrunner import queue_task_command
+
+from .requesteditionrebuild import request_edition_rebuild
 
 if TYPE_CHECKING:
     from keeper.models import Build, Edition
-
-
-# Register imports of celery task chain launchers
-mock_registry.extend(
-    [
-        "keeper.services.updateedition.append_task_to_chain",
-    ]
-)
 
 
 def update_edition(
@@ -48,9 +41,6 @@ def update_edition(
     if title is not None:
         edition.title = title
 
-    if build is not None:
-        edition.set_pending_rebuild(build=build)
-
     if slug is not None:
         edition.update_slug(slug)
 
@@ -67,7 +57,13 @@ def update_edition(
         edition.pending_rebuild = pending_rebuild
 
     db.session.add(edition)
+    db.session.commit()
 
-    append_task_to_chain(build_dashboard.si(product.id))
+    if build is not None:
+        request_edition_rebuild(edition=edition, build=build)
+
+    queue_task_command(
+        command="build_dashboard", data={"product_id": product.id}
+    )
 
     return edition

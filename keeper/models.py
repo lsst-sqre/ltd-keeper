@@ -782,9 +782,8 @@ class Edition(db.Model):  # type: ignore
         """Update the build this edition is declared to point to and set it
         to a pending state.
 
-        The caller must separately initial a
-        `keeper.tasks.editionrebuild.rebuild_edition` task to implement the
-        declared change (after this DB change is committed).
+        This method should be called from the task that is actively handling
+        the rebuild. This method does not perform the rebuild itself.
 
         Parameters
         ----------
@@ -811,9 +810,7 @@ class Edition(db.Model):  # type: ignore
         3. Sets the desired state (update the build reference and sets
            ``pending_rebuild`` field to `True`).
 
-        The ``rebuild_edition`` celery task, separately, implements the rebuild
-        and calls the `Edition.set_rebuild_complete` method to confirm that
-        the rebuild is complete.
+        4. Sets the edition's build to the new build.
         """
         # Create a surrogate-key for the edition if it doesn't have one
         if self.surrogate_key is None:
@@ -833,18 +830,6 @@ class Edition(db.Model):  # type: ignore
         # Set the desired state
         self.build = build
         self.pending_rebuild = True
-
-        # Add the rebuild_edition task
-        # Lazy load the task because it references the db/Edition model
-        # shim for refactoring
-        # from keeper.api._urls import url_for_edition
-
-        # from .tasks.editionrebuild import rebuild_edition
-
-        # edition_url = url_for_edition(self)
-
-        # FIXME commented out until this is refactored into a service
-        # append_task_to_chain(rebuild_edition.si(edition_url, self.id))
 
     def set_rebuild_complete(self) -> None:
         """Confirm that the rebuild is complete and the declared state is
