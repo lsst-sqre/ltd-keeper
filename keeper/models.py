@@ -19,7 +19,6 @@ from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from structlog import get_logger
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from keeper import s3
 from keeper.editiontracking import EditionTrackingModes
 from keeper.exceptions import ValidationError
 from keeper.utils import JSONEncodedVARCHAR, MutableList, validate_path_slug
@@ -897,36 +896,14 @@ class Edition(db.Model):  # type: ignore
             return self.default_mode_name
 
     def update_slug(self, new_slug: str) -> None:
-        """Update the edition's slug by migrating files on S3."""
+        """Update the edition's slug by migrating files on S3.
+
+        This method only validates the slugs name and sets it on the model.
+        The caller is responsible for also migrating the S3 objects.
+        """
         # Check that this slug does not already exist
         self._validate_slug(new_slug)
-
-        old_bucket_root_dir = self.bucket_root_dirname
-
         self.slug = new_slug
-        new_bucket_root_dir = self.bucket_root_dirname
-
-        AWS_ID = current_app.config["AWS_ID"]
-        AWS_SECRET = current_app.config["AWS_SECRET"]
-        if (
-            AWS_ID is not None
-            and AWS_SECRET is not None
-            and self.build is not None
-        ):
-            s3.copy_directory(
-                self.product.bucket_name,
-                old_bucket_root_dir,
-                new_bucket_root_dir,
-                AWS_ID,
-                AWS_SECRET,
-                surrogate_key=self.surrogate_key,
-            )
-            s3.delete_directory(
-                self.product.bucket_name,
-                old_bucket_root_dir,
-                AWS_ID,
-                AWS_SECRET,
-            )
 
     def _compute_autoincremented_slug(self) -> str:
         """Compute an autoincremented integer slug for this edition.

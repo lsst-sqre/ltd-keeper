@@ -12,6 +12,7 @@ from keeper.models import db
 from keeper.taskrunner import queue_task_command
 
 from .requesteditionrebuild import request_edition_rebuild
+from .requesteditionrename import request_edition_rename
 
 if TYPE_CHECKING:
     from keeper.models import Build, Edition
@@ -42,7 +43,7 @@ def update_edition(
         edition.title = title
 
     if slug is not None:
-        edition.update_slug(slug)
+        request_edition_rename(edition=edition)
 
     product = edition.product
 

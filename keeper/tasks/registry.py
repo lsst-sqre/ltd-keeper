@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any, Dict
 
 from .dashboardbuild import build_dashboard
 from .editionrebuild import rebuild_edition
+from .renameedition import rename_edition
 
 if TYPE_CHECKING:
     import celery.app.task.Task
@@ -73,6 +74,8 @@ class TaskRegistry:
 
 
 task_registry = TaskRegistry()
+
+task_registry.add(name="rename_editon", task=rename_edition, order=9)
 
 task_registry.add(
     name="rebuild_edition",
