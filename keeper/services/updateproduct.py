@@ -3,7 +3,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Optional
 
 from keeper.models import db
-from keeper.taskrunner import queue_task_command
+
+from .request_dashboard_build import request_dashboard_build
 
 if TYPE_CHECKING:
     from keeper.models import Product
@@ -41,8 +42,6 @@ def update_product(
     db.session.add(product)
     db.session.commit()
 
-    queue_task_command(
-        command="build_dashboard", data={"product_id": product.id}
-    )
+    request_dashboard_build(product)
 
     return product

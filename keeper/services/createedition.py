@@ -4,8 +4,8 @@ import uuid
 from typing import TYPE_CHECKING, Optional
 
 from keeper.models import Edition, db
-from keeper.taskrunner import queue_task_command
 
+from .request_dashboard_build import request_dashboard_build
 from .requesteditionrebuild import request_edition_rebuild
 
 if TYPE_CHECKING:
@@ -82,8 +82,6 @@ def create_edition(
     if build is not None:
         request_edition_rebuild(edition=edition, build=build)
 
-    queue_task_command(
-        command="build_dashboard", data={"product_id": edition.product.id}
-    )
+    request_dashboard_build(product)
 
     return edition

@@ -7,9 +7,9 @@ from flask import current_app
 
 import keeper.route53
 from keeper.models import Product, db
-from keeper.taskrunner import queue_task_command
 
 from .createedition import create_edition
+from .request_dashboard_build import request_dashboard_build
 
 if TYPE_CHECKING:
     from keeper.models import Edition, Organization
@@ -77,9 +77,7 @@ def create_product(
     db.session.add(edition)
     db.session.commit()
 
-    queue_task_command(
-        command="build_dashboard", data={"product_id": edition.product.id}
-    )
+    request_dashboard_build(product)
 
     return product, edition
 
