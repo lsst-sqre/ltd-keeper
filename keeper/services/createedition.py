@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Optional
 
 from keeper.models import Edition, db
 
-from .request_dashboard_build import request_dashboard_build
+from .requestdashboardbuild import request_dashboard_build
 from .requesteditionrebuild import request_edition_rebuild
 
 if TYPE_CHECKING:

@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Optional
 
 from keeper.models import db
 
-from .request_dashboard_build import request_dashboard_build
+from .requestdashboardbuild import request_dashboard_build
 
 if TYPE_CHECKING:
     from keeper.models import Product

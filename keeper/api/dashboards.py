@@ -9,25 +9,13 @@ from flask_accept import accept_fallback
 from keeper.api import api
 from keeper.auth import permission_required, token_auth
 from keeper.models import Permission, Product
-from keeper.taskrunner import (
-    append_task_to_chain,
-    launch_task_chain,
-    mock_registry,
-)
-from keeper.tasks.dashboardbuild import build_dashboard
+from keeper.services.requestdashboardbuild import request_dashboard_build
+from keeper.taskrunner import launch_tasks
 
 from ._models import QueuedResponse
 
 if TYPE_CHECKING:
     from flask import Response
-
-# Register imports of celery task chain launchers
-mock_registry.extend(
-    [
-        "keeper.api.dashboards.launch_task_chain",
-        "keeper.api.dashboards.append_task_to_chain",
-    ]
-)
 
 
 @api.route("/dashboards", methods=["POST"])
@@ -51,7 +39,7 @@ def rebuild_all_dashboards() -> Tuple[Response, int, Dict[str, str]]:
       rebuilds.
     """
     for product in Product.query.all():
-        append_task_to_chain(build_dashboard.si(product.id))
-    task = launch_task_chain()
+        request_dashboard_build(product)
+    task = launch_tasks()
     response = QueuedResponse.from_task(task)
     return response.json(), 202, {}

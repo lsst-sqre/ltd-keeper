@@ -9,7 +9,7 @@ import keeper.route53
 from keeper.models import Product, db
 
 from .createedition import create_edition
-from .request_dashboard_build import request_dashboard_build
+from .requestdashboardbuild import request_dashboard_build
 
 if TYPE_CHECKING:
     from keeper.models import Edition, Organization

@@ -8,10 +8,7 @@ import pytest
 from werkzeug.exceptions import NotFound
 
 from keeper.exceptions import ValidationError
-from keeper.taskrunner import mock_registry
 from keeper.testutils import simulate_edition_rebuild_v1api
-
-# from keeper.tasks.dashboardbuild import build_dashboard
 
 if TYPE_CHECKING:
     from unittest.mock import Mock
@@ -21,8 +18,6 @@ if TYPE_CHECKING:
 
 def test_editions(client: TestClient, mocker: Mock) -> None:
     """Exercise different /edition/ API scenarios."""
-    mock_registry.patch_all(mocker)
-
     # Create default organization
     from keeper.models import Organization, db
 
@@ -162,7 +157,7 @@ def test_editions(client: TestClient, mocker: Mock) -> None:
     # mock_registry["keeper.models.append_task_to_chain"].assert_called_with(
     #     rebuild_edition.si(e1_url, 2)
     # )
-    mock_registry["keeper.api.editions.launch_task_chain"].assert_called_once()
+    # mock_registry["keeper.api.editions.launch_task_chain"].assert_called_once()
 
     # Manually reset pending_rebuild since the rebuild_edition task is mocked
     # r = client.patch(e1_url, {"pending_rebuild": False})

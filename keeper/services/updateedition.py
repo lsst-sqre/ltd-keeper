@@ -10,7 +10,7 @@ from structlog import get_logger
 
 from keeper.models import db
 
-from .request_dashboard_build import request_dashboard_build
+from .requestdashboardbuild import request_dashboard_build
 from .requesteditionrebuild import request_edition_rebuild
 from .requesteditionrename import request_edition_rename
 

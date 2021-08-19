@@ -12,13 +12,9 @@ from keeper.auth import permission_required, token_auth
 from keeper.logutils import log_route
 from keeper.models import Edition, Permission, Product, db
 from keeper.services.createedition import create_edition
+from keeper.services.requestdashboardbuild import request_dashboard_build
 from keeper.services.updateedition import update_edition
-from keeper.taskrunner import (
-    append_task_to_chain,
-    launch_task_chain,
-    mock_registry,
-)
-from keeper.tasks.dashboardbuild import build_dashboard
+from keeper.taskrunner import launch_tasks
 
 from ._models import (
     EditionPatchRequest,
@@ -33,14 +29,6 @@ if TYPE_CHECKING:
     from flask import Response
 
     from keeper.models import Build
-
-# Register imports of celery task chain launchers
-mock_registry.extend(
-    [
-        "keeper.api.editions.launch_task_chain",
-        "keeper.api.editions.append_task_to_chain",
-    ]
-)
 
 
 @api.route("/products/<slug>/editions/", methods=["POST"])
@@ -117,30 +105,25 @@ def new_edition(slug: str) -> Tuple[str, int, Dict[str, str]]:
     """
     product = Product.query.filter_by(slug=slug).first_or_404()
     request_data = EditionPostRequest.parse_obj(request.json)
-    try:
-        if request_data.build_url:
-            build: Optional[Build] = build_from_url(request_data.build_url)
-        else:
-            build = None
-        edition = create_edition(
-            product=product,
-            title=request_data.title,
-            tracking_mode=request_data.mode,
-            slug=request_data.slug,
-            autoincrement_slug=request_data.autoincrement,
-            tracked_ref=(
-                request_data.tracked_refs[0]
-                if isinstance(request_data.tracked_refs, list)
-                else None
-            ),
-            build=build,
-        )
-        db.session.commit()
-    except Exception:
-        db.session.rollback()
-        raise
+    if request_data.build_url:
+        build: Optional[Build] = build_from_url(request_data.build_url)
+    else:
+        build = None
+    edition = create_edition(
+        product=product,
+        title=request_data.title,
+        tracking_mode=request_data.mode,
+        slug=request_data.slug,
+        autoincrement_slug=request_data.autoincrement,
+        tracked_ref=(
+            request_data.tracked_refs[0]
+            if isinstance(request_data.tracked_refs, list)
+            else None
+        ),
+        build=build,
+    )
 
-    task = launch_task_chain()
+    task = launch_tasks()
     response = EditionResponse.from_edition(edition, task=task)
     edition_url = url_for_edition(edition)
 
@@ -198,8 +181,8 @@ def deprecate_edition(id: int) -> Tuple[str, int]:
     edition.deprecate()
     db.session.commit()
 
-    append_task_to_chain(build_dashboard.si(edition.product.id))
-    task = launch_task_chain()
+    request_dashboard_build(edition.product)
+    task = launch_tasks()
 
     response = QueuedResponse.from_task(task)
     return response.json(), 200
@@ -434,31 +417,26 @@ def edit_edition(id: int) -> str:
     """
     edition = Edition.query.get_or_404(id)
     request_data = EditionPatchRequest.parse_obj(request.json)
-    try:
-        if request_data.build_url:
-            build: Optional[Build] = build_from_url(request_data.build_url)
-        else:
-            build = None
-        edition = update_edition(
-            edition=edition,
-            build=build,
-            title=request_data.title,
-            slug=request_data.slug,
-            tracking_mode=request_data.mode,
-            tracked_ref=(
-                request_data.tracked_refs[0]
-                if isinstance(request_data.tracked_refs, list)
-                else None
-            ),
-            pending_rebuild=request_data.pending_rebuild,
-        )
-        db.session.commit()
-    except Exception:
-        db.session.rollback()
-        raise
+    if request_data.build_url:
+        build: Optional[Build] = build_from_url(request_data.build_url)
+    else:
+        build = None
+    edition = update_edition(
+        edition=edition,
+        build=build,
+        title=request_data.title,
+        slug=request_data.slug,
+        tracking_mode=request_data.mode,
+        tracked_ref=(
+            request_data.tracked_refs[0]
+            if isinstance(request_data.tracked_refs, list)
+            else None
+        ),
+        pending_rebuild=request_data.pending_rebuild,
+    )
 
     # Run the task queue
-    task = launch_task_chain()
+    task = launch_tasks()
 
     response = EditionResponse.from_edition(edition, task=task)
     return response.json()

@@ -12,7 +12,7 @@ from keeper.auth import permission_required, token_auth
 from keeper.logutils import log_route
 from keeper.models import Build, Permission, Product, db
 from keeper.services.updatebuild import update_build
-from keeper.taskrunner import launch_task_chain, mock_registry
+from keeper.taskrunner import launch_tasks
 
 from ._models import (
     BuildPatchRequest,
@@ -24,13 +24,6 @@ from ._urls import url_for_build
 
 if TYPE_CHECKING:
     from flask import Response
-
-# Register imports of celery task chain launchers
-mock_registry.extend(
-    [
-        "keeper.api.builds.launch_task_chain",
-    ]
-)
 
 
 @api.route("/builds/<int:id>", methods=["PATCH"])
@@ -92,16 +85,10 @@ def patch_build(id: int) -> Tuple[str, int, Dict[str, str]]:
     """
     build = Build.query.get_or_404(id)
     request_data = BuildPatchRequest.parse_obj(request.json)
-    try:
-        build = update_build(build=build, uploaded=request_data.uploaded)
-        db.session.commit()
-
-    except Exception:
-        db.session.rollback()
-        raise
+    build = update_build(build=build, uploaded=request_data.uploaded)
 
     # Run the task queue
-    task = launch_task_chain()
+    task = launch_tasks()
 
     build_url = url_for_build(build)
     response = QueuedResponse.from_task(task)

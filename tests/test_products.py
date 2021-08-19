@@ -8,8 +8,6 @@ import pydantic
 import pytest
 import werkzeug.exceptions
 
-from keeper.taskrunner import mock_registry
-
 # from keeper.tasks.dashboardbuild import build_dashboard
 
 if TYPE_CHECKING:
@@ -20,8 +18,6 @@ if TYPE_CHECKING:
 
 def test_products(client: TestClient, mocker: Mock) -> None:
     """Test various API operations against Product resources."""
-    mock_registry.patch_all(mocker)
-
     # Create default organization
     from keeper.models import Organization, db
 

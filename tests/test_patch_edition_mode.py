@@ -8,8 +8,6 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from keeper.taskrunner import mock_registry
-
 # from keeper.tasks.dashboardbuild import build_dashboard
 
 if TYPE_CHECKING:
@@ -29,9 +27,6 @@ def test_pach_lsst_doc_edition(client: TestClient, mocker: Mock) -> None:
     4. Patch the main edition to use the LSST_DOC tracking mode.
     5. Post a `v1.1` build that is tracked.
     """
-    # Mock all celergy-based tasks.
-    mock_registry.patch_all(mocker)
-
     # Create default organization
     from keeper.models import Organization, db
 
@@ -67,7 +62,8 @@ def test_pach_lsst_doc_edition(client: TestClient, mocker: Mock) -> None:
     # mock_registry[
     #     "keeper.services.createproduct.append_task_to_chain"
     # ].assert_called_with(build_dashboard.si(product_url))
-    # mock_registry["keeper.api.products.launch_task_chain"].assert_called_once()
+    # mock_registry["keeper.api.products.launch_task_chain"].\
+    # assert_called_once()
 
     # ========================================================================
     # Create a build on 'master'

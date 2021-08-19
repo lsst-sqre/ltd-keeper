@@ -6,8 +6,6 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from keeper.taskrunner import mock_registry
-
 if TYPE_CHECKING:
     from unittest.mock import Mock
 
@@ -17,9 +15,6 @@ if TYPE_CHECKING:
 @pytest.mark.skip(reason="Needs infastructure to simulate celery task")
 def test_eups_daily_release_edition(client: TestClient, mocker: Mock) -> None:
     """Test an edition that tracks the most recent EUPS daily release."""
-    # The celery tasks need to be mocked, but are not checked.
-    mock_registry.patch_all(mocker)
-
     # Create default organization
     from keeper.models import Organization, db
 

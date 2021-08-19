@@ -11,7 +11,6 @@ from werkzeug.exceptions import NotFound
 
 from keeper.exceptions import ValidationError
 from keeper.mediatypes import v2_json_type
-from keeper.taskrunner import mock_registry
 
 # from keeper.tasks.dashboardbuild import build_dashboard
 
@@ -23,8 +22,6 @@ if TYPE_CHECKING:
 
 @pytest.mark.skip(reason="Needs infastructure to simulate celery task")
 def test_builds_v2(client: TestClient, mocker: Mock) -> None:
-    mock_registry.patch_all(mocker)
-
     mock_presigned_url = {
         "url": "https://example.com",
         "fields": {"key": "a/b/${filename}"},

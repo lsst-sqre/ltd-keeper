@@ -10,15 +10,11 @@ from flask_accept import accept_fallback
 from keeper.api import api
 from keeper.auth import permission_required, token_auth
 from keeper.logutils import log_route
-from keeper.models import Organization, Permission, Product, db
+from keeper.models import Organization, Permission, Product
 from keeper.services.createproduct import create_product
+from keeper.services.requestdashboardbuild import request_dashboard_build
 from keeper.services.updateproduct import update_product
-from keeper.taskrunner import (
-    append_task_to_chain,
-    launch_task_chain,
-    mock_registry,
-)
-from keeper.tasks.dashboardbuild import build_dashboard
+from keeper.taskrunner import launch_tasks
 
 from ._models import (
     ProductPatchRequest,
@@ -28,14 +24,6 @@ from ._models import (
     QueuedResponse,
 )
 from ._urls import url_for_product
-
-# Register imports of celery task chain launchers
-mock_registry.extend(
-    [
-        "keeper.api.products.launch_task_chain",
-        "keeper.api.products.append_task_to_chain",
-    ]
-)
 
 
 @api.route("/products/", methods=["GET"])
@@ -230,24 +218,19 @@ def new_product() -> Tuple[str, int, Dict[str, str]]:
 
     # Get default organization (v1 API adapter for organizations)
     org = Organization.query.order_by(Organization.id).first_or_404()
-    try:
-        product, main_edition = create_product(
-            org=org,
-            slug=product_request.slug,
-            doc_repo=product_request.doc_repo,
-            title=product_request.title,
-            default_edition_mode=(
-                product_request.main_mode
-                if product_request.main_mode is not None
-                else None
-            ),
-        )
-        db.session.commit()
-    except Exception:
-        db.session.rollback()
-        raise
+    product, main_edition = create_product(
+        org=org,
+        slug=product_request.slug,
+        doc_repo=product_request.doc_repo,
+        title=product_request.title,
+        default_edition_mode=(
+            product_request.main_mode
+            if product_request.main_mode is not None
+            else None
+        ),
+    )
 
-    task = launch_task_chain()
+    task = launch_tasks()
 
     response = ProductResponse.from_product(product, task=task)
     product_url = url_for_product(product)
@@ -316,18 +299,13 @@ def edit_product(slug: str) -> Tuple[str, int, Dict[str, str]]:
     """
     product = Product.query.filter_by(slug=slug).first_or_404()
     request_data = ProductPatchRequest.parse_obj(request.json)
-    try:
-        product = update_product(
-            product=product,
-            new_doc_repo=request_data.doc_repo,
-            new_title=request_data.title,
-        )
-        db.session.commit()
-    except Exception:
-        db.session.rollback()
-        raise
+    product = update_product(
+        product=product,
+        new_doc_repo=request_data.doc_repo,
+        new_title=request_data.title,
+    )
 
-    task = launch_task_chain()
+    task = launch_tasks()
     response = ProductResponse.from_product(product, task=task)
     product_url = url_for_product(product)
     return response.json(), 200, {"Location": product_url}
@@ -354,7 +332,7 @@ def rebuild_product_dashboard(slug: str) -> Tuple[str, int, Dict[str, str]]:
     - :http:post:`/dashboards`
     """
     product = Product.query.filter_by(slug=slug).first_or_404()
-    append_task_to_chain(build_dashboard.si(product.id))
-    task = launch_task_chain()
+    request_dashboard_build(product)
+    task = launch_tasks()
     response = QueuedResponse.from_task(task)
     return response.json(), 202, {}

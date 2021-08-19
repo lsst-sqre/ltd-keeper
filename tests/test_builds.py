@@ -9,7 +9,6 @@ import pytest
 from werkzeug.exceptions import NotFound
 
 from keeper.exceptions import ValidationError
-from keeper.taskrunner import mock_registry
 
 # from keeper.tasks.dashboardbuild import build_dashboard
 
@@ -21,8 +20,6 @@ if TYPE_CHECKING:
 
 @pytest.mark.skip(reason="Needs infastructure to simulate celery task")
 def test_builds(client: TestClient, mocker: Mock) -> None:
-    mock_registry.patch_all(mocker)
-
     # Create default organization
     from keeper.models import Organization, db
 
@@ -38,7 +35,7 @@ def test_builds(client: TestClient, mocker: Mock) -> None:
 
     # ========================================================================
     # Add product /products/pipelines
-    mocker.resetall()
+    # mocker.resetall()
 
     p = {
         "slug": "pipelines",
@@ -64,7 +61,7 @@ def test_builds(client: TestClient, mocker: Mock) -> None:
 
     # ========================================================================
     # Add a sample edition
-    mocker.resetall()
+    # mocker.resetall()
 
     e = {
         "tracked_refs": ["master"],
@@ -81,7 +78,7 @@ def test_builds(client: TestClient, mocker: Mock) -> None:
 
     # ========================================================================
     # Add a build
-    mocker.resetall()
+    # mocker.resetall()
 
     b1 = {
         "slug": "b1",
@@ -101,14 +98,14 @@ def test_builds(client: TestClient, mocker: Mock) -> None:
 
     # ========================================================================
     # Re-add build with same slug; should fail
-    mocker.resetall()
+    # mocker.resetall()
 
     with pytest.raises(ValidationError):
         r = client.post("/products/pipelines/builds/", b1)
 
     # ========================================================================
     # List builds
-    mocker.resetall()
+    # mocker.resetall()
 
     r = client.get("/products/pipelines/builds/")
     assert r.status == 200
@@ -116,7 +113,7 @@ def test_builds(client: TestClient, mocker: Mock) -> None:
 
     # ========================================================================
     # Get build
-    mocker.resetall()
+    # mocker.resetall()
 
     r = client.get(build_url)
     assert r.status == 200
@@ -125,7 +122,7 @@ def test_builds(client: TestClient, mocker: Mock) -> None:
 
     # ========================================================================
     # Register upload
-    mocker.resetall()
+    # mocker.resetall()
 
     r = client.patch(build_url, {"uploaded": True})
     assert r.status == 200
@@ -160,14 +157,14 @@ def test_builds(client: TestClient, mocker: Mock) -> None:
 
     # ========================================================================
     # Check that the edition was rebuilt
-    mocker.resetall()
+    # mocker.resetall()
 
     edition_data = client.get("http://example.test/editions/2")
     assert edition_data.json["build_url"] == build_url
 
     # ========================================================================
     # Deprecate build
-    mocker.resetall()
+    # mocker.resetall()
 
     r = client.delete("/builds/1")
     assert r.status == 200
@@ -185,7 +182,7 @@ def test_builds(client: TestClient, mocker: Mock) -> None:
 
     # ========================================================================
     # Add an auto-slugged build
-    mocker.resetall()
+    # mocker.resetall()
 
     b2 = {"git_refs": ["master"]}
     r = client.post("/products/pipelines/builds/", b2)
@@ -195,7 +192,7 @@ def test_builds(client: TestClient, mocker: Mock) -> None:
 
     # ========================================================================
     # Add an auto-slugged build
-    mocker.resetall()
+    # mocker.resetall()
 
     b3 = {"git_refs": ["master"]}
     r = client.post("/products/pipelines/builds/", b3)
@@ -205,7 +202,7 @@ def test_builds(client: TestClient, mocker: Mock) -> None:
 
     # ========================================================================
     # Add a build missing 'git_refs'
-    mocker.resetall()
+    # mocker.resetall()
 
     b4 = {"slug": "bad-build"}
     with pytest.raises(pydantic.ValidationError):
@@ -213,7 +210,7 @@ def test_builds(client: TestClient, mocker: Mock) -> None:
 
     # ========================================================================
     # Add a build with a badly formatted git_refs
-    mocker.resetall()
+    # mocker.resetall()
 
     b5 = {"slug": "another-bad-build", "git_refs": "master"}
     with pytest.raises(pydantic.ValidationError):
@@ -221,7 +218,7 @@ def test_builds(client: TestClient, mocker: Mock) -> None:
 
     # ========================================================================
     # Add a build and see if an edition was automatically created
-    mocker.resetall()
+    # mocker.resetall()
 
     b6 = {"git_refs": ["tickets/DM-1234"]}
     r = client.post("/products/pipelines/builds/", b6)
