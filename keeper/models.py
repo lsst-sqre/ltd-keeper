@@ -10,7 +10,7 @@ import enum
 import urllib.parse
 import uuid
 from datetime import datetime
-from typing import Any, Optional, Type, Union
+from typing import Any, List, Optional, Type, Union
 
 from flask import current_app
 from flask_migrate import Migrate
@@ -587,18 +587,24 @@ class Build(db.Model):  # type: ignore
         return urllib.parse.urlunparse(parts)
 
     def register_uploaded_build(self) -> None:
-        """Hook for when a build has been uploaded."""
+        """Register that a build is uploaded and determine what editions should
+        be rebuilt with this build.
+        """
         self.uploaded = True
 
+    def get_tracking_editions(self) -> List[Edition]:
+        """Get the editions that should rebuild to this build."""
         editions = (
             Edition.query.autoflush(False)
             .filter(Edition.product == self.product)
             .all()
         )
 
-        for edition in editions:
-            if edition.should_rebuild(build=self):
-                edition.set_pending_rebuild(build=self)
+        return [
+            edition
+            for edition in editions
+            if edition.should_rebuild(build=self)
+        ]
 
     def deprecate_build(self) -> None:
         """Trigger a build deprecation.

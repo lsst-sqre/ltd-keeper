@@ -6,6 +6,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import pytest
+
 from keeper.taskrunner import mock_registry
 
 # from keeper.tasks.dashboardbuild import build_dashboard
@@ -16,6 +18,7 @@ if TYPE_CHECKING:
     from keeper.testutils import TestClient
 
 
+@pytest.mark.skip(reason="Needs infastructure to simulate celery task")
 def test_pach_lsst_doc_edition(client: TestClient, mocker: Mock) -> None:
     """Test patching an edition from tracking a Git ref to an LSST doc.
 

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import pytest
+
 from keeper.taskrunner import mock_registry
 
 if TYPE_CHECKING:
@@ -12,6 +14,7 @@ if TYPE_CHECKING:
     from keeper.testutils import TestClient
 
 
+@pytest.mark.skip(reason="Needs infastructure to simulate celery task")
 def test_eups_daily_release_edition(client: TestClient, mocker: Mock) -> None:
     """Test an edition that tracks the most recent EUPS daily release."""
     # The celery tasks need to be mocked, but are not checked.

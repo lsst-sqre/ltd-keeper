@@ -6,12 +6,15 @@ from typing import TYPE_CHECKING, Optional
 
 from keeper.models import db
 
+from .updateedition import update_edition
+
 if TYPE_CHECKING:
     from keeper.models import Build
 
 
 def update_build(*, build: Build, uploaded: Optional[bool]) -> Build:
-    """Update a build resource, including indicating that it is uploaded.
+    """Update a build resource, including indicating that it is uploaded,
+    and trigger rebuilds for tracking editions.
 
     This method adds the build to the database session and commits it.
 
@@ -29,8 +32,11 @@ def update_build(*, build: Build, uploaded: Optional[bool]) -> Build:
     """
     if uploaded is True:
         build.register_uploaded_build()
+        db.session.add(build)
+        db.session.commit()
 
-    db.session.add(build)
-    db.session.commit()
+        editions_to_rebuild = build.get_tracking_editions()
+        for edition in editions_to_rebuild:
+            update_edition(edition=edition, build=build)
 
     return build
