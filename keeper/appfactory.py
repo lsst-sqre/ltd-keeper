@@ -57,9 +57,15 @@ def create_flask_app(profile: Optional[str] = None) -> Flask:
     )  # for sqlite; safe for other servers
 
     # Register blueprints
-    from keeper.api import api as api_blueprint
+    if app.config["ENABLE_V1_API"]:
+        from keeper.api import api as api_blueprint
 
-    app.register_blueprint(api_blueprint, url_prefix=None)
+        app.register_blueprint(api_blueprint, url_prefix=None)
+
+    if app.config["ENABLE_V2_API"]:
+        from keeper.v2api import v2api as v2api_blueprint
+
+        app.register_blueprint(v2api_blueprint, url_prefix="/v2")
 
     # Add custom Flask CLI subcommands
     from keeper.cli import add_app_commands

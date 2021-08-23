@@ -46,6 +46,9 @@ class Config(abc.ABC):
     LTD_EVENTS_URL: Optional[str] = os.getenv("LTD_EVENTS_URL", None)
     DEFAULT_EDITION_KIND: EditionKind = EditionKind.draft
 
+    ENABLE_V1_API: bool = bool(int(os.getenv("LTD_KEEPER_ENABLE_V1", "1")))
+    ENABLE_V2_API: bool = bool(int(os.getenv("LTD_KEEPER_ENABLE_V2", "1")))
+
     # Suppresses a warning until Flask-SQLAlchemy 3
     # See http://stackoverflow.com/a/33790196
     SQLALCHEMY_TRACK_MODIFICATIONS: bool = False
