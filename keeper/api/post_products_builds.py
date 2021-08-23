@@ -148,7 +148,6 @@ def post_products_builds_v1(slug: str) -> Tuple[str, int, Dict[str, str]]:
             github_requester=request_data.github_requester,
             slug=request_data.slug,
         )
-        db.session.commit()
     except Exception:
         db.session.rollback()
         raise
@@ -174,15 +173,13 @@ def post_products_builds_v2(slug: str) -> Tuple[str, int, Dict[str, str]]:
             github_requester=request_data.github_requester,
             slug=request_data.slug,
         )
-
-        presigned_prefix_urls, presigned_dir_urls = create_presigned_post_urls(
-            build=build, directories=request_data.directories
-        )
-
-        db.session.commit()
     except Exception:
         db.session.rollback()
         raise
+
+    presigned_prefix_urls, presigned_dir_urls = create_presigned_post_urls(
+        build=build, directories=request_data.directories
+    )
 
     build_response = BuildResponse.from_build(
         build,

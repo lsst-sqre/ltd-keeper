@@ -35,8 +35,7 @@ def create_build(
 ) -> Tuple[Build, Optional[Edition]]:
     """Create a new build.
 
-    The build is added to the current database session. The caller is
-    responsible for committing the database session.
+    The build is added to the current database session and committed.
 
     Parameters
     ----------
@@ -86,10 +85,11 @@ def create_build(
         build.slug = slug
 
     db.session.add(build)
+    db.session.commit()
+
     print("Just added new build")
     print("new objects", db.session.new)
     print("changed objects", db.session.dirty)
-    # db.session.flush()
 
     # Create an edition to track this git ref if necessary
     edition = create_autotracking_edition(product=product, build=build)
@@ -118,8 +118,7 @@ def create_autotracking_edition(
 ) -> Optional[Edition]:
     """Create an edition that tracks the git_ref of the build.
 
-    The edition is added to the current database session. The caller is
-    responsible for committing the database session.
+    The edition is added to the current database session and committed.
 
     Parameters
     ----------
@@ -152,6 +151,7 @@ def create_autotracking_edition(
                 tracked_ref=build.git_ref,
             )
             db.session.add(edition)
+            db.session.commit()
 
             logger.info(
                 "Created edition because of a build",

@@ -9,13 +9,22 @@ from __future__ import annotations
 import json
 from base64 import b64encode
 from collections import namedtuple
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 from urllib.parse import urlsplit, urlunsplit
 
+from keeper.api._urls import build_from_url, edition_from_url, product_from_url
+from keeper.tasks.registry import task_registry
+
 if TYPE_CHECKING:
+    from unittest.mock import Mock
+
     from flask import Flask
 
-__all__ = ["response", "TestClient"]
+__all__ = [
+    "response",
+    "TestClient",
+    "MockTaskQueue",
+]
 
 response = namedtuple("response", "status headers json")
 
@@ -114,3 +123,85 @@ class TestClient:
         self, url: str, headers: Optional[Dict[str, str]] = None
     ) -> response:
         return self.send(url, "DELETE", headers=headers)
+
+
+class MockTaskQueue:
+    """A mocked task queue that can be inspected."""
+
+    def __init__(self, mocker: Mock) -> None:
+        self._mock = mocker.patch(
+            "keeper.taskrunner.inspect_task_queue", return_value=None
+        )
+        self._registry = task_registry
+
+    def assert_launched_once(self) -> None:
+        """Assert that the task queue was launched only once."""
+        self._mock.assert_called_once()
+
+    def _get_tasks(self) -> List[Tuple[str, Dict[str, Any]]]:
+        all_tasks: List[Tuple[str, Dict[str, Any]]] = []
+        for call in self._mock.call_args_list:
+            tasks = call[0][0]
+            for task in tasks:
+                all_tasks.append(task)
+        return all_tasks
+
+    def assert_task(
+        self, command_name: str, data: Dict[str, Any], once: bool = True
+    ) -> None:
+        """Assert that a task was in the launched queue."""
+        call_count = 0
+        for task in self._get_tasks():
+            if task[0] == command_name and task[1] == data:
+                call_count += 1
+
+        if once:
+            if call_count == 1:
+                return None
+            else:
+                raise AssertionError(
+                    f"Task {command_name!r} with data {data!r} "
+                    f"was launched {call_count} times (1 expected)."
+                )
+        else:
+            if call_count > 0:
+                return None
+            else:
+                raise AssertionError(
+                    f"Task {command_name!r} with data {data!r} was not "
+                    "launched."
+                )
+
+    def assert_dashboard_build_v1(
+        self, product_url: str, once: bool = True
+    ) -> None:
+        product = product_from_url(product_url)
+        self.assert_task(
+            "build_dashboard", {"product_id": product.id}, once=once
+        )
+
+    def assert_edition_build_v1(
+        self, edition_url: str, build_url: str, once: bool = True
+    ) -> None:
+        edition = edition_from_url(edition_url)
+        build = build_from_url(build_url)
+        self.assert_task(
+            "rebuild_edition",
+            {"edition_id": edition.id, "build_id": build.id},
+            once=once,
+        )
+
+    def assert_edition_rename_v1(
+        self, edition_url: str, new_slug: str, once: bool = True
+    ) -> None:
+        edition = edition_from_url(edition_url)
+        self.assert_task(
+            "rebuild_edition",
+            {"edition_id": edition.id, "new_slug": new_slug},
+            once=once,
+        )
+
+    def apply_task_side_effects(self) -> None:
+        for (task_name, task_args) in self._get_tasks():
+            task = self._registry[task_name]
+            task.test_mock(**task_args)

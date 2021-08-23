@@ -4,28 +4,19 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Optional
 
-# FIXME refactor arg for tasks
-from keeper.api._urls import url_for_product
 from keeper.models import db
-from keeper.taskrunner import append_task_to_chain, mock_registry
-from keeper.tasks.dashboardbuild import build_dashboard
+
+from .updateedition import update_edition
 
 if TYPE_CHECKING:
     from keeper.models import Build
 
 
-# Register imports of celery task chain launchers
-mock_registry.extend(
-    [
-        "keeper.services.updatebuild.append_task_to_chain",
-    ]
-)
-
-
 def update_build(*, build: Build, uploaded: Optional[bool]) -> Build:
-    """Update a build resource, including indicating that it is uploaded.
+    """Update a build resource, including indicating that it is uploaded,
+    and trigger rebuilds for tracking editions.
 
-    This method adds the build to the database session.
+    This method adds the build to the database session and commits it.
 
     Parameters
     ----------
@@ -41,10 +32,11 @@ def update_build(*, build: Build, uploaded: Optional[bool]) -> Build:
     """
     if uploaded is True:
         build.register_uploaded_build()
+        db.session.add(build)
+        db.session.commit()
 
-    db.session.add(build)
-
-    product_url = url_for_product(build.product)
-    append_task_to_chain(build_dashboard.si(product_url))
+        editions_to_rebuild = build.get_tracking_editions()
+        for edition in editions_to_rebuild:
+            update_edition(edition=edition, build=build)
 
     return build

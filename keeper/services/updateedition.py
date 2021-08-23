@@ -8,28 +8,20 @@ from typing import TYPE_CHECKING, Optional
 
 from structlog import get_logger
 
-# FIXME refactor arg for tasks
-from keeper.api._urls import url_for_edition, url_for_product
 from keeper.models import db
-from keeper.taskrunner import append_task_to_chain, mock_registry
-from keeper.tasks.dashboardbuild import build_dashboard
+
+from .requestdashboardbuild import request_dashboard_build
+from .requesteditionrebuild import request_edition_rebuild
+from .requesteditionrename import request_edition_rename
 
 if TYPE_CHECKING:
-    from keeper.models import Edition
-
-
-# Register imports of celery task chain launchers
-mock_registry.extend(
-    [
-        "keeper.services.updateedition.append_task_to_chain",
-    ]
-)
+    from keeper.models import Build, Edition
 
 
 def update_edition(
     *,
     edition: Edition,
-    build_url: Optional[str] = None,
+    build: Optional[Build] = None,
     title: Optional[str] = None,
     slug: Optional[str] = None,
     tracking_mode: Optional[str] = None,
@@ -50,24 +42,27 @@ def update_edition(
     if title is not None:
         edition.title = title
 
-    if build_url is not None:
-        edition.set_pending_rebuild(build_url=build_url)
-
     if slug is not None:
-        edition.update_slug(slug)
+        request_edition_rename(edition=edition)
+
+    product = edition.product
 
     if pending_rebuild is not None:
         logger.warning(
             "Manual reset of Edition.pending_rebuild",
-            edition=url_for_edition(edition),
+            edition_slug=edition.slug,
+            project_slug=product.slug,
             prev_pending_rebuild=edition.pending_rebuild,
             new_pending_rebuild=pending_rebuild,
         )
         edition.pending_rebuild = pending_rebuild
 
     db.session.add(edition)
+    db.session.commit()
 
-    product_url = url_for_product(edition.product)
-    append_task_to_chain(build_dashboard.si(product_url))
+    if build is not None:
+        request_edition_rebuild(edition=edition, build=build)
+
+    request_dashboard_build(product)
 
     return edition

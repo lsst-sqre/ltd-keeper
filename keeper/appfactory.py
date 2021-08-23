@@ -8,7 +8,6 @@ from typing import Optional
 from flask import Flask
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-from keeper.cli import add_app_commands
 from keeper.config import config
 
 __all__ = ["create_flask_app"]
@@ -63,6 +62,8 @@ def create_flask_app(profile: Optional[str] = None) -> Flask:
     app.register_blueprint(api_blueprint, url_prefix=None)
 
     # Add custom Flask CLI subcommands
+    from keeper.cli import add_app_commands
+
     add_app_commands(app)
 
     return app

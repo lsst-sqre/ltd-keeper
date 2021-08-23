@@ -10,7 +10,7 @@ import enum
 import urllib.parse
 import uuid
 from datetime import datetime
-from typing import Any, Optional, Type, Union
+from typing import Any, List, Optional, Type, Union
 
 from flask import current_app
 from flask_migrate import Migrate
@@ -19,19 +19,11 @@ from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from structlog import get_logger
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from keeper import s3
 from keeper.editiontracking import EditionTrackingModes
 from keeper.exceptions import ValidationError
-from keeper.taskrunner import append_task_to_chain, mock_registry
-from keeper.utils import (
-    JSONEncodedVARCHAR,
-    MutableList,
-    split_url,
-    validate_path_slug,
-)
+from keeper.utils import JSONEncodedVARCHAR, MutableList, validate_path_slug
 
 __all__ = [
-    "mock_registry",
     "db",
     "migrate",
     "edition_tracking_modes",
@@ -45,10 +37,6 @@ __all__ = [
     "Build",
     "Edition",
 ]
-
-# Register imports of celery task chain launchers
-mock_registry.extend(["keeper.models.append_task_to_chain"])
-
 
 db = SQLAlchemy()
 """Database connection.
@@ -473,38 +461,6 @@ class Product(db.Model):  # type: ignore
     )
     """Tags associated with this product."""
 
-    @classmethod
-    def from_url(cls, product_url: str) -> "Product":
-        """Get a Product given its API URL.
-
-        Parameters
-        ----------
-        product_url : `str`
-            API URL of the product. This is the same as `Product.get_url`.
-
-        Returns
-        -------
-        product : `Product`
-            The `Product` instance corresponding to the URL.
-        """
-        logger = get_logger(__name__)
-
-        # Get new Product ID from the product resource's URL
-        product_endpoint, product_args = split_url(product_url)
-        if product_endpoint != "api.get_product" or "slug" not in product_args:
-            logger.debug(
-                "Invalid product_url",
-                product_endpoint=product_endpoint,
-                product_args=product_args,
-            )
-            raise ValidationError(
-                "Invalid product_url: {}".format(product_url)
-            )
-        slug = product_args["slug"]
-        product = cls.query.filter_by(slug=slug).first_or_404()
-
-        return product
-
     @property
     def domain(self) -> str:
         """Domain where docs for this product are served from.
@@ -611,30 +567,6 @@ class Build(db.Model):  # type: ignore
     """User who uploaded this build.
     """
 
-    @classmethod
-    def from_url(cls, build_url: str) -> "Build":
-        """Get a Build given its API URL.
-
-        Parameters
-        ----------
-        build_url : `str`
-            External API URL of the build.
-
-        Returns
-        -------
-        build : `Build`
-            The Build instance corresponding to the URL.
-        """
-        # Get new Build ID from the build resource's URL
-        build_endpoint, build_args = split_url(build_url)
-        if build_endpoint != "api.get_build" or "id" not in build_args:
-            raise ValidationError("Invalid build_url: {}".format(build_url))
-        build = cls.query.get(build_args["id"])
-        if build is None:
-            raise ValidationError("Invalid build_url: " + build_url)
-
-        return build
-
     @property
     def bucket_root_dirname(self) -> str:
         """Directory in the bucket where the build is located."""
@@ -654,18 +586,24 @@ class Build(db.Model):  # type: ignore
         return urllib.parse.urlunparse(parts)
 
     def register_uploaded_build(self) -> None:
-        """Hook for when a build has been uploaded."""
+        """Register that a build is uploaded and determine what editions should
+        be rebuilt with this build.
+        """
         self.uploaded = True
 
+    def get_tracking_editions(self) -> List[Edition]:
+        """Get the editions that should rebuild to this build."""
         editions = (
             Edition.query.autoflush(False)
             .filter(Edition.product == self.product)
             .all()
         )
 
-        for edition in editions:
-            if edition.should_rebuild(build=self):
-                edition.set_pending_rebuild(build=self)
+        return [
+            edition
+            for edition in editions
+            if edition.should_rebuild(build=self)
+        ]
 
     def deprecate_build(self) -> None:
         """Trigger a build deprecation.
@@ -779,37 +717,6 @@ class Edition(db.Model):  # type: ignore
     build = db.relationship("Build", uselist=False)
     """One-to-one relationship with the `Build` resource."""
 
-    @classmethod
-    def from_url(cls, edition_url: str) -> "Edition":
-        """Get an Edition given its API URL.
-
-        Parameters
-        ----------
-        edition_url : `str`
-            API URL of the edition. This is the same as `Edition.get_url`.
-
-        Returns
-        -------
-        edition : `Edition`
-            The `Edition` instance corresponding to the URL.
-        """
-        logger = get_logger(__name__)
-
-        # Get new Product ID from the product resource's URL
-        edition_endpoint, endpoint_args = split_url(edition_url)
-        if edition_endpoint != "api.get_edition" or "id" not in endpoint_args:
-            logger.debug(
-                "Invalid edition_url",
-                edition_endpoint=edition_endpoint,
-                endpoint_args=endpoint_args,
-            )
-            raise ValidationError(
-                "Invalid edition_url: {}".format(edition_url)
-            )
-        edition = cls.query.get(endpoint_args["id"])
-
-        return edition
-
     @property
     def bucket_root_dirname(self) -> str:
         """Directory in the bucket where the edition is located."""
@@ -832,19 +739,14 @@ class Edition(db.Model):  # type: ignore
             )
         return urllib.parse.urlunparse(parts)
 
-    def should_rebuild(
-        self, build_url: Optional[str] = None, build: Optional[Build] = None
-    ) -> bool:
+    def should_rebuild(self, build: Build) -> bool:
         """Determine whether the edition should be rebuilt to show a certain
         build given the tracking mode.
 
         Parameters
         ----------
-        build_url : `str`, optional
-            API URL of the build resource. Optional if ``build`` is provided
-            instead.
-        build : `Build`, optional
-            `Build` object. Optional if ``build_url`` is provided instead.
+        build : `Build`
+            `Build` object.
 
         Returns
         -------
@@ -861,12 +763,7 @@ class Edition(db.Model):  # type: ignore
             "Edition {!r} in should_rebuild".format(url_for_edition(self))
         )
 
-        if build is not None:
-            candidate_build = build
-        elif build_url is not None:
-            candidate_build = Build.from_url(build_url)
-        else:
-            raise RuntimeError("Provide either a build or build_url arg.")
+        candidate_build = build
 
         # Prefilter
         if candidate_build.product != self.product:
@@ -886,23 +783,17 @@ class Edition(db.Model):  # type: ignore
 
         return tracking_mode.should_update(self, candidate_build)
 
-    def set_pending_rebuild(
-        self, build_url: Optional[str] = None, build: Optional["Build"] = None
-    ) -> None:
+    def set_pending_rebuild(self, build: Build) -> None:
         """Update the build this edition is declared to point to and set it
         to a pending state.
 
-        The caller must separately initial a
-        `keeper.tasks.editionrebuild.rebuild_edition` task to implement the
-        declared change (after this DB change is committed).
+        This method should be called from the task that is actively handling
+        the rebuild. This method does not perform the rebuild itself.
 
         Parameters
         ----------
-        build_url : `str`, optional
-            API URL of the build resource. Optional if ``build`` is provided
-            instead.
-        build : `Build`, optional
-            `Build` object. Optional if ``build_url`` is provided instead.
+        build : `Build`
+            `Build` object.
 
         See also
         --------
@@ -924,15 +815,8 @@ class Edition(db.Model):  # type: ignore
         3. Sets the desired state (update the build reference and sets
            ``pending_rebuild`` field to `True`).
 
-        The ``rebuild_edition`` celery task, separately, implements the rebuild
-        and calls the `Edition.set_rebuild_complete` method to confirm that
-        the rebuild is complete.
+        4. Sets the edition's build to the new build.
         """
-        if build is None:
-            if build_url is None:
-                raise RuntimeError("Provide a build_url if build is None")
-            build = Build.from_url(build_url)
-
         # Create a surrogate-key for the edition if it doesn't have one
         if self.surrogate_key is None:
             self.surrogate_key = uuid.uuid4().hex
@@ -951,17 +835,6 @@ class Edition(db.Model):  # type: ignore
         # Set the desired state
         self.build = build
         self.pending_rebuild = True
-
-        # Add the rebuild_edition task
-        # Lazy load the task because it references the db/Edition model
-        # shim for refactoring
-        from keeper.api._urls import url_for_edition
-
-        from .tasks.editionrebuild import rebuild_edition
-
-        edition_url = url_for_edition(self)
-
-        append_task_to_chain(rebuild_edition.si(edition_url, self.id))
 
     def set_rebuild_complete(self) -> None:
         """Confirm that the rebuild is complete and the declared state is
@@ -1023,36 +896,14 @@ class Edition(db.Model):  # type: ignore
             return self.default_mode_name
 
     def update_slug(self, new_slug: str) -> None:
-        """Update the edition's slug by migrating files on S3."""
+        """Update the edition's slug by migrating files on S3.
+
+        This method only validates the slugs name and sets it on the model.
+        The caller is responsible for also migrating the S3 objects.
+        """
         # Check that this slug does not already exist
         self._validate_slug(new_slug)
-
-        old_bucket_root_dir = self.bucket_root_dirname
-
         self.slug = new_slug
-        new_bucket_root_dir = self.bucket_root_dirname
-
-        AWS_ID = current_app.config["AWS_ID"]
-        AWS_SECRET = current_app.config["AWS_SECRET"]
-        if (
-            AWS_ID is not None
-            and AWS_SECRET is not None
-            and self.build is not None
-        ):
-            s3.copy_directory(
-                self.product.bucket_name,
-                old_bucket_root_dir,
-                new_bucket_root_dir,
-                AWS_ID,
-                AWS_SECRET,
-                surrogate_key=self.surrogate_key,
-            )
-            s3.delete_directory(
-                self.product.bucket_name,
-                old_bucket_root_dir,
-                AWS_ID,
-                AWS_SECRET,
-            )
 
     def _compute_autoincremented_slug(self) -> str:
         """Compute an autoincremented integer slug for this edition.

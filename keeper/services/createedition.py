@@ -3,21 +3,13 @@ from __future__ import annotations
 import uuid
 from typing import TYPE_CHECKING, Optional
 
-from keeper.api._urls import url_for_product  # FIXME refactor arg for tasks
 from keeper.models import Edition, db
-from keeper.taskrunner import append_task_to_chain, mock_registry
-from keeper.tasks.dashboardbuild import build_dashboard
+
+from .requestdashboardbuild import request_dashboard_build
+from .requesteditionrebuild import request_edition_rebuild
 
 if TYPE_CHECKING:
-    from keeper.models import Product
-
-
-# Register imports of celery task chain launchers
-mock_registry.extend(
-    [
-        "keeper.services.createedition.append_task_to_chain",
-    ]
-)
+    from keeper.models import Build, Product
 
 
 def create_edition(
@@ -28,13 +20,13 @@ def create_edition(
     slug: Optional[str] = None,
     autoincrement_slug: bool = False,
     tracked_ref: str = "master",
-    build_url: Optional[str] = None,
+    build: Optional[Build] = None,
 ) -> Edition:
     """Create a new edition.
 
-    The edition is added to the current database session. A dashboard rebuild
-    task is also appended to the task chain. The caller is responsible for
-    committing the database session and launching the celery task.
+    The edition is added to the current database session and comitted.
+    A dashboard rebuild task is also appended to the task chain. The caller is
+    responsible for launching the celery task.
 
     Parameters
     ----------
@@ -55,15 +47,17 @@ def create_edition(
     tracked_ref : str, optional
         The name of the Git ref that this edition tracks, if ``tracking_mode``
         is ``"git_refs"``.
-    build_url : str, optional
-        The URL of the build to initially publish with this edition.
+    build : Build, optional
+        The build to initially publish with this edition.
 
     Returns
     -------
     edition : `keeper.models.Edition`
         The edition, which is also added to the current database session.
     """
-    edition = Edition(product=product, surrogate_key=uuid.uuid4().hex)
+    edition = Edition(
+        product=product, surrogate_key=uuid.uuid4().hex, pending_rebuild=False
+    )
 
     if autoincrement_slug:
         edition.slug = edition._compute_autoincremented_slug()
@@ -82,13 +76,12 @@ def create_edition(
     if edition.mode_name == "git_refs":
         edition.tracked_refs = [tracked_ref]
 
-    if build_url is not None:
-        # FIXME refactor this into a service.
-        edition.set_pending_rebuild(build_url)
-
     db.session.add(edition)
+    db.session.commit()
 
-    product_url = url_for_product(product)
-    append_task_to_chain(build_dashboard.si(product_url))
+    if build is not None:
+        request_edition_rebuild(edition=edition, build=build)
+
+    request_dashboard_build(product)
 
     return edition

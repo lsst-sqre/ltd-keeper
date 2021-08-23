@@ -2,21 +2,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Optional
 
-from keeper.api._urls import url_for_product  # FIXME refactor arg for tasks
 from keeper.models import db
-from keeper.taskrunner import append_task_to_chain, mock_registry
-from keeper.tasks.dashboardbuild import build_dashboard
+
+from .requestdashboardbuild import request_dashboard_build
 
 if TYPE_CHECKING:
     from keeper.models import Product
-
-
-# Register imports of celery task chain launchers
-mock_registry.extend(
-    [
-        "keeper.services.updateproduct.append_task_to_chain",
-    ]
-)
 
 
 def update_product(
@@ -24,10 +15,9 @@ def update_product(
 ) -> Product:
     """Modify an existing product.
 
-    The updated product is added to the current database session. A
-    dashboard rebuild task is also appended to the task chain. The caller is
-    responsible for committing the database session and launching the celery
-    task.
+    The updated product is added to the current database session and
+    committed. A dashboard rebuild task is also appended to the task chain.
+    The caller is responsible for launching the celery task.
 
     Parameters
     ----------
@@ -50,8 +40,8 @@ def update_product(
         product.title = new_title
 
     db.session.add(product)
+    db.session.commit()
 
-    product_url = url_for_product(product)
-    append_task_to_chain(build_dashboard.si(product_url))
+    request_dashboard_build(product)
 
     return product

@@ -8,8 +8,7 @@ import pydantic
 import pytest
 import werkzeug.exceptions
 
-from keeper.taskrunner import mock_registry
-from keeper.tasks.dashboardbuild import build_dashboard
+from keeper.testutils import MockTaskQueue
 
 if TYPE_CHECKING:
     from unittest.mock import Mock
@@ -18,9 +17,12 @@ if TYPE_CHECKING:
 
 
 def test_products(client: TestClient, mocker: Mock) -> None:
-    """Test various API operations against Product resources."""
-    mock_registry.patch_all(mocker)
+    task_queue = mocker.patch(
+        "keeper.taskrunner.inspect_task_queue", return_value=None
+    )
+    task_queue = MockTaskQueue(mocker)
 
+    """Test various API operations against Product resources."""
     # Create default organization
     from keeper.models import Organization, db
 
@@ -56,14 +58,13 @@ def test_products(client: TestClient, mocker: Mock) -> None:
         "bucket_name": "bucket-name",
     }
     r = client.post("/products/", p1)
+    task_queue.apply_task_side_effects()
     p1_url = r.headers["Location"]
 
     assert r.status == 201
 
-    mock_registry[
-        "keeper.services.createproduct.append_task_to_chain"
-    ].assert_called_with(build_dashboard.si(p1_url))
-    mock_registry["keeper.api.products.launch_task_chain"].assert_called_once()
+    task_queue.assert_launched_once()
+    task_queue.assert_dashboard_build_v1(p1_url, once=False)  # FIXME
 
     # ========================================================================
     # Validate that default edition was made
@@ -92,13 +93,13 @@ def test_products(client: TestClient, mocker: Mock) -> None:
         "bucket_name": "bucket-name",
     }
     r = client.post("/products/", p2)
+    task_queue.apply_task_side_effects()
     p2_url = r.headers["Location"]
 
     assert r.status == 201
-    mock_registry[
-        "keeper.services.createproduct.append_task_to_chain"
-    ].assert_called_with(build_dashboard.si(p2_url))
-    mock_registry["keeper.api.products.launch_task_chain"].assert_called_once()
+
+    task_queue.assert_launched_once()
+    task_queue.assert_dashboard_build_v1(p2_url)
 
     # ========================================================================
     # Add product with slug that will fail validation
@@ -193,6 +194,7 @@ def test_products(client: TestClient, mocker: Mock) -> None:
     mocker.resetall()
 
     r = client.patch("/products/qserv", p2v2)
+    task_queue.apply_task_side_effects()
     assert r.status == 200
 
     r = client.get("/products/qserv")
@@ -200,10 +202,8 @@ def test_products(client: TestClient, mocker: Mock) -> None:
     for k, v in p2v2.items():
         assert r.json[k] == v
 
-    mock_registry[
-        "keeper.services.updateproduct.append_task_to_chain"
-    ].assert_called_with(build_dashboard.si(p2_url))
-    mock_registry["keeper.api.products.launch_task_chain"].assert_called_once()
+    task_queue.assert_launched_once()
+    task_queue.assert_dashboard_build_v1(p2_url)
 
 
 # Authorizion tests: POST /products/ =========================================
