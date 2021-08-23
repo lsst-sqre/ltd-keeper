@@ -109,19 +109,24 @@ def new_edition(slug: str) -> Tuple[str, int, Dict[str, str]]:
         build: Optional[Build] = build_from_url(request_data.build_url)
     else:
         build = None
-    edition = create_edition(
-        product=product,
-        title=request_data.title,
-        tracking_mode=request_data.mode,
-        slug=request_data.slug,
-        autoincrement_slug=request_data.autoincrement,
-        tracked_ref=(
-            request_data.tracked_refs[0]
-            if isinstance(request_data.tracked_refs, list)
-            else None
-        ),
-        build=build,
-    )
+
+    try:
+        edition = create_edition(
+            product=product,
+            title=request_data.title,
+            tracking_mode=request_data.mode,
+            slug=request_data.slug,
+            autoincrement_slug=request_data.autoincrement,
+            tracked_ref=(
+                request_data.tracked_refs[0]
+                if isinstance(request_data.tracked_refs, list)
+                else None
+            ),
+            build=build,
+        )
+    except Exception:
+        db.session.rollback()
+        raise
 
     task = launch_tasks()
     response = EditionResponse.from_edition(edition, task=task)
@@ -178,8 +183,11 @@ def deprecate_edition(id: int) -> Tuple[str, int]:
     :statuscode 404: Edition not found.
     """
     edition = Edition.query.get_or_404(id)
-    edition.deprecate()
-    db.session.commit()
+    try:
+        edition.deprecate()
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
 
     request_dashboard_build(edition.product)
     task = launch_tasks()
@@ -421,19 +429,24 @@ def edit_edition(id: int) -> str:
         build: Optional[Build] = build_from_url(request_data.build_url)
     else:
         build = None
-    edition = update_edition(
-        edition=edition,
-        build=build,
-        title=request_data.title,
-        slug=request_data.slug,
-        tracking_mode=request_data.mode,
-        tracked_ref=(
-            request_data.tracked_refs[0]
-            if isinstance(request_data.tracked_refs, list)
-            else None
-        ),
-        pending_rebuild=request_data.pending_rebuild,
-    )
+
+    try:
+        edition = update_edition(
+            edition=edition,
+            build=build,
+            title=request_data.title,
+            slug=request_data.slug,
+            tracking_mode=request_data.mode,
+            tracked_ref=(
+                request_data.tracked_refs[0]
+                if isinstance(request_data.tracked_refs, list)
+                else None
+            ),
+            pending_rebuild=request_data.pending_rebuild,
+        )
+    except Exception:
+        db.session.rollback()
+        raise
 
     # Run the task queue
     task = launch_tasks()

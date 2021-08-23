@@ -85,7 +85,11 @@ def patch_build(id: int) -> Tuple[str, int, Dict[str, str]]:
     """
     build = Build.query.get_or_404(id)
     request_data = BuildPatchRequest.parse_obj(request.json)
-    build = update_build(build=build, uploaded=request_data.uploaded)
+
+    try:
+        build = update_build(build=build, uploaded=request_data.uploaded)
+    except Exception:
+        db.session.rollback()
 
     # Run the task queue
     task = launch_tasks()
@@ -144,8 +148,11 @@ def deprecate_build(id: int) -> Tuple[Response, int]:
     :statuscode 404: Build not found.
     """
     build = Build.query.get_or_404(id)
-    build.deprecate_build()
-    db.session.commit()
+    try:
+        build.deprecate_build()
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
     return jsonify({}), 200
 
 

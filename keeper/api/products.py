@@ -10,7 +10,7 @@ from flask_accept import accept_fallback
 from keeper.api import api
 from keeper.auth import permission_required, token_auth
 from keeper.logutils import log_route
-from keeper.models import Organization, Permission, Product
+from keeper.models import Organization, Permission, Product, db
 from keeper.services.createproduct import create_product
 from keeper.services.requestdashboardbuild import request_dashboard_build
 from keeper.services.updateproduct import update_product
@@ -218,17 +218,22 @@ def new_product() -> Tuple[str, int, Dict[str, str]]:
 
     # Get default organization (v1 API adapter for organizations)
     org = Organization.query.order_by(Organization.id).first_or_404()
-    product, main_edition = create_product(
-        org=org,
-        slug=product_request.slug,
-        doc_repo=product_request.doc_repo,
-        title=product_request.title,
-        default_edition_mode=(
-            product_request.main_mode
-            if product_request.main_mode is not None
-            else None
-        ),
-    )
+
+    try:
+        product, main_edition = create_product(
+            org=org,
+            slug=product_request.slug,
+            doc_repo=product_request.doc_repo,
+            title=product_request.title,
+            default_edition_mode=(
+                product_request.main_mode
+                if product_request.main_mode is not None
+                else None
+            ),
+        )
+    except Exception:
+        db.session.rollback()
+        raise
 
     task = launch_tasks()
 
@@ -299,11 +304,16 @@ def edit_product(slug: str) -> Tuple[str, int, Dict[str, str]]:
     """
     product = Product.query.filter_by(slug=slug).first_or_404()
     request_data = ProductPatchRequest.parse_obj(request.json)
-    product = update_product(
-        product=product,
-        new_doc_repo=request_data.doc_repo,
-        new_title=request_data.title,
-    )
+
+    try:
+        product = update_product(
+            product=product,
+            new_doc_repo=request_data.doc_repo,
+            new_title=request_data.title,
+        )
+    except Exception:
+        db.session.rollback()
+        raise
 
     task = launch_tasks()
     response = ProductResponse.from_product(product, task=task)

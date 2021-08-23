@@ -11,7 +11,7 @@ from keeper.api import api
 from keeper.auth import permission_required, token_auth
 from keeper.logutils import log_route
 from keeper.mediatypes import v2_json_type
-from keeper.models import Permission, Product
+from keeper.models import Permission, Product, db
 from keeper.services.createbuild import (
     create_build,
     create_presigned_post_urls,
@@ -141,12 +141,16 @@ def post_products_builds_v1(slug: str) -> Tuple[str, int, Dict[str, str]]:
     product = Product.query.filter_by(slug=slug).first_or_404()
     request_data = BuildPostRequest.parse_obj(request.json)
 
-    build, edition = create_build(
-        product=product,
-        git_ref=request_data.git_refs[0],
-        github_requester=request_data.github_requester,
-        slug=request_data.slug,
-    )
+    try:
+        build, edition = create_build(
+            product=product,
+            git_ref=request_data.git_refs[0],
+            github_requester=request_data.github_requester,
+            slug=request_data.slug,
+        )
+    except Exception:
+        db.session.rollback()
+        raise
 
     build_response = BuildResponse.from_build(build=build)
     build_url = url_for_build(build)
@@ -162,12 +166,16 @@ def post_products_builds_v2(slug: str) -> Tuple[str, int, Dict[str, str]]:
     product = Product.query.filter_by(slug=slug).first_or_404()
     request_data = BuildPostRequestWithDirs.parse_obj(request.json)
 
-    build, edition = create_build(
-        product=product,
-        git_ref=request_data.git_refs[0],
-        github_requester=request_data.github_requester,
-        slug=request_data.slug,
-    )
+    try:
+        build, edition = create_build(
+            product=product,
+            git_ref=request_data.git_refs[0],
+            github_requester=request_data.github_requester,
+            slug=request_data.slug,
+        )
+    except Exception:
+        db.session.rollback()
+        raise
 
     presigned_prefix_urls, presigned_dir_urls = create_presigned_post_urls(
         build=build, directories=request_data.directories
