@@ -6,9 +6,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-import pytest
-
-# from keeper.tasks.dashboardbuild import build_dashboard
+from keeper.testutils import MockTaskQueue
 
 if TYPE_CHECKING:
     from unittest.mock import Mock
@@ -16,7 +14,6 @@ if TYPE_CHECKING:
     from keeper.testutils import TestClient
 
 
-@pytest.mark.skip(reason="Needs infastructure to simulate celery task")
 def test_pach_lsst_doc_edition(client: TestClient, mocker: Mock) -> None:
     """Test patching an edition from tracking a Git ref to an LSST doc.
 
@@ -27,6 +24,11 @@ def test_pach_lsst_doc_edition(client: TestClient, mocker: Mock) -> None:
     4. Patch the main edition to use the LSST_DOC tracking mode.
     5. Post a `v1.1` build that is tracked.
     """
+    task_queue = mocker.patch(
+        "keeper.taskrunner.inspect_task_queue", return_value=None
+    )
+    task_queue = MockTaskQueue(mocker)
+
     # Create default organization
     from keeper.models import Organization, db
 
@@ -54,16 +56,12 @@ def test_pach_lsst_doc_edition(client: TestClient, mocker: Mock) -> None:
         "bucket_name": "bucket-name",
     }
     r = client.post("/products/", p1_data)
+    task_queue.apply_task_side_effects()
     product_url = r.headers["Location"]
 
     assert r.status == 201
 
-    # FIXME
-    # mock_registry[
-    #     "keeper.services.createproduct.append_task_to_chain"
-    # ].assert_called_with(build_dashboard.si(product_url))
-    # mock_registry["keeper.api.products.launch_task_chain"].\
-    # assert_called_once()
+    task_queue.assert_launched_once()
 
     # ========================================================================
     # Create a build on 'master'
@@ -79,6 +77,7 @@ def test_pach_lsst_doc_edition(client: TestClient, mocker: Mock) -> None:
         "git_refs": ["master"],
     }
     r = client.post(product_url + "/builds/", b1_data)
+    task_queue.apply_task_side_effects()
     b1_url = r.headers["Location"]
 
     # ========================================================================
@@ -86,17 +85,13 @@ def test_pach_lsst_doc_edition(client: TestClient, mocker: Mock) -> None:
     mocker.resetall()
 
     r = client.patch(b1_url, {"uploaded": True})
+    task_queue.apply_task_side_effects()
 
     # Test that the main edition updated.
     r = client.get(e1_url)
 
     assert r.json["build_url"] == b1_url
-
-    # Check pending_rebuild semaphore and manually reset it since the celery
-    # task is mocked.
-    e1 = client.get(e1_url).json
-    assert e1["pending_rebuild"] is True
-    r = client.patch(e1_url, {"pending_rebuild": False})
+    assert r.json["pending_rebuild"] is False
 
     # ========================================================================
     # Create a build with a semantic version tag ('v1.0')
@@ -108,6 +103,7 @@ def test_pach_lsst_doc_edition(client: TestClient, mocker: Mock) -> None:
         "git_refs": ["v1.0"],
     }
     r = client.post("/products/ldm-151/builds/", b2_data)
+    task_queue.apply_task_side_effects()
     b2_url = r.headers["Location"]
 
     # Get the URL for the new edition tracking v1-0
@@ -119,25 +115,14 @@ def test_pach_lsst_doc_edition(client: TestClient, mocker: Mock) -> None:
     mocker.resetall()
 
     r = client.patch(b2_url, {"uploaded": True})
+    task_queue.apply_task_side_effects()
+
+    task_queue.assert_launched_once()
+    task_queue.assert_edition_build_v1(e2_url, b2_url, once=False)  # FIXME
 
     # Test that the main edition *did not* update
     r = client.get(e1_url)
     assert r.json["build_url"] == b1_url
-
-    # FIXME
-    # mock_registry["keeper.models.append_task_to_chain"].assert_called_with(
-    #     rebuild_edition.si(e2_url, 2)
-    # )
-    # mock_registry[
-    #     "keeper.services.updatebuild.append_task_to_chain"
-    # ].assert_called_with(build_dashboard.si(product_url))
-    # mock_registry["keeper.api.builds.launch_task_chain"].assert_called_once()
-
-    # Check pending_rebuild semaphore and manually reset it since the celery
-    # task is mocked.
-    e2 = client.get(e2_url).json
-    assert e2["pending_rebuild"] is True
-    r = client.patch(e2_url, {"pending_rebuild": False})
 
     # ========================================================================
     # PATCH the tracking mode of the edition to use `lsst_doc`
@@ -145,6 +130,7 @@ def test_pach_lsst_doc_edition(client: TestClient, mocker: Mock) -> None:
 
     edition_patch_data = {"mode": "lsst_doc"}
     r = client.patch(e1_url, edition_patch_data)
+    task_queue.apply_task_side_effects()
     assert r.status == 200
 
     e2 = client.get(e2_url).json
@@ -160,6 +146,7 @@ def test_pach_lsst_doc_edition(client: TestClient, mocker: Mock) -> None:
         "git_refs": ["v1.1"],
     }
     r = client.post("/products/ldm-151/builds/", b3_data)
+    task_queue.apply_task_side_effects()
     b3_url = r.headers["Location"]
 
     # Get the URL for the new edition tracking v1-1
@@ -171,29 +158,12 @@ def test_pach_lsst_doc_edition(client: TestClient, mocker: Mock) -> None:
     mocker.resetall()
 
     r = client.patch(b3_url, {"uploaded": True})
+    task_queue.apply_task_side_effects()
+
+    task_queue.assert_launched_once()
+    task_queue.assert_edition_build_v1(e1_url, b3_url, once=False)  # FIXME
+    task_queue.assert_edition_build_v1(e3_url, b3_url, once=False)  # FIXME
 
     # Test that the main edition *did* update now
     r = client.get(e1_url)
     assert r.json["build_url"] == b3_url
-
-    # FIXME
-    # mock_registry["keeper.models.append_task_to_chain"].assert_any_call(
-    #     rebuild_edition.si(e1_url, 1)
-    # )
-    # mock_registry["keeper.models.append_task_to_chain"].assert_any_call(
-    #     rebuild_edition.si(e3_url, 3)
-    # )
-    # mock_registry[
-    #     "keeper.services.updatebuild.append_task_to_chain"
-    # ].assert_called_with(build_dashboard.si(product_url))
-    # mock_registry["keeper.api.builds.launch_task_chain"].assert_called_once()
-
-    # Check pending_rebuild semaphore and manually reset it since the celery
-    # task is mocked.
-    e3 = client.get(e3_url).json
-    assert e3["pending_rebuild"] is True
-    r = client.patch(e3_url, {"pending_rebuild": False})
-
-    e1 = client.get(e1_url).json
-    assert e1["pending_rebuild"] is True
-    r = client.patch(e1_url, {"pending_rebuild": False})

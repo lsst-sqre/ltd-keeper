@@ -64,3 +64,13 @@ def rename_edition(
 
     edition.pending_rebuild = False
     db.session.commit()
+
+
+def mock_rename_edition(*, edition_id: int, new_slug: str) -> None:
+    edition = Edition.query.get(edition_id)
+    if edition.pending_rebuild is True:
+        raise RuntimeError("Cannot rename edition while also rebuilding")
+    edition.pending_rebuild = True
+    edition.update_slug(new_slug)
+    edition.pending_rebuild = False
+    db.session.commit()

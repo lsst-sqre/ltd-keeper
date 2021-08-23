@@ -150,3 +150,12 @@ def send_edition_updated_event(
         logger.warning(
             message, events_url, response.status_code, response.text
         )
+
+
+def mock_rebuild_edition(*, edition_id: int, build_id: int) -> None:
+    """Mock of `rebuild_edition` to apply database updates in tests."""
+    edition = Edition.query.get(edition_id)
+    new_build = Build.query.get(build_id)
+    edition.set_pending_rebuild(new_build)
+    edition.set_rebuild_complete()
+    db.session.commit()

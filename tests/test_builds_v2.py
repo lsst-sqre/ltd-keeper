@@ -11,8 +11,7 @@ from werkzeug.exceptions import NotFound
 
 from keeper.exceptions import ValidationError
 from keeper.mediatypes import v2_json_type
-
-# from keeper.tasks.dashboardbuild import build_dashboard
+from keeper.testutils import MockTaskQueue
 
 if TYPE_CHECKING:
     from unittest.mock import Mock
@@ -20,8 +19,12 @@ if TYPE_CHECKING:
     from keeper.testutils import TestClient
 
 
-@pytest.mark.skip(reason="Needs infastructure to simulate celery task")
 def test_builds_v2(client: TestClient, mocker: Mock) -> None:
+    task_queue = mocker.patch(
+        "keeper.taskrunner.inspect_task_queue", return_value=None
+    )
+    task_queue = MockTaskQueue(mocker)
+
     mock_presigned_url = {
         "url": "https://example.com",
         "fields": {"key": "a/b/${filename}"},
@@ -64,6 +67,7 @@ def test_builds_v2(client: TestClient, mocker: Mock) -> None:
         "bucket_name": "bucket-name",
     }
     r = client.post("/products/", p)
+    task_queue.apply_task_side_effects()
     product_url = r.headers["Location"]
 
     assert r.status == 201
@@ -79,6 +83,7 @@ def test_builds_v2(client: TestClient, mocker: Mock) -> None:
         "published_url": "pipelines.lsst.io",
     }
     r = client.post(product_url + "/editions/", e)
+    task_queue.apply_task_side_effects()
 
     # Initially no builds
     r = client.get("/products/pipelines/builds/")
@@ -97,6 +102,7 @@ def test_builds_v2(client: TestClient, mocker: Mock) -> None:
     r = client.post(
         "/products/pipelines/builds/", b1, headers={"Accept": v2_json_type}
     )
+    task_queue.apply_task_side_effects()
     s3_session_mock.assert_called_once()
     presign_post_mock.assert_called_once()
     assert r.status == 201
@@ -142,32 +148,21 @@ def test_builds_v2(client: TestClient, mocker: Mock) -> None:
     mocker.resetall()
 
     r = client.patch(build_url, {"uploaded": True})
+    task_queue.apply_task_side_effects()
     assert r.status == 200
 
-    # FIXME
-    # mock_registry["keeper.models.append_task_to_chain"].assert_any_call(
-    #     rebuild_edition.si("http://example.test/editions/1", 1)
-    # )
-    # mock_registry["keeper.models.append_task_to_chain"].assert_any_call(
-    #     rebuild_edition.si("http://example.test/editions/2", 2)
-    # )
-    # mock_registry[
-    #     "keeper.services.updatebuild.append_task_to_chain"
-    # ].assert_called_with(build_dashboard.si(product_url))
-    # mock_registry["keeper.api.builds.launch_task_chain"].assert_called_once()
-
-    # Check pending_rebuild semaphore and manually reset it since the celery
-    # task is mocked.
-    e0 = client.get("http://example.test/editions/1").json
-    assert e0["pending_rebuild"] is True
-    r = client.patch(
-        "http://example.test/editions/1", {"pending_rebuild": False}
+    task_queue.assert_launched_once()
+    task_queue.assert_edition_build_v1(
+        "http://example.test/editions/1",
+        build_url,
+        once=False,  # FIXME
     )
-    e1 = client.get("http://example.test/editions/2").json
-    assert e1["pending_rebuild"] is True
-    r = client.patch(
-        "http://example.test/editions/2", {"pending_rebuild": False}
+    task_queue.assert_edition_build_v1(
+        "http://example.test/editions/2",
+        build_url,
+        once=False,  # FIXME
     )
+    task_queue.assert_dashboard_build_v1(product_url, once=False)  # FIXME
 
     r = client.get(build_url)
     assert r.json["uploaded"] is True
@@ -184,7 +179,10 @@ def test_builds_v2(client: TestClient, mocker: Mock) -> None:
     mocker.resetall()
 
     r = client.delete("/builds/1")
+    task_queue.apply_task_side_effects()
     assert r.status == 200
+
+    mocker.resetall()
 
     r = client.get("/builds/1")
     assert r.json["product_url"] == product_url
@@ -203,6 +201,7 @@ def test_builds_v2(client: TestClient, mocker: Mock) -> None:
 
     b2 = {"git_refs": ["master"]}
     r = client.post("/products/pipelines/builds/", b2)
+    task_queue.apply_task_side_effects()
 
     assert r.status == 201
     assert r.json["slug"] == "1"
@@ -215,6 +214,7 @@ def test_builds_v2(client: TestClient, mocker: Mock) -> None:
     r = client.post(
         "/products/pipelines/builds/", b3, headers={"Accept": v2_json_type}
     )
+    task_queue.apply_task_side_effects()
 
     assert r.status == 201
     assert r.json["slug"] == "2"
@@ -245,6 +245,7 @@ def test_builds_v2(client: TestClient, mocker: Mock) -> None:
     r = client.post(
         "/products/pipelines/builds/", b6, headers={"Accept": v2_json_type}
     )
+    task_queue.apply_task_side_effects()
     assert r.status == 201
     r = client.get("/products/pipelines/editions/")
     assert len(r.json["editions"]) == 3

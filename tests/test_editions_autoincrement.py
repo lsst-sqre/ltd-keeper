@@ -6,6 +6,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from keeper.testutils import MockTaskQueue
+
 if TYPE_CHECKING:
     from unittest.mock import Mock
 
@@ -14,6 +16,11 @@ if TYPE_CHECKING:
 
 def test_editions_autoincrement(client: TestClient, mocker: Mock) -> None:
     """Test creating editions with autoincrement=True."""
+    task_queue = mocker.patch(
+        "keeper.taskrunner.inspect_task_queue", return_value=None
+    )
+    task_queue = MockTaskQueue(mocker)
+
     # Create default organization
     from keeper.models import Organization, db
 
@@ -41,14 +48,15 @@ def test_editions_autoincrement(client: TestClient, mocker: Mock) -> None:
         "main_mode": "manual",
     }
     r = client.post("/products/", p)
+    task_queue.apply_task_side_effects()
     product_url = r.headers["Location"]
 
     # ========================================================================
     # Get default edition
-    # mocker.resetall()
+    mocker.resetall()
 
-    # edition_urls = client.get('/products/pipelines/editions/').json
-    # e0_url = edition_urls['editions'][0]
+    r = client.get(f"{product_url}/editions/")
+    assert len(r.json["editions"]) == 1
 
     # ========================================================================
     # Create first autoincremented edition
@@ -58,6 +66,7 @@ def test_editions_autoincrement(client: TestClient, mocker: Mock) -> None:
         product_url + "/editions/",
         {"autoincrement": "True", "mode": "manual"},
     )
+    task_queue.apply_task_side_effects()
     assert response.status == 201
     e1_url = response.headers["Location"]
 
@@ -80,6 +89,7 @@ def test_editions_autoincrement(client: TestClient, mocker: Mock) -> None:
         product_url + "/editions/",
         {"autoincrement": "True", "mode": "manual"},
     )
+    task_queue.apply_task_side_effects()
     assert response.status == 201
     e2_url = response.headers["Location"]
 
@@ -102,6 +112,7 @@ def test_editions_autoincrement(client: TestClient, mocker: Mock) -> None:
         product_url + "/editions/",
         {"tracked_refs": ["v1.0"], "slug": "v1.0", "title": "v1.0"},
     )
+    task_queue.apply_task_side_effects()
     assert response.status == 201
     e3_url = response.headers["Location"]
 
@@ -124,6 +135,7 @@ def test_editions_autoincrement(client: TestClient, mocker: Mock) -> None:
         product_url + "/editions/",
         {"autoincrement": "True", "mode": "manual"},
     )
+    task_queue.apply_task_side_effects()
     assert response.status == 201
     e4_url = response.headers["Location"]
 

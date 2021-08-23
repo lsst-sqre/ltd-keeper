@@ -9,8 +9,7 @@ import pytest
 from werkzeug.exceptions import NotFound
 
 from keeper.exceptions import ValidationError
-
-# from keeper.tasks.dashboardbuild import build_dashboard
+from keeper.testutils import MockTaskQueue
 
 if TYPE_CHECKING:
     from unittest.mock import Mock
@@ -18,8 +17,12 @@ if TYPE_CHECKING:
     from keeper.testutils import TestClient
 
 
-@pytest.mark.skip(reason="Needs infastructure to simulate celery task")
 def test_builds(client: TestClient, mocker: Mock) -> None:
+    task_queue = mocker.patch(
+        "keeper.taskrunner.inspect_task_queue", return_value=None
+    )
+    task_queue = MockTaskQueue(mocker)
+
     # Create default organization
     from keeper.models import Organization, db
 
@@ -35,7 +38,7 @@ def test_builds(client: TestClient, mocker: Mock) -> None:
 
     # ========================================================================
     # Add product /products/pipelines
-    # mocker.resetall()
+    mocker.resetall()
 
     p = {
         "slug": "pipelines",
@@ -46,14 +49,13 @@ def test_builds(client: TestClient, mocker: Mock) -> None:
         "bucket_name": "bucket-name",
     }
     r = client.post("/products/", p)
+    task_queue.apply_task_side_effects()
     product_url = r.headers["Location"]
 
     assert r.status == 201
-    # FIXME
-    # mock_registry[
-    #     "keeper.services.createproduct.append_task_to_chain"
-    # ].assert_called_with(build_dashboard.si(product_url))
-    # mock_registry["keeper.api.products.launch_task_chain"].assert_called_once()
+
+    task_queue.assert_launched_once()
+    task_queue.assert_dashboard_build_v1(product_url, once=False)  # FIXME
 
     # Check that the default edition was made
     r = client.get("/products/pipelines/editions/")
@@ -61,7 +63,7 @@ def test_builds(client: TestClient, mocker: Mock) -> None:
 
     # ========================================================================
     # Add a sample edition
-    # mocker.resetall()
+    mocker.resetall()
 
     e = {
         "tracked_refs": ["master"],
@@ -70,6 +72,7 @@ def test_builds(client: TestClient, mocker: Mock) -> None:
         "published_url": "pipelines.lsst.io",
     }
     r = client.post(product_url + "/editions/", e)
+    task_queue.apply_task_side_effects()
 
     # Initially no builds
     r = client.get("/products/pipelines/builds/")
@@ -78,7 +81,7 @@ def test_builds(client: TestClient, mocker: Mock) -> None:
 
     # ========================================================================
     # Add a build
-    # mocker.resetall()
+    mocker.resetall()
 
     b1 = {
         "slug": "b1",
@@ -86,6 +89,7 @@ def test_builds(client: TestClient, mocker: Mock) -> None:
         "git_refs": ["master"],
     }
     r = client.post("/products/pipelines/builds/", b1)
+    task_queue.apply_task_side_effects()
     assert r.status == 201
     assert r.json["product_url"] == product_url
     assert r.json["slug"] == b1["slug"]
@@ -98,14 +102,14 @@ def test_builds(client: TestClient, mocker: Mock) -> None:
 
     # ========================================================================
     # Re-add build with same slug; should fail
-    # mocker.resetall()
+    mocker.resetall()
 
     with pytest.raises(ValidationError):
         r = client.post("/products/pipelines/builds/", b1)
 
     # ========================================================================
     # List builds
-    # mocker.resetall()
+    mocker.resetall()
 
     r = client.get("/products/pipelines/builds/")
     assert r.status == 200
@@ -113,7 +117,7 @@ def test_builds(client: TestClient, mocker: Mock) -> None:
 
     # ========================================================================
     # Get build
-    # mocker.resetall()
+    mocker.resetall()
 
     r = client.get(build_url)
     assert r.status == 200
@@ -122,51 +126,36 @@ def test_builds(client: TestClient, mocker: Mock) -> None:
 
     # ========================================================================
     # Register upload
-    # mocker.resetall()
+    mocker.resetall()
 
     r = client.patch(build_url, {"uploaded": True})
     assert r.status == 200
+    task_queue.apply_task_side_effects()
 
-    # FIXME
-    # mock_registry["keeper.models.append_task_to_chain"].assert_any_call(
-    #     rebuild_edition.si("http://example.test/editions/1", 1)
-    # )
-    # mock_registry["keeper.models.append_task_to_chain"].assert_any_call(
-    #     rebuild_edition.si("http://example.test/editions/2", 2)
-    # )
-    # mock_registry[
-    #     "keeper.services.updatebuild.append_task_to_chain"
-    # ].assert_called_with(build_dashboard.si(product_url))
-    # mock_registry["keeper.api.builds.launch_task_chain"].assert_called_once()
+    e1_url = "http://example.test/editions/1"
+    e2_url = "http://example.test/editions/2"
 
-    # Check pending_rebuild semaphore and manually reset it since the celery
-    # task is mocked.
-    e0 = client.get("http://example.test/editions/1").json
-    assert e0["pending_rebuild"] is True
-    r = client.patch(
-        "http://example.test/editions/1", {"pending_rebuild": False}
-    )
-    e1 = client.get("http://example.test/editions/2").json
-    assert e1["pending_rebuild"] is True
-    r = client.patch(
-        "http://example.test/editions/2", {"pending_rebuild": False}
-    )
+    task_queue.assert_launched_once()
+    task_queue.assert_dashboard_build_v1(product_url, once=False)  # FIXME
+    task_queue.assert_edition_build_v1(e1_url, build_url, once=False)
+    task_queue.assert_edition_build_v1(e2_url, build_url, once=False)
 
     r = client.get(build_url)
     assert r.json["uploaded"] is True
 
     # ========================================================================
     # Check that the edition was rebuilt
-    # mocker.resetall()
+    mocker.resetall()
 
-    edition_data = client.get("http://example.test/editions/2")
+    edition_data = client.get(e2_url)
     assert edition_data.json["build_url"] == build_url
 
     # ========================================================================
     # Deprecate build
-    # mocker.resetall()
+    mocker.resetall()
 
     r = client.delete("/builds/1")
+    task_queue.apply_task_side_effects()
     assert r.status == 200
 
     r = client.get("/builds/1")
@@ -182,27 +171,29 @@ def test_builds(client: TestClient, mocker: Mock) -> None:
 
     # ========================================================================
     # Add an auto-slugged build
-    # mocker.resetall()
+    mocker.resetall()
 
     b2 = {"git_refs": ["master"]}
     r = client.post("/products/pipelines/builds/", b2)
+    task_queue.apply_task_side_effects()
 
     assert r.status == 201
     assert r.json["slug"] == "1"
 
     # ========================================================================
-    # Add an auto-slugged build
-    # mocker.resetall()
+    # Add another auto-slugged build
+    mocker.resetall()
 
     b3 = {"git_refs": ["master"]}
     r = client.post("/products/pipelines/builds/", b3)
+    task_queue.apply_task_side_effects()
 
     assert r.status == 201
     assert r.json["slug"] == "2"
 
     # ========================================================================
     # Add a build missing 'git_refs'
-    # mocker.resetall()
+    mocker.resetall()
 
     b4 = {"slug": "bad-build"}
     with pytest.raises(pydantic.ValidationError):
@@ -210,7 +201,7 @@ def test_builds(client: TestClient, mocker: Mock) -> None:
 
     # ========================================================================
     # Add a build with a badly formatted git_refs
-    # mocker.resetall()
+    mocker.resetall()
 
     b5 = {"slug": "another-bad-build", "git_refs": "master"}
     with pytest.raises(pydantic.ValidationError):
@@ -218,10 +209,11 @@ def test_builds(client: TestClient, mocker: Mock) -> None:
 
     # ========================================================================
     # Add a build and see if an edition was automatically created
-    # mocker.resetall()
+    mocker.resetall()
 
     b6 = {"git_refs": ["tickets/DM-1234"]}
     r = client.post("/products/pipelines/builds/", b6)
+    task_queue.apply_task_side_effects()
     assert r.status == 201
     r = client.get("/products/pipelines/editions/")
     assert len(r.json["editions"]) == 3
