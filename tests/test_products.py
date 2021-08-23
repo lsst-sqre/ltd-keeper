@@ -99,7 +99,7 @@ def test_products(client: TestClient, mocker: Mock) -> None:
     assert r.status == 201
 
     task_queue.assert_launched_once()
-    task_queue.assert_dashboard_build_v1(p2_url, once=False)  # FIXME
+    task_queue.assert_dashboard_build_v1(p2_url)
 
     # ========================================================================
     # Add product with slug that will fail validation
@@ -203,7 +203,7 @@ def test_products(client: TestClient, mocker: Mock) -> None:
         assert r.json[k] == v
 
     task_queue.assert_launched_once()
-    task_queue.assert_dashboard_build_v1(p2_url, once=False)  # FIXME
+    task_queue.assert_dashboard_build_v1(p2_url)
 
 
 # Authorizion tests: POST /products/ =========================================

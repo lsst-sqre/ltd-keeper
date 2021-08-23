@@ -31,7 +31,7 @@ def launch_tasks() -> celery.chain:
     logger = structlog.get_logger(__name__)
 
     if "task_commands" in g:
-        task_commands = _order_tasks(g.task_commands)
+        task_commands = _sort_tasks(g.task_commands)
     else:
         task_commands = []
 
@@ -64,11 +64,30 @@ def launch_tasks() -> celery.chain:
     return chain
 
 
-def _order_tasks(
+def _sort_tasks(
     task_commands: List[Tuple[str, Dict[str, Any]]]
 ) -> List[Tuple[str, Dict[str, Any]]]:
-    # TODO implement this method to re-order and de-duplicate tasks
-    return task_commands
+    """Sort tasks by order and de-duplicate tasks with the same arguments."""
+
+    def sorter(x: Tuple[str, Dict[str, Any]]) -> int:
+        task_name = x[0]
+        task_def = task_registry[task_name]
+        return task_def.order
+
+    sorted_tasks = sorted(task_commands, key=sorter)
+
+    deduped_tasks: List[Tuple[str, Dict[str, Any]]] = []
+
+    for task in sorted_tasks:
+        seen = False
+        for existing_task in deduped_tasks:
+            if task == existing_task:
+                seen = True
+
+        if not seen:
+            deduped_tasks.append(task)
+
+    return deduped_tasks
 
 
 def inspect_task_queue(

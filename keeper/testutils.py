@@ -168,14 +168,22 @@ class MockTaskQueue:
             if task[0] == command_name and task[1] == data:
                 call_count += 1
 
-        if once and call_count == 1:
-            return None
-        elif call_count > 0:
-            return None
+        if once:
+            if call_count == 1:
+                return None
+            else:
+                raise AssertionError(
+                    f"Task {command_name!r} with data {data!r} "
+                    f"was launched {call_count} times (1 expected)."
+                )
         else:
-            raise AssertionError(
-                f"Task {command_name!r} with data {data!r} was not launched."
-            )
+            if call_count > 0:
+                return None
+            else:
+                raise AssertionError(
+                    f"Task {command_name!r} with data {data!r} was not "
+                    "launched."
+                )
 
     def assert_dashboard_build_v1(
         self, product_url: str, once: bool = True

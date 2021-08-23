@@ -118,7 +118,7 @@ def test_pach_lsst_doc_edition(client: TestClient, mocker: Mock) -> None:
     task_queue.apply_task_side_effects()
 
     task_queue.assert_launched_once()
-    task_queue.assert_edition_build_v1(e2_url, b2_url, once=False)  # FIXME
+    task_queue.assert_edition_build_v1(e2_url, b2_url)
 
     # Test that the main edition *did not* update
     r = client.get(e1_url)
@@ -161,8 +161,9 @@ def test_pach_lsst_doc_edition(client: TestClient, mocker: Mock) -> None:
     task_queue.apply_task_side_effects()
 
     task_queue.assert_launched_once()
-    task_queue.assert_edition_build_v1(e1_url, b3_url, once=False)  # FIXME
-    task_queue.assert_edition_build_v1(e3_url, b3_url, once=False)  # FIXME
+    task_queue.assert_edition_build_v1(e1_url, b3_url)
+    task_queue.assert_edition_build_v1(e3_url, b3_url)
+    task_queue.assert_dashboard_build_v1(product_url)
 
     # Test that the main edition *did* update now
     r = client.get(e1_url)

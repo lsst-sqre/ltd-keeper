@@ -86,12 +86,12 @@ def test_lsst_doc_edition(client: TestClient, mocker: Mock) -> None:
 
     r = client.patch(b1_url, {"uploaded": True})
     task_queue.apply_task_side_effects()
-    task_queue.assert_edition_build_v1(main_edition_url, b1_url, once=False)
+    task_queue.assert_edition_build_v1(main_edition_url, b1_url)
 
     # The 'master' edition was also automatically created to track master.
     r = client.get(p1_url + "/editions/")
     master_edition_url = sorted(r.json["editions"])[1]
-    task_queue.assert_edition_build_v1(master_edition_url, b1_url, once=False)
+    task_queue.assert_edition_build_v1(master_edition_url, b1_url)
 
     # Check that it's tracking the master branch
     r = client.get(master_edition_url)

@@ -55,7 +55,7 @@ def test_builds(client: TestClient, mocker: Mock) -> None:
     assert r.status == 201
 
     task_queue.assert_launched_once()
-    task_queue.assert_dashboard_build_v1(product_url, once=False)  # FIXME
+    task_queue.assert_dashboard_build_v1(product_url)
 
     # Check that the default edition was made
     r = client.get("/products/pipelines/editions/")
@@ -136,9 +136,9 @@ def test_builds(client: TestClient, mocker: Mock) -> None:
     e2_url = "http://example.test/editions/2"
 
     task_queue.assert_launched_once()
-    task_queue.assert_dashboard_build_v1(product_url, once=False)  # FIXME
-    task_queue.assert_edition_build_v1(e1_url, build_url, once=False)
-    task_queue.assert_edition_build_v1(e2_url, build_url, once=False)
+    task_queue.assert_dashboard_build_v1(product_url)
+    task_queue.assert_edition_build_v1(e1_url, build_url)
+    task_queue.assert_edition_build_v1(e2_url, build_url)
 
     r = client.get(build_url)
     assert r.json["uploaded"] is True

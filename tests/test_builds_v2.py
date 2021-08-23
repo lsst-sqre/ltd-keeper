@@ -155,14 +155,12 @@ def test_builds_v2(client: TestClient, mocker: Mock) -> None:
     task_queue.assert_edition_build_v1(
         "http://example.test/editions/1",
         build_url,
-        once=False,  # FIXME
     )
     task_queue.assert_edition_build_v1(
         "http://example.test/editions/2",
         build_url,
-        once=False,  # FIXME
     )
-    task_queue.assert_dashboard_build_v1(product_url, once=False)  # FIXME
+    task_queue.assert_dashboard_build_v1(product_url)
 
     r = client.get(build_url)
     assert r.json["uploaded"] is True
