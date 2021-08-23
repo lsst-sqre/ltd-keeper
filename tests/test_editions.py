@@ -8,7 +8,7 @@ import pytest
 from werkzeug.exceptions import NotFound
 
 from keeper.exceptions import ValidationError
-from keeper.testutils import simulate_edition_rebuild_v1api
+from keeper.testutils import MockTaskQueue
 
 if TYPE_CHECKING:
     from unittest.mock import Mock
@@ -18,6 +18,11 @@ if TYPE_CHECKING:
 
 def test_editions(client: TestClient, mocker: Mock) -> None:
     """Exercise different /edition/ API scenarios."""
+    task_queue = mocker.patch(
+        "keeper.taskrunner.inspect_task_queue", return_value=None
+    )
+    task_queue = MockTaskQueue(mocker)
+
     # Create default organization
     from keeper.models import Organization, db
 
@@ -44,14 +49,10 @@ def test_editions(client: TestClient, mocker: Mock) -> None:
         "bucket_name": "bucket-name",
     }
     r = client.post("/products/", p)
+    task_queue.apply_task_side_effects()
     product_url = r.headers["Location"]
 
     assert r.status == 201
-    # FIXME
-    # mock_registry[
-    #     "keeper.services.createproduct.append_task_to_chain"
-    # ].assert_called_with(build_dashboard.si(product_url))
-    # mock_registry["keeper.api.products.launch_task_chain"].assert_called_once()
 
     # ========================================================================
     # Get default edition
@@ -67,6 +68,7 @@ def test_editions(client: TestClient, mocker: Mock) -> None:
     mocker.resetall()
 
     r = client.post("/products/pipelines/builds/", {"git_refs": ["master"]})
+    task_queue.apply_task_side_effects()
     b1_url = r.json["self_url"]
     assert r.status == 201
 
@@ -75,29 +77,19 @@ def test_editions(client: TestClient, mocker: Mock) -> None:
     mocker.resetall()
 
     client.patch(b1_url, {"uploaded": True})
-
-    simulate_edition_rebuild_v1api(e0_url, b1_url)
+    task_queue.apply_task_side_effects()
 
     # FIXME
-    # mock_registry["keeper.models.append_task_to_chain"].assert_called_with(
-    #     rebuild_edition.si("http://example.test/editions/1", 1)
-    # )
-    # mock_registry[
-    #     "keeper.services.updatebuild.append_task_to_chain"
-    # ].assert_called_with(build_dashboard.si(product_url))
-    # mock_registry["keeper.api.builds.launch_task_chain"].assert_called_once()
-
-    # Check pending_rebuild semaphore and manually reset it since the celery
-    # task is mocked.
-    e0 = client.get(e0_url).json
-    assert e0["pending_rebuild"] is False
-    # r = client.patch(e0_url, {"pending_rebuild": False})
+    task_queue.assert_launched_once()
+    task_queue.assert_edition_build_v1(e0_url, b1_url)
+    task_queue.assert_dashboard_build_v1(product_url)
 
     # ========================================================================
     # Create a second build of the 'master' branch
     mocker.resetall()
 
     r = client.post("/products/pipelines/builds/", {"git_refs": ["master"]})
+    task_queue.apply_task_side_effects()
     assert r.status == 201
     b2_url = r.json["self_url"]
 
@@ -106,23 +98,16 @@ def test_editions(client: TestClient, mocker: Mock) -> None:
     mocker.resetall()
 
     client.patch(b2_url, {"uploaded": True})
+    task_queue.apply_task_side_effects()
 
-    simulate_edition_rebuild_v1api(e0_url, b2_url)
-
-    # FIXME
-    # mock_registry["keeper.models.append_task_to_chain"].assert_called_with(
-    #     rebuild_edition.si("http://example.test/editions/1", 1)
-    # )
-    # mock_registry[
-    #     "keeper.services.updatebuild.append_task_to_chain"
-    # ].assert_called_with(build_dashboard.si(product_url))
-    # mock_registry["keeper.api.builds.launch_task_chain"].assert_called_once()
+    task_queue.assert_launched_once()
+    task_queue.assert_edition_build_v1(e0_url, b2_url)
+    task_queue.assert_dashboard_build_v1(product_url)
 
     # Check pending_rebuild semaphore and manually reset it since the celery
     # task is mocked.
     e0 = client.get(e0_url).json
     assert e0["pending_rebuild"] is False
-    # r = client.patch(e0_url, {"pending_rebuild": False})
 
     # ========================================================================
     # Setup an edition also tracking master called 'latest'
@@ -135,9 +120,12 @@ def test_editions(client: TestClient, mocker: Mock) -> None:
         "build_url": b1_url,
     }
     r = client.post(product_url + "/editions/", e1)
+    task_queue.apply_task_side_effects()
     e1_url = r.headers["Location"]
 
-    simulate_edition_rebuild_v1api(e1_url, b1_url)
+    task_queue.assert_launched_once()
+    task_queue.assert_edition_build_v1(e1_url, b1_url)
+    task_queue.assert_dashboard_build_v1(product_url)
 
     r = client.get(e1_url)
     assert r.status == 200
@@ -150,78 +138,55 @@ def test_editions(client: TestClient, mocker: Mock) -> None:
     assert r.json["published_url"] == "https://pipelines.lsst.io/v/latest"
     assert r.json["pending_rebuild"] is False
 
-    # FIXME
-    # mock_registry[
-    #     "keeper.services.createedition.append_task_to_chain"
-    # ].assert_called_with(build_dashboard.si(product_url))
-    # mock_registry["keeper.models.append_task_to_chain"].assert_called_with(
-    #     rebuild_edition.si(e1_url, 2)
-    # )
-    # mock_registry["keeper.api.editions.launch_task_chain"].assert_called_once()
-
-    # Manually reset pending_rebuild since the rebuild_edition task is mocked
-    # r = client.patch(e1_url, {"pending_rebuild": False})
-
     # ========================================================================
     # Re-build the edition with the second build
     mocker.resetall()
 
     r = client.patch(e1_url, {"build_url": b2_url})
+    task_queue.apply_task_side_effects()
 
     assert r.status == 200
 
-    simulate_edition_rebuild_v1api(e1_url, b2_url)
+    task_queue.assert_launched_once()
+    task_queue.assert_edition_build_v1(e1_url, b1_url)
+    task_queue.assert_dashboard_build_v1(product_url)
 
     r = client.get(e1_url)
     assert r.json["build_url"] == b2_url
-
-    # FIXME
-    # mock_registry["keeper.models.append_task_to_chain"].assert_called_with(
-    #     rebuild_edition.si(e1_url, 2)
-    # )
-    # mock_registry[
-    #     "keeper.services.updateedition.append_task_to_chain"
-    # ].assert_called_with(build_dashboard.si(product_url))
-    # mock_registry["keeper.api.editions.launch_task_chain"].assert_called_once()
-
-    # Manually reset pending_rebuild since the rebuild_edition task is mocked
-    # r = client.patch(e1_url, {"pending_rebuild": False})
 
     # ========================================================================
     # Change the title with PATCH
     mocker.resetall()
 
     r = client.patch(e1_url, {"title": "Development version"})
+    task_queue.apply_task_side_effects()
     assert r.status == 200
     assert r.json["title"] == "Development version"
     assert r.json["pending_rebuild"] is False
 
-    # mock_registry[
-    #     "keeper.services.updateedition.append_task_to_chain"
-    # ].assert_called_with(build_dashboard.si(product_url))
-    # mock_registry["keeper.api.editions.launch_task_chain"].assert_called_once()
+    task_queue.assert_launched_once()
+    task_queue.assert_dashboard_build_v1(product_url)
 
     # ========================================================================
     # Change the tracked_refs with PATCH
     mocker.resetall()
 
     r = client.patch(e1_url, {"tracked_refs": ["tickets/DM-9999", "master"]})
+    task_queue.apply_task_side_effects()
 
     assert r.status == 200
     assert r.json["tracked_refs"][0] == "tickets/DM-9999"
     assert r.json["pending_rebuild"] is False  # no need to rebuild
 
-    # FIXME
-    # mock_registry[
-    #     "keeper.services.updateedition.append_task_to_chain"
-    # ].assert_called_with(build_dashboard.si(product_url))
-    # mock_registry["keeper.api.editions.launch_task_chain"].assert_called_once()
+    task_queue.assert_launched_once()
+    task_queue.assert_dashboard_build_v1(product_url)
 
     # ========================================================================
     # Deprecate the editon
     mocker.resetall()
 
     r = client.delete(e1_url)
+    task_queue.apply_task_side_effects()
     assert r.status == 200
 
     r = client.get(e1_url)
