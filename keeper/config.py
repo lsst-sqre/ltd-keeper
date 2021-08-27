@@ -85,6 +85,15 @@ class Config(abc.ABC):
 
     ENABLE_TASKS: bool = bool(int(os.getenv("LTD_KEEPER_ENABLE_TASKS", "1")))
 
+    FERNET_KEY: bytes = os.getenv("LTD_KEEPER_FERNET_KEY", "").encode("utf-8")
+    """A fernet key (base64-encode length 32).
+
+    Generate this key and store it as a secret:
+
+    >>> from cryptography.fernet import Fernet
+    >>> key = Fernet.generate_key()
+    """
+
     @abc.abstractclassmethod
     def init_app(cls, app: Flask) -> None:
         pass

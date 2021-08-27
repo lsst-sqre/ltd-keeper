@@ -19,7 +19,7 @@ from ._models import (
 )
 from ._urls import url_for_organization
 
-__all__ = ["get_organization", "get_organization"]
+__all__ = ["get_organization", "get_organizations", "create_organization"]
 
 
 @v2api.route("/orgs", methods=["GET"])

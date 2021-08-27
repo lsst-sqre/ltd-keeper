@@ -26,7 +26,6 @@ def create_organization(
 
     The organization is automatically committed to the database and returned.
     """
-    encrypted_fastly_api_key = None  # TODO FIXME
     org = Organization(
         slug=slug,
         title=title,
@@ -37,8 +36,8 @@ def create_organization(
         fastly_support=fastly_support,
         fastly_domain=fastly_domain,
         fastly_service_id=fastly_service_id,
-        fastly_encrypted_api_key=encrypted_fastly_api_key,
     )
+    org.set_fastly_api_key(fastly_api_key)
     db.session.add(org)
     db.session.commit()
     return org

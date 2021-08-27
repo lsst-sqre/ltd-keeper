@@ -12,10 +12,12 @@ import uuid
 from datetime import datetime
 from typing import Any, List, Optional, Type, Union
 
+from cryptography.fernet import Fernet
 from flask import current_app
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
+from pydantic import SecretStr
 from structlog import get_logger
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -345,6 +347,24 @@ class Organization(db.Model):  # type: ignore
         primaryjoin=id == DashboardTemplate.organization_id,
         back_populates="organization",
     )
+
+    def set_fastly_api_key(self, api_key: Optional[SecretStr]) -> None:
+        """Encrypt and set the Fastly API key."""
+        if api_key is None:
+            return
+        fernet_key = current_app.config["FERNET_KEY"]
+        f = Fernet(fernet_key)
+        token = f.encrypt(api_key.get_secret_value().encode("utf-8"))
+        self.fastly_encrypted_api_key = token
+
+    def get_fastly_api_key(self) -> SecretStr:
+        """Get the decrypted Fastly API key."""
+        encrypted_key = self.fastly_encrypted_api_key
+        if encrypted_key is None:
+            raise ValueError("fastly_encrypted_api_key is not set.")
+        fernet_key = current_app.config["FERNET_KEY"]
+        f = Fernet(fernet_key)
+        return SecretStr(f.decrypt(encrypted_key).decode("utf-8"))
 
 
 product_tags = db.Table(
