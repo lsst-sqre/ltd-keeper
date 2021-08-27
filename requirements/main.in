@@ -20,3 +20,4 @@ requests
 structlog
 celery[redis]
 pydantic
+cryptography
