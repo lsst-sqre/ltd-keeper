@@ -2,16 +2,25 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, List, Optional
+from enum import Enum
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
-from pydantic import BaseModel, HttpUrl
+from pydantic import BaseModel, HttpUrl, SecretStr, validator
+
+from keeper.exceptions import ValidationError
+from keeper.models import OrganizationLayoutMode
+from keeper.utils import validate_path_slug
 
 from ._urls import url_for_organization
 
 if TYPE_CHECKING:
     from keeper.models import Organization
 
-__all__ = ["OrganizationResponse"]
+__all__ = [
+    "OrganizationResponse",
+    "OrganizationsResponse",
+    "OrganizationPostRequest",
+]
 
 
 class OrganizationResponse(BaseModel):
@@ -64,6 +73,17 @@ class OrganizationResponse(BaseModel):
         )
 
 
+class LayoutEnum(str, Enum):
+
+    subdomain = "subdomain"
+
+    path = "path"
+
+    @property
+    def layout_model_enum(self) -> OrganizationLayoutMode:
+        return OrganizationLayoutMode[self.name]
+
+
 class OrganizationsResponse(BaseModel):
     """A model for a collection of organization responses."""
 
@@ -77,3 +97,80 @@ class OrganizationsResponse(BaseModel):
             OrganizationResponse.from_organization(org) for org in orgs
         ]
         return cls(__root__=org_responses)
+
+
+class OrganizationPostRequest(BaseModel):
+    """A model for creating an organization with the POST method."""
+
+    slug: str
+    """The name of the organization in the API."""
+
+    title: str
+    """The presentational name of the organization."""
+
+    layout: LayoutEnum
+    """The layout mode."""
+
+    domain: str
+    """The domain where documentation is served from (e.g. lsst.io)."""
+
+    path_prefix: str
+    """The path prefix where documentation is served from (e.g. "/"
+    if documentation is served from the root of a domain.
+    """
+
+    bucket_name: str
+    """Name of the S3 bucket hosting builds."""
+
+    fastly_support: bool
+    """Toggle to enable Fastly CDN support."""
+
+    fastly_domain: Optional[str] = None
+    """Fastly CDN domain name (without doc's domain prepended)."""
+
+    fastly_service_id: Optional[str] = None
+    """The Fastly service ID."""
+
+    fastly_api_key: Optional[SecretStr] = None
+    """The Fastly API key."""
+
+    @validator("slug")
+    def check_slug(cls, v: str) -> str:
+        try:
+            validate_path_slug(v)
+        except ValidationError:
+            raise ValueError(f"Slug {v!r} is incorrectly formatted.")
+        return v
+
+    @validator("fastly_domain")
+    def check_fastly_domain(
+        cls, v: Optional[str], values: Dict[str, Any]
+    ) -> Optional[str]:
+        if values["fastly_support"]:
+            if v is None:
+                raise ValueError(
+                    "Set fastly_domain since fastly_support is enabled."
+                )
+        return v
+
+    @validator("fastly_service_id")
+    def check_fastly_service_id(
+        cls, v: Optional[str], values: Dict[str, Any]
+    ) -> Optional[str]:
+        if values["fastly_support"]:
+            if v is None:
+                raise ValueError(
+                    "Set fastly_service_id since fastly_support is enabled."
+                )
+        return v
+
+    @validator("fastly_api_key")
+    def check_fastly_api_key(
+        cls, v: Optional[SecretStr], values: Dict[str, Any]
+    ) -> Optional[SecretStr]:
+        if values["fastly_support"]:
+            if v is None:
+                raise ValueError(
+                    "Set fastly_api_key since fastly_support is enabled."
+                )
+        return v
