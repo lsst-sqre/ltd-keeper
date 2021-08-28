@@ -16,6 +16,7 @@ from ._urls import (
     url_for_organization,
     url_for_organization_projects,
     url_for_project,
+    url_for_task,
 )
 
 if TYPE_CHECKING:
@@ -31,6 +32,7 @@ __all__ = [
     "ProjectsResponse",
     "ProjectPostRequest",
     "ProjectPatchRequest",
+    "QueuedResponse",
 ]
 
 
@@ -200,6 +202,9 @@ class ProjectResponse(BaseModel):
     organization_url: HttpUrl
     """The URL of the organization resource."""
 
+    task_url: Optional[HttpUrl]
+    """The URL of async task created by the request, if any."""
+
     slug: str
     """URL/path-safe identifier for this project (unique within an
     organization).
@@ -235,7 +240,7 @@ class ProjectResponse(BaseModel):
             "source_repo_url": product.doc_repo,
             "published_url": product.published_url,
             "surrogate_key": product.surrogate_key,
-            # "queue_url": url_for_task(task) if task is not None else None,
+            "task_url": url_for_task(task) if task is not None else None,
         }
         return cls.parse_obj(obj)
 
@@ -301,3 +306,14 @@ class ProjectPatchRequest(BaseModel):
         # We want to invalidate requests that attempt to patch and fields
         # that aren't mutable.
         extra = "forbid"
+
+
+class QueuedResponse(BaseModel):
+    """Response that contains only a URL for the background task's status."""
+
+    task_url: Optional[HttpUrl]
+    """The URL for the queued task resource."""
+
+    @classmethod
+    def from_task(cls, task: Optional[celery.Task]) -> QueuedResponse:
+        return cls(task_url=url_for_task(task) if task is not None else None)
