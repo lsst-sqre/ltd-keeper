@@ -7,19 +7,30 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from pydantic import BaseModel, HttpUrl, SecretStr, validator
 
+from keeper.editiontracking import EditionTrackingModes
 from keeper.exceptions import ValidationError
 from keeper.models import OrganizationLayoutMode
-from keeper.utils import validate_path_slug
+from keeper.utils import validate_path_slug, validate_product_slug
 
-from ._urls import url_for_organization
+from ._urls import (
+    url_for_organization,
+    url_for_organization_projects,
+    url_for_project,
+)
 
 if TYPE_CHECKING:
-    from keeper.models import Organization
+    import celery
+
+    from keeper.models import Organization, Product
 
 __all__ = [
     "OrganizationResponse",
     "OrganizationsResponse",
     "OrganizationPostRequest",
+    "ProjectResponse",
+    "ProjectsResponse",
+    "ProjectPostRequest",
+    "ProjectPatchRequest",
 ]
 
 
@@ -56,6 +67,9 @@ class OrganizationResponse(BaseModel):
     self_url: HttpUrl
     """The URL of the organization response."""
 
+    projects_url: HttpUrl
+    """The URL for the organization's projects."""
+
     @classmethod
     def from_organization(cls, org: Organization) -> OrganizationResponse:
         return cls(
@@ -70,6 +84,7 @@ class OrganizationResponse(BaseModel):
             ),
             s3_bucket=org.bucket_name,
             self_url=url_for_organization(org),
+            projects_url=url_for_organization_projects(org),
         )
 
 
@@ -174,3 +189,115 @@ class OrganizationPostRequest(BaseModel):
                     "Set fastly_api_key since fastly_support is enabled."
                 )
         return v
+
+
+class ProjectResponse(BaseModel):
+    """The project resource."""
+
+    self_url: HttpUrl
+    """The URL of the project resource."""
+
+    organization_url: HttpUrl
+    """The URL of the organization resource."""
+
+    slug: str
+    """URL/path-safe identifier for this project (unique within an
+    organization).
+    """
+
+    source_repo_url: HttpUrl
+    """URL of the associated source repository (GitHub homepage)."""
+
+    title: str
+    """Title of this project."""
+
+    published_url: HttpUrl
+    """URL where this project's default edition is published on the web."""
+
+    surrogate_key: str
+    """surrogate_key for Fastly quick purges of dashboards.
+
+    Editions and Builds have independent surrogate keys.
+    """
+
+    @classmethod
+    def from_product(
+        cls,
+        product: Product,
+        task: celery.Task = None,
+    ) -> ProjectResponse:
+        """Create a ProjectResponse from the Product ORM model instance."""
+        obj: Dict[str, Any] = {
+            "self_url": url_for_project(product),
+            "organization_url": url_for_organization(product.organization),
+            "slug": product.slug,
+            "title": product.title,
+            "source_repo_url": product.doc_repo,
+            "published_url": product.published_url,
+            "surrogate_key": product.surrogate_key,
+            # "queue_url": url_for_task(task) if task is not None else None,
+        }
+        return cls.parse_obj(obj)
+
+
+class ProjectsResponse(BaseModel):
+    """A model for a collection of project responses."""
+
+    __root__: List[ProjectResponse]
+
+    @classmethod
+    def from_products(cls, products: List[Product]) -> ProjectsResponse:
+        project_responses = [
+            ProjectResponse.from_product(product) for product in products
+        ]
+        return cls(__root__=project_responses)
+
+
+class ProjectPostRequest(BaseModel):
+    """A model for specifying a new project in a POST method."""
+
+    slug: str
+    """URL/path-safe identifier for this project (unique)."""
+
+    source_repo_url: HttpUrl
+    """URL of the associated source repository (GitHub homepage)."""
+
+    title: str
+    """Title of this project."""
+
+    default_edition_mode: Optional[str]
+    """Tracking mode of the default edition."""
+
+    @validator("slug")
+    def check_slug(cls, v: str) -> str:
+        try:
+            validate_product_slug(v)
+        except ValidationError:
+            raise ValueError(f"Slug {v!r} is incorrectly formatted.")
+        return v
+
+    @validator("default_edition_mode")
+    def check_default_mode(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return None
+
+        modes = EditionTrackingModes()
+        if v in modes:
+            return v
+        else:
+            raise ValueError(f"Tracking mode {v!r} is not known.")
+
+
+class ProjectPatchRequest(BaseModel):
+    """A model for updating a project in a PATCH method."""
+
+    source_repo_url: Optional[HttpUrl]
+    """URL of the associated source repository (GitHub homepage)."""
+
+    title: Optional[str]
+    """Title of this project."""
+
+    class Config:
+        # We want to invalidate requests that attempt to patch and fields
+        # that aren't mutable.
+        extra = "forbid"
