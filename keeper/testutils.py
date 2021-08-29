@@ -14,6 +14,7 @@ from urllib.parse import urlsplit, urlunsplit
 
 from keeper.api._urls import build_from_url, edition_from_url, product_from_url
 from keeper.tasks.registry import task_registry
+from keeper.v2api._urls import product_from_url as product_from_v2_url
 
 if TYPE_CHECKING:
     from unittest.mock import Mock
@@ -176,6 +177,14 @@ class MockTaskQueue:
         self, product_url: str, once: bool = True
     ) -> None:
         product = product_from_url(product_url)
+        self.assert_task(
+            "build_dashboard", {"product_id": product.id}, once=once
+        )
+
+    def assert_dashboard_build_v2(
+        self, product_url: str, once: bool = True
+    ) -> None:
+        product = product_from_v2_url(product_url)
         self.assert_task(
             "build_dashboard", {"product_id": product.id}, once=once
         )

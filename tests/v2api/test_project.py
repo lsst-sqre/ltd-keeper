@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-# from keeper.models import Organization, db
+from mock import MagicMock
+
 from keeper.testutils import MockTaskQueue
 
 if TYPE_CHECKING:
@@ -18,6 +19,22 @@ def test_projects(client: TestClient, mocker: Mock) -> None:
         "keeper.taskrunner.inspect_task_queue", return_value=None
     )
     task_queue = MockTaskQueue(mocker)  # noqa
+
+    mock_presigned_url = {
+        "url": "https://example.com",
+        "fields": {"key": "a/b/${filename}"},
+    }
+    presign_post_mock = mocker.patch(
+        "keeper.services.createbuild.presign_post_url_for_prefix",
+        new=MagicMock(return_value=mock_presigned_url),
+    )
+    presign_post_mock = mocker.patch(
+        "keeper.services.createbuild.presign_post_url_for_directory_object",
+        new=MagicMock(return_value=mock_presigned_url),
+    )
+    s3_session_mock = mocker.patch(
+        "keeper.services.createbuild.open_s3_session"
+    )
 
     # Create a default organization ===========================================
     mocker.resetall()
@@ -65,6 +82,7 @@ def test_projects(client: TestClient, mocker: Mock) -> None:
     assert project1_data["organization_url"] == org1_url
     assert project1_data["self_url"] == project1_url
     assert project1_data["published_url"] == "https://alpha.example.org"
+    project1_builds_url = project1_data["builds_url"]
 
     # Get project list again ==================================================
     mocker.resetall()
@@ -81,3 +99,51 @@ def test_projects(client: TestClient, mocker: Mock) -> None:
     task_queue.apply_task_side_effects()
     assert r.status == 200
     assert r.json["title"] == "Alpha Docs"
+
+    # Create a build ==========================================================
+    mocker.resetall()
+
+    build1_request = {"git_ref": "master"}
+    r = client.post(project1_builds_url, build1_request)
+    task_queue.apply_task_side_effects()
+    s3_session_mock.assert_called_once()
+    presign_post_mock.assert_called_once()
+    assert r.status == 201
+    assert r.json["project_url"] == project1_url
+    assert r.json["date_created"] is not None
+    assert r.json["date_ended"] is None
+    assert r.json["uploaded"] is False
+    assert r.json["published_url"] == "https://alpha.example.org/builds/1"
+    assert "post_prefix_urls" in r.json
+    assert "post_dir_urls" in r.json
+    assert len(r.json["surrogate_key"]) == 32  # should be a uuid4 -> hex
+    build1_url = r.headers["Location"]
+
+    # ========================================================================
+    # List builds
+    mocker.resetall()
+
+    r = client.get(project1_builds_url)
+    assert len(r.json) == 1
+
+    # ========================================================================
+    # Register upload
+    mocker.resetall()
+
+    r = client.patch(build1_url, {"uploaded": True})
+    task_queue.apply_task_side_effects()
+    assert r.status == 202
+
+    task_queue.assert_launched_once()
+    # task_queue.assert_edition_build_v1(
+    #     "http://alpha.example.org/editions/1",
+    #     build_url,
+    # )
+    # task_queue.assert_edition_build_v1(
+    #     "http://example.test/editions/2",
+    #     build_url,
+    # )
+    task_queue.assert_dashboard_build_v2(project1_url)
+
+    r = client.get(build1_url)
+    assert r.json["uploaded"] is True

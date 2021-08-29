@@ -588,6 +588,15 @@ class Build(db.Model):  # type: ignore
     """
 
     @property
+    def bucket_name(self) -> str:
+        """Name of the S3 bucket."""
+        if self.product.organization.bucket_name is not None:
+            return self.product.organization.bucket_name
+        else:
+            # Fallback for v1 set up
+            return self.product.bucket_name
+
+    @property
     def bucket_root_dirname(self) -> str:
         """Directory in the bucket where the build is located."""
         return "/".join((self.product.slug, "builds", self.slug))

@@ -2,27 +2,35 @@
 
 from __future__ import annotations
 
+import datetime
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Mapping, Optional
 
-from pydantic import BaseModel, HttpUrl, SecretStr, validator
+from pydantic import BaseModel, Field, HttpUrl, SecretStr, validator
 
 from keeper.editiontracking import EditionTrackingModes
 from keeper.exceptions import ValidationError
 from keeper.models import OrganizationLayoutMode
-from keeper.utils import validate_path_slug, validate_product_slug
+from keeper.utils import (
+    format_utc_datetime,
+    validate_path_slug,
+    validate_product_slug,
+)
 
 from ._urls import (
+    url_for_build,
     url_for_organization,
     url_for_organization_projects,
     url_for_project,
+    url_for_project_builds,
     url_for_task,
 )
 
 if TYPE_CHECKING:
     import celery
 
-    from keeper.models import Organization, Product
+    from keeper.models import Build, Organization, Product
+
 
 __all__ = [
     "OrganizationResponse",
@@ -32,6 +40,10 @@ __all__ = [
     "ProjectsResponse",
     "ProjectPostRequest",
     "ProjectPatchRequest",
+    "BuildResponse",
+    "BuildsResponse",
+    "BuildPostRequest",
+    "BuildPatchRequest",
     "QueuedResponse",
 ]
 
@@ -202,6 +214,9 @@ class ProjectResponse(BaseModel):
     organization_url: HttpUrl
     """The URL of the organization resource."""
 
+    builds_url: HttpUrl
+    """The URL of the project's build resources."""
+
     task_url: Optional[HttpUrl]
     """The URL of async task created by the request, if any."""
 
@@ -235,6 +250,7 @@ class ProjectResponse(BaseModel):
         obj: Dict[str, Any] = {
             "self_url": url_for_project(product),
             "organization_url": url_for_organization(product.organization),
+            "builds_url": url_for_project_builds(product),
             "slug": product.slug,
             "title": product.title,
             "source_repo_url": product.doc_repo,
@@ -306,6 +322,158 @@ class ProjectPatchRequest(BaseModel):
         # We want to invalidate requests that attempt to patch and fields
         # that aren't mutable.
         extra = "forbid"
+
+
+class PresignedPostUrl(BaseModel):
+    """An S3 presigned post URL and associated metadata."""
+
+    url: HttpUrl
+    """The presigned post URL."""
+
+    fields: Dict[str, Any]
+    """Additional metadata."""
+
+
+class BuildResponse(BaseModel):
+    """The build resource."""
+
+    self_url: HttpUrl
+    """The URL of the project resource."""
+
+    organization_url: HttpUrl
+    """The URL of the organization resource."""
+
+    project_url: HttpUrl
+    """The URL of the project resource."""
+
+    task_url: Optional[HttpUrl]
+    """The URL of async task created by the request, if any."""
+
+    slug: str
+    """The build's URL-safe slug."""
+
+    date_created: datetime.datetime
+    """The date when the build was created (UTC)."""
+
+    date_ended: Optional[datetime.datetime]
+    """The date when the build was created (UTC)."""
+
+    uploaded: bool
+    """True if the built documentation has been uploaded to the S3 bucket.
+    Use PATCH `/builds/(int:id)` to set this to `True`
+    """
+
+    bucket_name: str
+    """Name of the S3 bucket hosting the built documentation."""
+
+    bucket_prefix: str
+    """Path prefix (directory) in the S3 bucket where this documentation
+    build is located.
+    """
+
+    git_ref: Optional[str]
+    """Git ref that describes the version of the documentation being
+    built.
+    """
+
+    published_url: HttpUrl
+    """The URL where the build is published on the web."""
+
+    surrogate_key: str
+    """The surrogate key attached to the headers of all files on S3 belonging
+    to this build. This allows LTD Keeper to notify Fastly when an Edition is
+    being re-pointed to a new build. The client is responsible for uploading
+    files with this value as the ``x-amz-meta-surrogate-key`` value.
+    """
+
+    post_prefix_urls: Optional[Dict[str, PresignedPostUrl]] = None
+    """AWS S3 presigned-post URLs for prefixes."""
+
+    post_dir_urls: Optional[Dict[str, PresignedPostUrl]] = None
+    """AWS S3 presigned-post URLs for directories."""
+
+    class Config:
+        json_encoders = {
+            datetime.datetime: format_utc_datetime,
+        }
+
+    @classmethod
+    def from_build(
+        cls,
+        build: Build,
+        task: celery.Task = None,
+        post_prefix_urls: Optional[Mapping[str, Any]] = None,
+        post_dir_urls: Optional[Mapping[str, Any]] = None,
+    ) -> BuildResponse:
+        obj: Dict[str, Any] = {
+            "self_url": url_for_build(build),
+            "organization_url": url_for_organization(
+                build.product.organization
+            ),
+            "project_url": url_for_project(build.product),
+            "task_url": url_for_task(task) if task is not None else None,
+            "slug": build.slug,
+            "date_created": build.date_created,
+            "date_ended": build.date_ended,
+            "git_ref": build.git_ref,
+            "uploaded": build.uploaded,
+            "bucket_name": build.bucket_name,
+            "bucket_prefix": build.bucket_root_dirname,
+            "published_url": build.published_url,
+            "surrogate_key": build.surrogate_key,
+            "post_prefix_urls": post_prefix_urls,
+            "post_dir_urls": post_dir_urls,
+        }
+        return cls.parse_obj(obj)
+
+
+class BuildsResponse(BaseModel):
+    """A model for a collection of build responses."""
+
+    __root__: List[BuildResponse]
+
+    @classmethod
+    def from_builds(cls, builds: List[Build]) -> BuildsResponse:
+        build_responses = [BuildResponse.from_build(build) for build in builds]
+        return cls(__root__=build_responses)
+
+
+class BuildPostRequest(BaseModel):
+    """A model for requesting a new build."""
+
+    directories: List[str] = Field(default_factory=lambda: ["/"])
+
+    git_ref: Optional[str]
+    """The Git ref that this build represents."""
+
+    slug: Optional[str] = None
+    """The slug for referencing this build (if not set, a slug is automatically
+    created.
+    """
+
+    @validator("slug")
+    def check_slug(cls, v: str) -> str:
+        try:
+            validate_path_slug(v)
+        except ValidationError:
+            raise ValueError(f"Slug {v!r} is incorrectly formatted.")
+        return v
+
+    @validator("directories")
+    def check_directories(cls, v: List[str]) -> List[str]:
+        new_list: List[str] = []
+        for d in v:
+            d = d.strip()
+            if not d.endswith("/"):
+                d = f"{d}/"
+            new_list.append(d)
+        return new_list
+
+
+class BuildPatchRequest(BaseModel):
+    """A model for updating a build."""
+
+    uploaded: Optional[bool] = None
 
 
 class QueuedResponse(BaseModel):
