@@ -504,6 +504,22 @@ class Product(db.Model):  # type: ignore
         parts = ("https", self.domain, "", "", "", "")
         return urllib.parse.urlunparse(parts)
 
+    @property
+    def default_edition(self) -> Edition:
+        """Get the default edition."""
+        edition = (
+            Edition.query.join(Product, Product.id == Edition.product_id)
+            .filter(Product.id == self.id)
+            .filter(Edition.slug == "main")
+            .one_or_none()
+        )
+        if edition is None:
+            raise RuntimeError(
+                f"Cannot find default edition for product {self.slug} "
+                f"in organization {self.organization.slug}"
+            )
+        return edition
+
 
 class Build(db.Model):  # type: ignore
     """DB model for documentation builds."""

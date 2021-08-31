@@ -83,6 +83,7 @@ def test_projects(client: TestClient, mocker: Mock) -> None:
     assert project1_data["self_url"] == project1_url
     assert project1_data["published_url"] == "https://alpha.example.org"
     project1_builds_url = project1_data["builds_url"]
+    project1_default_edition_url = project1_data["default_edition"]["self_url"]
 
     # Get project list again ==================================================
     mocker.resetall()
@@ -135,15 +136,20 @@ def test_projects(client: TestClient, mocker: Mock) -> None:
     assert r.status == 202
 
     task_queue.assert_launched_once()
-    # task_queue.assert_edition_build_v1(
-    #     "http://alpha.example.org/editions/1",
-    #     build_url,
-    # )
-    # task_queue.assert_edition_build_v1(
-    #     "http://example.test/editions/2",
-    #     build_url,
-    # )
+    task_queue.assert_edition_build_v2(
+        project1_default_edition_url,
+        build1_url,
+    )
     task_queue.assert_dashboard_build_v2(project1_url)
 
     r = client.get(build1_url)
     assert r.json["uploaded"] is True
+
+    # =========================================================================
+    # Get the default edition
+    mocker.resetall()
+    r = client.get(project1_default_edition_url)
+    assert r.status == 200
+    data = r.json
+
+    assert data["build_url"] == build1_url
