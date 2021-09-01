@@ -3,8 +3,6 @@ from __future__ import annotations
 import uuid
 from typing import TYPE_CHECKING, Optional, Tuple
 
-from flask import current_app
-
 import keeper.route53
 from keeper.models import Product, db
 
@@ -90,10 +88,13 @@ def configure_subdomain(product: Product) -> None:
     product : `keeper.models.Product`
         The product entity, already added to the DB session.
     """
-    # FIXME AWS credentials will move to the Organization table
-    AWS_ID = current_app.config["AWS_ID"]
-    AWS_SECRET = current_app.config["AWS_SECRET"]
-    if AWS_ID is not None and AWS_SECRET is not None:
+    organization = product.organization
+    aws_id = organization.aws_id
+    aws_secret = organization.get_aws_secret_key()
+    if aws_id is not None and aws_secret is not None:
         keeper.route53.create_cname(
-            product.domain, product.fastly_domain, AWS_ID, AWS_SECRET
+            product.domain,
+            product.fastly_domain,
+            aws_id,
+            aws_secret.get_secret_value(),
         )

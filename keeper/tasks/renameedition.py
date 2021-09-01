@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from celery.utils.log import get_task_logger
-from flask import current_app
 
 from keeper import s3
 from keeper.celery import celery_app
@@ -38,28 +37,29 @@ def rename_edition(
 
     edition.update_slug(new_slug)
 
-    new_bucket_root_dir = self.bucket_root_dirname
+    new_bucket_root_dir = edition.bucket_root_dirname
 
-    AWS_ID = current_app.config["AWS_ID"]
-    AWS_SECRET = current_app.config["AWS_SECRET"]
+    organization = edition.product.organization
+    aws_id = organization.aws_id
+    aws_secret = organization.get_aws_secret_key()
     if (
-        AWS_ID is not None
-        and AWS_SECRET is not None
+        aws_id is not None
+        and aws_secret is not None
         and self.build is not None
     ):
         s3.copy_directory(
             self.product.bucket_name,
             old_bucket_root_dir,
             new_bucket_root_dir,
-            AWS_ID,
-            AWS_SECRET,
+            aws_id,
+            aws_secret.get_secret_value(),
             surrogate_key=self.surrogate_key,
         )
         s3.delete_directory(
             self.product.bucket_name,
             old_bucket_root_dir,
-            AWS_ID,
-            AWS_SECRET,
+            aws_id,
+            aws_secret.get_secret_value(),
         )
 
     edition.pending_rebuild = False

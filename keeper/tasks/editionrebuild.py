@@ -8,7 +8,6 @@ from urllib.parse import urljoin
 
 import requests
 from celery.utils.log import get_task_logger
-from flask import current_app
 
 from keeper import fastly, s3
 from keeper.celery import celery_app
@@ -52,29 +51,32 @@ def rebuild_edition(
         self.request.retries,
     )
 
-    FASTLY_SERVICE_ID = current_app.config["FASTLY_SERVICE_ID"]
-    FASTLY_KEY = current_app.config["FASTLY_KEY"]
-    AWS_ID = current_app.config["AWS_ID"]
-    AWS_SECRET = current_app.config["AWS_SECRET"]
     # LTD_EVENTS_URL = current_app.config["LTD_EVENTS_URL"]
 
     # api_url_parts = urlsplit(edition_url)
     # api_root = urlunsplit((api_url_parts[0], api_url_parts[1], "", "", ""))
 
     edition = Edition.query.get(edition_id)
+    organization = edition.product.organization
     new_build = Build.query.get(build_id)
+
+    aws_id = organization.aws_id
+    aws_secret = organization.get_aws_secret_key
+
+    fastly_service_id = organization.fastly_service_id
+    fastly_key = organization.get_fastly_api_id
 
     try:
         edition.set_pending_rebuild(new_build)
 
-        if AWS_ID is not None and AWS_SECRET is not None:
+        if aws_id is not None and aws_secret is not None:
             logger.info("Starting copy_directory")
             s3.copy_directory(
                 bucket_name=edition.product.bucket_name,
                 src_path=new_build.bucket_root_dirname,
                 dest_path=edition.bucket_root_dirname,
-                aws_access_key_id=AWS_ID,
-                aws_secret_access_key=AWS_SECRET,
+                aws_access_key_id=aws_id,
+                aws_secret_access_key=aws_secret.get_secret_value(),
                 surrogate_key=edition.surrogate_key,
                 # Force Fastly to cache the edition for 1 year
                 surrogate_control="max-age=31536000",
@@ -87,10 +89,10 @@ def rebuild_edition(
                 "Skipping rebuild because AWS credentials are not set"
             )
 
-        if FASTLY_SERVICE_ID is not None and FASTLY_KEY is not None:
+        if fastly_service_id is not None and fastly_key is not None:
             logger.info("Starting Fastly purge_key")
             fastly_service = fastly.FastlyService(
-                FASTLY_SERVICE_ID, FASTLY_KEY
+                fastly_service_id, fastly_key.get_secret_value()
             )
             fastly_service.purge_key(edition.surrogate_key)
             logger.info("Finished Fastly purge_key")

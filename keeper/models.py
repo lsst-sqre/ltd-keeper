@@ -332,6 +332,16 @@ class Organization(db.Model):  # type: ignore
     bucket_name = db.Column(db.Unicode(255), nullable=True)
     """Name of the S3 bucket hosting builds."""
 
+    # FIXME nullable for migration
+    aws_id = db.Column(db.Unicode(255), nullable=True)
+    """The AWS key identity (this replaced the Kubernetes configuration-based
+    key.
+    """
+
+    # FIXME nullable for migration
+    aws_encrypted_secret_key = db.Column(db.String(255), nullable=True)
+    """The AWS secret key."""
+
     products = db.relationship(
         "Product", back_populates="organization", lazy="dynamic"
     )
@@ -352,19 +362,38 @@ class Organization(db.Model):  # type: ignore
         """Encrypt and set the Fastly API key."""
         if api_key is None:
             return
-        fernet_key = current_app.config["FERNET_KEY"]
-        f = Fernet(fernet_key)
-        token = f.encrypt(api_key.get_secret_value().encode("utf-8"))
-        self.fastly_encrypted_api_key = token
+        self.fastly_encrypted_api_key = self._encrypt_secret_str(api_key)
 
     def get_fastly_api_key(self) -> SecretStr:
         """Get the decrypted Fastly API key."""
         encrypted_key = self.fastly_encrypted_api_key
         if encrypted_key is None:
             raise ValueError("fastly_encrypted_api_key is not set.")
+        return self._decrypt_to_secret_str(encrypted_key)
+
+    def set_aws_secret_key(self, secret_key: Optional[SecretStr]) -> None:
+        """Encrypt and set the AWS secret key."""
+        if secret_key is None:
+            return
+        self.aws_encrypted_secret_key = self._encrypt_secret_str(secret_key)
+
+    def get_aws_secret_key(self) -> Optional[SecretStr]:
+        """Get the decrypted Fastly API key."""
+        encrypted_key = self.aws_encrypted_secret_key
+        if encrypted_key is None:
+            return None
+        return self._decrypt_to_secret_str(encrypted_key)
+
+    def _encrypt_secret_str(self, secret: SecretStr) -> bytes:
         fernet_key = current_app.config["FERNET_KEY"]
         f = Fernet(fernet_key)
-        return SecretStr(f.decrypt(encrypted_key).decode("utf-8"))
+        token = f.encrypt(secret.get_secret_value().encode("utf-8"))
+        return token
+
+    def _decrypt_to_secret_str(self, token: bytes) -> SecretStr:
+        fernet_key = current_app.config["FERNET_KEY"]
+        f = Fernet(fernet_key)
+        return SecretStr(f.decrypt(token).decode("utf-8"))
 
 
 product_tags = db.Table(

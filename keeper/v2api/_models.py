@@ -169,6 +169,12 @@ class OrganizationPostRequest(BaseModel):
     fastly_api_key: Optional[SecretStr] = None
     """The Fastly API key."""
 
+    aws_id: Optional[SecretStr] = None
+    """AWS key ID."""
+
+    aws_secret: Optional[SecretStr] = None
+    """AWS secret key."""
+
     @validator("slug")
     def check_slug(cls, v: str) -> str:
         try:

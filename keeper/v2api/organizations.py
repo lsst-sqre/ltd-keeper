@@ -61,6 +61,8 @@ def create_organization() -> Tuple[str, int, Dict[str, Any]]:
             domain=request_data.domain,
             path_prefix=request_data.path_prefix,
             bucket_name=request_data.bucket_name,
+            aws_id=request_data.aws_id,
+            aws_secret=request_data.aws_secret,
             fastly_support=request_data.fastly_support,
             fastly_domain=request_data.fastly_domain,
             fastly_service_id=request_data.fastly_service_id,

@@ -18,6 +18,8 @@ def create_organization(
     path_prefix: str,
     bucket_name: str,
     fastly_support: bool,
+    aws_id: Optional[str],
+    aws_secret: Optional[SecretStr],
     fastly_domain: Optional[str],
     fastly_service_id: Optional[str],
     fastly_api_key: Optional[SecretStr],
@@ -33,11 +35,13 @@ def create_organization(
         root_domain=domain,
         root_path_prefix=path_prefix,
         bucket_name=bucket_name,
+        aws_id=aws_id,
         fastly_support=fastly_support,
         fastly_domain=fastly_domain,
         fastly_service_id=fastly_service_id,
     )
     org.set_fastly_api_key(fastly_api_key)
+    org.set_aws_secret_key(aws_secret)
     db.session.add(org)
     db.session.commit()
     return org
