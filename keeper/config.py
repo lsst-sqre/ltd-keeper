@@ -36,10 +36,6 @@ class Config(abc.ABC):
     DEBUG: bool = False
     IGNORE_AUTH: bool = False
     PREFERRED_URL_SCHEME: str = "http"
-    AWS_ID: Optional[str] = os.environ.get("LTD_KEEPER_AWS_ID")
-    AWS_SECRET: Optional[str] = os.environ.get("LTD_KEEPER_AWS_SECRET")
-    FASTLY_KEY: Optional[str] = os.environ.get("LTD_KEEPER_FASTLY_KEY")
-    FASTLY_SERVICE_ID: Optional[str] = os.environ.get("LTD_KEEPER_FASTLY_ID")
     LTD_DASHER_URL: Optional[str] = os.getenv("LTD_DASHER_URL", None)
     CELERY_RESULT_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379")
     CELERY_BROKER_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379")
