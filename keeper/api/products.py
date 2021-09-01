@@ -133,7 +133,15 @@ def get_product(slug: str) -> str:
     :statuscode 200: No error.
     :statuscode 404: Product not found.
     """
-    product = Product.query.filter_by(slug=slug).first_or_404()
+    default_org = Organization.query.order_by(Organization.id).first_or_404()
+    product = (
+        Product.query.join(
+            Organization, Organization.id == Product.organization_id
+        )
+        .filter(Organization.slug == default_org.slug)
+        .filter(Product.slug == slug)
+        .first_or_404()
+    )
     response = ProductResponse.from_product(product)
     return response.json()
 
@@ -302,7 +310,15 @@ def edit_product(slug: str) -> Tuple[str, int, Dict[str, str]]:
     :statuscode 200: No error.
     :statuscode 404: Product not found.
     """
-    product = Product.query.filter_by(slug=slug).first_or_404()
+    default_org = Organization.query.order_by(Organization.id).first_or_404()
+    product = (
+        Product.query.join(
+            Organization, Organization.id == Product.organization_id
+        )
+        .filter(Organization.slug == default_org.slug)
+        .filter(Product.slug == slug)
+        .first_or_404()
+    )
     request_data = ProductPatchRequest.parse_obj(request.json)
 
     try:
@@ -341,7 +357,15 @@ def rebuild_product_dashboard(slug: str) -> Tuple[str, int, Dict[str, str]]:
 
     - :http:post:`/dashboards`
     """
-    product = Product.query.filter_by(slug=slug).first_or_404()
+    default_org = Organization.query.order_by(Organization.id).first_or_404()
+    product = (
+        Product.query.join(
+            Organization, Organization.id == Product.organization_id
+        )
+        .filter(Organization.slug == default_org.slug)
+        .filter(Product.slug == slug)
+        .first_or_404()
+    )
     request_dashboard_build(product)
     task = launch_tasks()
     response = QueuedResponse.from_task(task)

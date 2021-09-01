@@ -14,6 +14,9 @@ from urllib.parse import urlsplit, urlunsplit
 
 from keeper.api._urls import build_from_url, edition_from_url, product_from_url
 from keeper.tasks.registry import task_registry
+from keeper.v2api._urls import build_from_url as build_from_v2_url
+from keeper.v2api._urls import edition_from_url as edition_from_v2_url
+from keeper.v2api._urls import product_from_url as product_from_v2_url
 
 if TYPE_CHECKING:
     from unittest.mock import Mock
@@ -180,11 +183,30 @@ class MockTaskQueue:
             "build_dashboard", {"product_id": product.id}, once=once
         )
 
+    def assert_dashboard_build_v2(
+        self, product_url: str, once: bool = True
+    ) -> None:
+        product = product_from_v2_url(product_url)
+        self.assert_task(
+            "build_dashboard", {"product_id": product.id}, once=once
+        )
+
     def assert_edition_build_v1(
         self, edition_url: str, build_url: str, once: bool = True
     ) -> None:
         edition = edition_from_url(edition_url)
         build = build_from_url(build_url)
+        self.assert_task(
+            "rebuild_edition",
+            {"edition_id": edition.id, "build_id": build.id},
+            once=once,
+        )
+
+    def assert_edition_build_v2(
+        self, edition_url: str, build_url: str, once: bool = True
+    ) -> None:
+        edition = edition_from_v2_url(edition_url)
+        build = build_from_v2_url(build_url)
         self.assert_task(
             "rebuild_edition",
             {"edition_id": edition.id, "build_id": build.id},

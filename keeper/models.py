@@ -12,10 +12,12 @@ import uuid
 from datetime import datetime
 from typing import Any, List, Optional, Type, Union
 
+from cryptography.fernet import Fernet
 from flask import current_app
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
+from pydantic import SecretStr
 from structlog import get_logger
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -330,6 +332,16 @@ class Organization(db.Model):  # type: ignore
     bucket_name = db.Column(db.Unicode(255), nullable=True)
     """Name of the S3 bucket hosting builds."""
 
+    # FIXME nullable for migration
+    aws_id = db.Column(db.Unicode(255), nullable=True)
+    """The AWS key identity (this replaced the Kubernetes configuration-based
+    key.
+    """
+
+    # FIXME nullable for migration
+    aws_encrypted_secret_key = db.Column(db.String(255), nullable=True)
+    """The AWS secret key."""
+
     products = db.relationship(
         "Product", back_populates="organization", lazy="dynamic"
     )
@@ -345,6 +357,43 @@ class Organization(db.Model):  # type: ignore
         primaryjoin=id == DashboardTemplate.organization_id,
         back_populates="organization",
     )
+
+    def set_fastly_api_key(self, api_key: Optional[SecretStr]) -> None:
+        """Encrypt and set the Fastly API key."""
+        if api_key is None:
+            return
+        self.fastly_encrypted_api_key = self._encrypt_secret_str(api_key)
+
+    def get_fastly_api_key(self) -> SecretStr:
+        """Get the decrypted Fastly API key."""
+        encrypted_key = self.fastly_encrypted_api_key
+        if encrypted_key is None:
+            raise ValueError("fastly_encrypted_api_key is not set.")
+        return self._decrypt_to_secret_str(encrypted_key)
+
+    def set_aws_secret_key(self, secret_key: Optional[SecretStr]) -> None:
+        """Encrypt and set the AWS secret key."""
+        if secret_key is None:
+            return
+        self.aws_encrypted_secret_key = self._encrypt_secret_str(secret_key)
+
+    def get_aws_secret_key(self) -> Optional[SecretStr]:
+        """Get the decrypted Fastly API key."""
+        encrypted_key = self.aws_encrypted_secret_key
+        if encrypted_key is None:
+            return None
+        return self._decrypt_to_secret_str(encrypted_key)
+
+    def _encrypt_secret_str(self, secret: SecretStr) -> bytes:
+        fernet_key = current_app.config["FERNET_KEY"]
+        f = Fernet(fernet_key)
+        token = f.encrypt(secret.get_secret_value().encode("utf-8"))
+        return token
+
+    def _decrypt_to_secret_str(self, token: bytes) -> SecretStr:
+        fernet_key = current_app.config["FERNET_KEY"]
+        f = Fernet(fernet_key)
+        return SecretStr(f.decrypt(token).decode("utf-8"))
 
 
 product_tags = db.Table(
@@ -484,6 +533,22 @@ class Product(db.Model):  # type: ignore
         parts = ("https", self.domain, "", "", "", "")
         return urllib.parse.urlunparse(parts)
 
+    @property
+    def default_edition(self) -> Edition:
+        """Get the default edition."""
+        edition = (
+            Edition.query.join(Product, Product.id == Edition.product_id)
+            .filter(Product.id == self.id)
+            .filter(Edition.slug == "main")
+            .one_or_none()
+        )
+        if edition is None:
+            raise RuntimeError(
+                f"Cannot find default edition for product {self.slug} "
+                f"in organization {self.organization.slug}"
+            )
+        return edition
+
 
 class Build(db.Model):  # type: ignore
     """DB model for documentation builds."""
@@ -566,6 +631,15 @@ class Build(db.Model):  # type: ignore
     )
     """User who uploaded this build.
     """
+
+    @property
+    def bucket_name(self) -> str:
+        """Name of the S3 bucket."""
+        if self.product.organization.bucket_name is not None:
+            return self.product.organization.bucket_name
+        else:
+            # Fallback for v1 set up
+            return self.product.bucket_name
 
     @property
     def bucket_root_dirname(self) -> str:

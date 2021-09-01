@@ -4,7 +4,6 @@ import uuid
 from copy import deepcopy
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
-from flask import current_app
 from structlog import get_logger
 
 from keeper.auth import is_authorized
@@ -86,10 +85,6 @@ def create_build(
 
     db.session.add(build)
     db.session.commit()
-
-    print("Just added new build")
-    print("new objects", db.session.new)
-    print("changed objects", db.session.dirty)
 
     # Create an edition to track this git ref if necessary
     edition = create_autotracking_edition(product=product, build=build)
@@ -178,10 +173,16 @@ def create_presigned_post_urls(
 ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     logger = get_logger(__name__)
 
-    s3_session = open_s3_session(
-        key_id=current_app.config["AWS_ID"],
-        access_key=current_app.config["AWS_SECRET"],
-    )
+    organization = build.product.organization
+    aws_id = organization.aws_id
+    aws_secret = organization.get_aws_secret_key()
+
+    if aws_secret is None:
+        s3_session = open_s3_session(key_id=aws_id, access_key="")
+    else:
+        s3_session = open_s3_session(
+            key_id=aws_id, access_key=aws_secret.get_secret_value()
+        )
     presigned_prefix_urls = {}
     presigned_dir_urls = {}
     for d in set(directories):

@@ -172,7 +172,7 @@ class BuildResponse(BaseModel):
             "date_created": build.date_created,
             "date_ended": build.date_ended,
             "uploaded": build.uploaded,
-            "bucket_name": build.product.bucket_name,
+            "bucket_name": build.bucket_name,
             "bucket_root_dir": build.bucket_root_dirname,
             "git_refs": build.git_refs,
             "github_requester": build.github_requester,

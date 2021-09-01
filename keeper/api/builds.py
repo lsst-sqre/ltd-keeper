@@ -10,7 +10,7 @@ from flask_accept import accept_fallback
 from keeper.api import api
 from keeper.auth import permission_required, token_auth
 from keeper.logutils import log_route
-from keeper.models import Build, Permission, Product, db
+from keeper.models import Build, Organization, Permission, Product, db
 from keeper.services.updatebuild import update_build
 from keeper.taskrunner import launch_tasks
 
@@ -192,13 +192,16 @@ def get_product_builds(slug: str) -> str:
     :statuscode 200: No error.
     :statuscode 404: Product not found.
     """
-    build_urls = [
-        url_for_build(build)
-        for build in Build.query.join(Product, Product.id == Build.product_id)
+    default_org = Organization.query.first()
+    builds = (
+        Build.query.join(Product, Product.id == Build.product_id)
+        .join(Organization, Organization.id == Product.organization_id)
+        .filter(Organization.slug == default_org.slug)
         .filter(Product.slug == slug)
         .filter(Build.date_ended == None)  # noqa: E711
         .all()
-    ]
+    )
+    build_urls = [url_for_build(build) for build in builds]
     response = BuildUrlListingResponse(builds=build_urls)
     return response.json()
 

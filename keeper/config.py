@@ -36,15 +36,14 @@ class Config(abc.ABC):
     DEBUG: bool = False
     IGNORE_AUTH: bool = False
     PREFERRED_URL_SCHEME: str = "http"
-    AWS_ID: Optional[str] = os.environ.get("LTD_KEEPER_AWS_ID")
-    AWS_SECRET: Optional[str] = os.environ.get("LTD_KEEPER_AWS_SECRET")
-    FASTLY_KEY: Optional[str] = os.environ.get("LTD_KEEPER_FASTLY_KEY")
-    FASTLY_SERVICE_ID: Optional[str] = os.environ.get("LTD_KEEPER_FASTLY_ID")
     LTD_DASHER_URL: Optional[str] = os.getenv("LTD_DASHER_URL", None)
     CELERY_RESULT_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379")
     CELERY_BROKER_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379")
     LTD_EVENTS_URL: Optional[str] = os.getenv("LTD_EVENTS_URL", None)
     DEFAULT_EDITION_KIND: EditionKind = EditionKind.draft
+
+    ENABLE_V1_API: bool = bool(int(os.getenv("LTD_KEEPER_ENABLE_V1", "1")))
+    ENABLE_V2_API: bool = bool(int(os.getenv("LTD_KEEPER_ENABLE_V2", "1")))
 
     # Suppresses a warning until Flask-SQLAlchemy 3
     # See http://stackoverflow.com/a/33790196
@@ -81,6 +80,15 @@ class Config(abc.ABC):
     """Number of values to trust for X-Forwarded-Prefix."""
 
     ENABLE_TASKS: bool = bool(int(os.getenv("LTD_KEEPER_ENABLE_TASKS", "1")))
+
+    FERNET_KEY: bytes = os.getenv("LTD_KEEPER_FERNET_KEY", "").encode("utf-8")
+    """A fernet key (base64-encode length 32).
+
+    Generate this key and store it as a secret:
+
+    >>> from cryptography.fernet import Fernet
+    >>> key = Fernet.generate_key()
+    """
 
     @abc.abstractclassmethod
     def init_app(cls, app: Flask) -> None:

@@ -10,7 +10,7 @@ from flask_accept import accept_fallback
 from keeper.api import api
 from keeper.auth import permission_required, token_auth
 from keeper.logutils import log_route
-from keeper.models import Edition, Permission, Product, db
+from keeper.models import Edition, Organization, Permission, Product, db
 from keeper.services.createedition import create_edition
 from keeper.services.requestdashboardbuild import request_dashboard_build
 from keeper.services.updateedition import update_edition
@@ -103,7 +103,15 @@ def new_edition(slug: str) -> Tuple[str, int, Dict[str, str]]:
     :statuscode 201: No errors.
     :statuscode 404: Product not found.
     """
-    product = Product.query.filter_by(slug=slug).first_or_404()
+    default_org = Organization.query.order_by(Organization.id).first_or_404()
+    product = (
+        Product.query.join(
+            Organization, Organization.id == Product.organization_id
+        )
+        .filter(Product.slug == slug)
+        .filter(Organization.slug == default_org.slug)
+        .first_or_404()
+    )
     request_data = EditionPostRequest.parse_obj(request.json)
     if request_data.build_url:
         build: Optional[Build] = build_from_url(request_data.build_url)
@@ -231,15 +239,16 @@ def get_product_editions(slug: str) -> Response:
     :statuscode 200: No errors.
     :statuscode 404: Product not found.
     """
-    edition_urls = [
-        url_for_edition(edition)
-        for edition in Edition.query.join(
-            Product, Product.id == Edition.product_id
-        )
+    default_org = Organization.query.order_by(Organization.id).first_or_404()
+    editions = (
+        Edition.query.join(Product, Product.id == Edition.product_id)
+        .join(Organization, Organization.id == Product.organization_id)
+        .filter(Organization.slug == default_org.slug)
         .filter(Product.slug == slug)
         .filter(Edition.date_ended == None)  # noqa: E711
         .all()
-    ]
+    )
+    edition_urls = [url_for_edition(edition) for edition in editions]
     response = EditionUrlListingResponse(editions=edition_urls)
     return response.json()
 

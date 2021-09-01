@@ -11,7 +11,7 @@ from keeper.api import api
 from keeper.auth import permission_required, token_auth
 from keeper.logutils import log_route
 from keeper.mediatypes import v2_json_type
-from keeper.models import Permission, Product, db
+from keeper.models import Organization, Permission, Product, db
 from keeper.services.createbuild import (
     create_build,
     create_presigned_post_urls,
@@ -138,7 +138,15 @@ def post_products_builds_v1(slug: str) -> Tuple[str, int, Dict[str, str]]:
     :statuscode 201: No error.
     :statuscode 404: Product not found.
     """
-    product = Product.query.filter_by(slug=slug).first_or_404()
+    default_org = Organization.query.order_by(Organization.id).first_or_404()
+    product = (
+        Product.query.join(
+            Organization, Organization.id == Product.organization_id
+        )
+        .filter(Organization.slug == default_org.slug)
+        .filter(Product.slug == slug)
+        .first_or_404()
+    )
     request_data = BuildPostRequest.parse_obj(request.json)
 
     try:
@@ -163,7 +171,15 @@ def post_products_builds_v1(slug: str) -> Tuple[str, int, Dict[str, str]]:
 @permission_required(Permission.UPLOAD_BUILD)
 def post_products_builds_v2(slug: str) -> Tuple[str, int, Dict[str, str]]:
     """Handle POST /products/../builds/ (version 2)."""
-    product = Product.query.filter_by(slug=slug).first_or_404()
+    default_org = Organization.query.order_by(Organization.id).first_or_404()
+    product = (
+        Product.query.join(
+            Organization, Organization.id == Product.organization_id
+        )
+        .filter(Organization.slug == default_org.slug)
+        .filter(Product.slug == slug)
+        .first_or_404()
+    )
     request_data = BuildPostRequestWithDirs.parse_obj(request.json)
 
     try:
