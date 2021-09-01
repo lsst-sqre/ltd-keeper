@@ -7,6 +7,7 @@ from typing import Any, Dict, Tuple
 from flask import request
 from flask_accept import accept_fallback
 
+from keeper.auth import token_auth
 from keeper.logutils import log_route
 from keeper.models import Organization, db
 from keeper.services import createorg
@@ -25,6 +26,7 @@ __all__ = ["get_organization", "get_organizations", "create_organization"]
 @v2api.route("/orgs", methods=["GET"])
 @accept_fallback
 @log_route()
+@token_auth.login_required
 def get_organizations() -> str:
     """List organizations."""
     response = OrganizationsResponse.from_organizations(
@@ -36,6 +38,7 @@ def get_organizations() -> str:
 @v2api.route("/orgs/<slug>", methods=["GET"])
 @accept_fallback
 @log_route()
+@token_auth.login_required
 def get_organization(slug: str) -> str:
     """Get a single organization's resource."""
     org = Organization.query.filter_by(slug=slug).first_or_404()
@@ -46,6 +49,7 @@ def get_organization(slug: str) -> str:
 @v2api.route("/orgs", methods=["POST"])
 @accept_fallback
 @log_route()
+@token_auth.login_required
 def create_organization() -> Tuple[str, int, Dict[str, Any]]:
     request_data = OrganizationPostRequest.parse_obj(request.json)
 

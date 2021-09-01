@@ -7,6 +7,7 @@ from typing import Dict, Tuple
 from flask import request
 from flask_accept import accept_fallback
 
+from keeper.auth import token_auth
 from keeper.logutils import log_route
 from keeper.models import Organization, Product, db
 from keeper.services.createproduct import create_product
@@ -28,6 +29,7 @@ __all__ = ["get_projects", "get_project", "create_project", "update_project"]
 @v2api.route("/orgs/<org>/projects", methods=["GET"])
 @accept_fallback
 @log_route()
+@token_auth.login_required
 def get_projects(org: str) -> str:
     products = (
         Product.query.join(
@@ -43,6 +45,7 @@ def get_projects(org: str) -> str:
 @v2api.route("/orgs/<org>/projects/<slug>", methods=["GET"])
 @accept_fallback
 @log_route()
+@token_auth.login_required
 def get_project(org: str, slug: str) -> str:
     product = (
         Product.query.join(
@@ -59,6 +62,7 @@ def get_project(org: str, slug: str) -> str:
 @v2api.route("/orgs/<org>/projects", methods=["POST"])
 @accept_fallback
 @log_route()
+@token_auth.login_required
 def create_project(org: str) -> Tuple[str, int, Dict[str, str]]:
     request_data = ProjectPostRequest.parse_obj(request.json)
 
@@ -92,6 +96,7 @@ def create_project(org: str) -> Tuple[str, int, Dict[str, str]]:
 @v2api.route("/orgs/<org>/projects/<slug>", methods=["PATCH"])
 @accept_fallback
 @log_route()
+@token_auth.login_required
 def update_project(org: str, slug: str) -> Tuple[str, int, Dict[str, str]]:
     request_data = ProjectPatchRequest.parse_obj(request.json)
 

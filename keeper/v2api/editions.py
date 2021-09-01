@@ -7,6 +7,7 @@ from typing import Dict, Optional, Tuple
 from flask import request
 from flask_accept import accept_fallback
 
+from keeper.auth import token_auth
 from keeper.logutils import log_route
 from keeper.models import Build, Edition, Organization, Product, db
 from keeper.services.createedition import create_edition
@@ -28,6 +29,7 @@ __all__ = ["get_editions", "get_edition", "post_edition", "patch_edition"]
 @v2api.route("/orgs/<org>/projects/<project>/editions", methods=["GET"])
 @accept_fallback
 @log_route()
+@token_auth.login_required
 def get_editions(org: str, project: str) -> str:
     editions = (
         Edition.query.join(Product, Product.id == Edition.product_id)
@@ -43,6 +45,7 @@ def get_editions(org: str, project: str) -> str:
 @v2api.route("/orgs/<org>/projects/<project>/editions/<id>", methods=["GET"])
 @accept_fallback
 @log_route()
+@token_auth.login_required
 def get_edition(org: str, project: str, id: str) -> str:
     edition = (
         Edition.query.join(Product, Product.id == Edition.product_id)
@@ -59,6 +62,7 @@ def get_edition(org: str, project: str, id: str) -> str:
 @v2api.route("/orgs/<org>/projects/<project>/editions", methods=["POST"])
 @accept_fallback
 @log_route()
+@token_auth.login_required
 def post_edition(org: str, project: str) -> Tuple[str, int, Dict[str, str]]:
     product = (
         Product.query.join(
@@ -99,6 +103,7 @@ def post_edition(org: str, project: str) -> Tuple[str, int, Dict[str, str]]:
 @v2api.route("/orgs/<org>/projects/<project>/editions/<id>", methods=["PATCH"])
 @accept_fallback
 @log_route()
+@token_auth.login_required
 def patch_edition(
     org: str, project: str, id: str
 ) -> Tuple[str, int, Dict[str, str]]:

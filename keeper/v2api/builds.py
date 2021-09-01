@@ -7,6 +7,7 @@ from typing import Dict, Tuple
 from flask import request
 from flask_accept import accept_fallback
 
+from keeper.auth import token_auth
 from keeper.logutils import log_route
 from keeper.models import Build, Organization, Product, db
 from keeper.services.createbuild import (
@@ -31,6 +32,7 @@ __all__ = ["get_builds", "get_build", "post_build", "patch_build"]
 @v2api.route("/orgs/<org>/projects/<project>/builds", methods=["GET"])
 @accept_fallback
 @log_route()
+@token_auth.login_required
 def get_builds(org: str, project: str) -> str:
     builds = (
         Build.query.join(Product, Product.id == Build.product_id)
@@ -46,6 +48,7 @@ def get_builds(org: str, project: str) -> str:
 @v2api.route("/orgs/<org>/projects/<project>/builds/<id>", methods=["GET"])
 @accept_fallback
 @log_route()
+@token_auth.login_required
 def get_build(org: str, project: str, id: str) -> str:
     build = (
         Build.query.join(Product, Product.id == Build.product_id)
@@ -62,6 +65,7 @@ def get_build(org: str, project: str, id: str) -> str:
 @v2api.route("/orgs/<org>/projects/<project>/builds", methods=["POST"])
 @accept_fallback
 @log_route()
+@token_auth.login_required
 def post_build(org: str, project: str) -> Tuple[str, int, Dict[str, str]]:
     product = (
         Product.query.join(
@@ -102,6 +106,7 @@ def post_build(org: str, project: str) -> Tuple[str, int, Dict[str, str]]:
 @v2api.route("/orgs/<org>/projects/<project>/builds/<id>", methods=["PATCH"])
 @accept_fallback
 @log_route()
+@token_auth.login_required
 def patch_build(
     org: str, project: str, id: str
 ) -> Tuple[str, int, Dict[str, str]]:
