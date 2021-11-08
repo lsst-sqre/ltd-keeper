@@ -147,6 +147,8 @@ def upgrade():
     op.execute("UPDATE products SET organization_id = 1")
     # Make products.organization_id non-nullable
     op.alter_column("products", "organization_id", nullable=False)
+    # Make root_fastly_domain nullable
+    op.alter_column("products", "root_fastly_domain", nullable=True)
 
 
 def downgrade():
@@ -169,3 +171,6 @@ def downgrade():
     op.drop_table("tags")
     op.drop_table("dashboardtemplates")
     op.drop_table("organizations")
+
+    # Make root_fastly_domain non-nullable
+    op.alter_column("products", "root_fastly_domain", nullable=False)
