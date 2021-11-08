@@ -4,7 +4,7 @@ import uuid
 from typing import TYPE_CHECKING, Optional, Tuple
 
 import keeper.route53
-from keeper.models import Product, db
+from keeper.models import OrganizationLayoutMode, Product, db
 
 from .createedition import create_edition
 from .requestdashboardbuild import request_dashboard_build
@@ -61,7 +61,8 @@ def create_product(
     product.root_fastly_domain = org.fastly_domain
     product.bucket_name = org.bucket_name
 
-    configure_subdomain(product)
+    if org.layout == OrganizationLayoutMode.subdomain:
+        configure_subdomain(product)
 
     db.session.add(product)
     db.session.flush()  # Because Edition._validate_slug does not autoflush
@@ -91,6 +92,10 @@ def configure_subdomain(product: Product) -> None:
     organization = product.organization
     aws_id = organization.aws_id
     aws_secret = organization.get_aws_secret_key()
+    if product.fastly_domain is None:
+        raise RuntimeError(
+            "Fastly domain is not set on subdomain-based layout."
+        )
     if aws_id is not None and aws_secret is not None:
         keeper.route53.create_cname(
             product.domain,
