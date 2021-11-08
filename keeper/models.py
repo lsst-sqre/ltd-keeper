@@ -529,8 +529,18 @@ class Product(db.Model):  # type: ignore
 
     @property
     def published_url(self) -> str:
-        """URL where this product is published to the end-user."""
-        parts = ("https", self.domain, "", "", "", "")
+        """URL where this product is published to the end-user.
+
+        This domain *does not* end with a trailing /.
+        """
+        layout_mode = self.organization.layout
+        if layout_mode == OrganizationLayoutMode.path:
+            # Sub-path based layout
+            path = f"{self.organization.root_path_prefix}{self.slug}"
+            parts = ("https", self.domain, path, "", "", "")
+        else:
+            # Domain-based layout
+            parts = ("https", self.domain, "", "", "", "")
         return urllib.parse.urlunparse(parts)
 
     @property
@@ -649,15 +659,10 @@ class Build(db.Model):  # type: ignore
     @property
     def published_url(self) -> str:
         """URL where this build is published to the end-user."""
-        parts = (
-            "https",
-            self.product.domain,
-            "/builds/{0}".format(self.slug),
-            "",
-            "",
-            "",
-        )
-        return urllib.parse.urlunparse(parts)
+        product_root_url = self.product.published_url
+        if not product_root_url.endswith("/"):
+            product_root_url = f"{product_root_url}/"
+        return f"{product_root_url}builds/{self.slug}"
 
     def register_uploaded_build(self) -> None:
         """Register that a build is uploaded and determine what editions should
@@ -799,19 +804,14 @@ class Edition(db.Model):  # type: ignore
     @property
     def published_url(self) -> str:
         """URL where this edition is published to the end-user."""
+        product_root_url = self.product.published_url
         if self.slug == "main":
-            # Special case for main; published at product's root
-            parts = ("https", self.product.domain, "", "", "", "")
+            # Special case for main; published at the product's base path
+            return product_root_url
         else:
-            parts = (
-                "https",
-                self.product.domain,
-                "/v/{0}".format(self.slug),
-                "",
-                "",
-                "",
-            )
-        return urllib.parse.urlunparse(parts)
+            if not product_root_url.endswith("/"):
+                product_root_url = f"{product_root_url}/"
+            return f"{product_root_url}v/{self.slug}"
 
     def should_rebuild(self, build: Build) -> bool:
         """Determine whether the edition should be rebuilt to show a certain
