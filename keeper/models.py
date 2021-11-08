@@ -478,7 +478,7 @@ class Product(db.Model):  # type: ignore
     root_domain = db.Column(db.Unicode(255), nullable=False)
     """Root domain name serving docs (e.g., lsst.io)."""
 
-    root_fastly_domain = db.Column(db.Unicode(255), nullable=False)
+    root_fastly_domain = db.Column(db.Unicode(255), nullable=True)
     """Fastly CDN domain name (without doc's domain prepended)."""
 
     bucket_name = db.Column(db.Unicode(255), nullable=True)
@@ -517,10 +517,14 @@ class Product(db.Model):  # type: ignore
         (E.g. ``product.lsst.io`` if ``product`` is the slug and ``lsst.io``
         is the ``root_domain``.)
         """
-        return ".".join((self.slug, self.root_domain))
+        root_domain = self.organization.root_domain
+        if self.organization.layout == OrganizationLayoutMode.subdomain:
+            return ".".join((self.slug, self.root_domain))
+        else:
+            return root_domain
 
     @property
-    def fastly_domain(self) -> str:
+    def fastly_domain(self) -> Optional[str]:
         """Domain where Fastly serves content from for this product."""
         # Note that in non-ssl contexts fastly wants you to prepend the domain
         # to fastly's origin domain. However we don't do this with TLS.
@@ -536,7 +540,10 @@ class Product(db.Model):  # type: ignore
         layout_mode = self.organization.layout
         if layout_mode == OrganizationLayoutMode.path:
             # Sub-path based layout
-            path = f"{self.organization.root_path_prefix}{self.slug}"
+            if self.organization.root_path_prefix.endswith("/"):
+                path = f"{self.organization.root_path_prefix}{self.slug}"
+            else:
+                path = f"{self.organization.root_path_prefix}/{self.slug}"
             parts = ("https", self.domain, path, "", "", "")
         else:
             # Domain-based layout
