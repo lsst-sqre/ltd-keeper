@@ -53,15 +53,15 @@ def test_editions(client: TestClient, mocker: Mock) -> None:
     assert e0["pending_rebuild"] is False
 
     # ========================================================================
-    # Create a build of the 'master' branch
+    # Create a build of the 'main' branch
     mocker.resetall()
 
-    r = client.post("/products/pipelines/builds/", {"git_refs": ["master"]})
+    r = client.post("/products/pipelines/builds/", {"git_refs": ["main"]})
     b1_url = r.json["self_url"]
     assert r.status == 201
 
     # ========================================================================
-    # Confirm build of the 'master' branch
+    # Confirm build of the 'main' branch
     mocker.resetall()
 
     client.patch(b1_url, {"uploaded": True})
@@ -81,15 +81,15 @@ def test_editions(client: TestClient, mocker: Mock) -> None:
     r = client.patch(e0_url, {"pending_rebuild": False})
 
     # ========================================================================
-    # Create a second build of the 'master' branch
+    # Create a second build of the 'main' branch
     mocker.resetall()
 
-    r = client.post("/products/pipelines/builds/", {"git_refs": ["master"]})
+    r = client.post("/products/pipelines/builds/", {"git_refs": ["main"]})
     assert r.status == 201
     b2_url = r.json["self_url"]
 
     # ========================================================================
-    # Confirm second build of the 'master' branch
+    # Confirm second build of the 'main' branch
     mocker.resetall()
 
     client.patch(b2_url, {"uploaded": True})
@@ -109,11 +109,11 @@ def test_editions(client: TestClient, mocker: Mock) -> None:
     r = client.patch(e0_url, {"pending_rebuild": False})
 
     # ========================================================================
-    # Setup an edition also tracking master called 'latest'
+    # Setup an edition also tracking main called 'latest'
     mocker.resetall()
 
     e1 = {
-        "tracked_refs": ["master"],
+        "tracked_refs": ["main"],
         "slug": "latest",
         "title": "Latest",
         "build_url": b1_url,
@@ -181,11 +181,11 @@ def test_editions(client: TestClient, mocker: Mock) -> None:
     # Change the tracked_refs with PATCH
     mocker.resetall()
 
-    r = client.patch(e1_url, {"tracked_refs": ["tickets/DM-9999", "master"]})
+    r = client.patch(e1_url, {"tracked_refs": ["tickets/DM-9999", "main"]})
 
     assert r.status == 200
     assert r.json["tracked_refs"][0] == "tickets/DM-9999"
-    assert r.json["tracked_refs"][1] == "master"
+    assert r.json["tracked_refs"][1] == "main"
     assert r.json["pending_rebuild"] is False  # no need to rebuild
 
     mock_registry[
@@ -217,7 +217,7 @@ def test_editions(client: TestClient, mocker: Mock) -> None:
     with pytest.raises(ValidationError):
         r = client.post(
             "/products/pipelines/editions/",
-            {"slug": "main", "tracked_refs": ["master"], "title": "Main"},
+            {"slug": "main", "tracked_refs": ["main"], "title": "Main"},
         )
 
 

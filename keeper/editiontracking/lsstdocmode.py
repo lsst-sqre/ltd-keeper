@@ -44,10 +44,10 @@ class LsstDocTrackingMode(TrackingModeBase):
         # build is tracking `master`, then allow this rebuild.
         # This is used in the period before a semantic version is
         # available.
-        if candidate_build.git_refs[0] == "master":
-            if (
-                edition.build_id is None
-                or edition.build.git_refs[0] == "master"
+        if candidate_build.git_refs[0] in ("master", "main"):
+            if edition.build_id is None or edition.build.git_refs[0] in (
+                "main",
+                "master",
             ):
                 return True
 
