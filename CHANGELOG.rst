@@ -2,6 +2,12 @@
 Change log
 ##########
 
+1.23.0 (2021-11-29)
+===================
+
+- Change "master" to "main" as the tracked branch for default editions when a product is created.
+- Update the lsstdoc tracking mode so that it accepts either master or main as the name of a default branch to track if a semantic version is not available yet.
+
 1.22.0 (2021-04-27)
 ===================
 
