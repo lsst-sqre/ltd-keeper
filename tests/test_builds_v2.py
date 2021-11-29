@@ -62,7 +62,7 @@ def test_builds_v2(client: TestClient, mocker: Mock) -> None:
     mocker.resetall()
 
     e = {
-        "tracked_refs": ["master"],
+        "tracked_refs": ["main"],
         "slug": "latest",
         "title": "Latest",
         "published_url": "pipelines.lsst.io",
@@ -81,7 +81,7 @@ def test_builds_v2(client: TestClient, mocker: Mock) -> None:
     b1 = {
         "slug": "b1",
         "github_requester": "jonathansick",
-        "git_refs": ["master"],
+        "git_refs": ["main"],
     }
     r = client.post(
         "/products/pipelines/builds/", b1, headers={"Accept": v2_json_type}
@@ -189,7 +189,7 @@ def test_builds_v2(client: TestClient, mocker: Mock) -> None:
     # Add an auto-slugged build
     mocker.resetall()
 
-    b2 = {"git_refs": ["master"]}
+    b2 = {"git_refs": ["main"]}
     r = client.post("/products/pipelines/builds/", b2)
 
     assert r.status == 201
@@ -206,7 +206,7 @@ def test_builds_v2(client: TestClient, mocker: Mock) -> None:
     # Add an auto-slugged build
     mocker.resetall()
 
-    b3 = {"git_refs": ["master"]}
+    b3 = {"git_refs": ["main"]}
     r = client.post(
         "/products/pipelines/builds/", b3, headers={"Accept": v2_json_type}
     )
@@ -233,7 +233,7 @@ def test_builds_v2(client: TestClient, mocker: Mock) -> None:
     # Add a build with a badly formatted git_refs
     mocker.resetall()
 
-    b5 = {"slug": "another-bad-build", "git_refs": "master"}
+    b5 = {"slug": "another-bad-build", "git_refs": "main"}
     with pytest.raises(ValidationError):
         r = client.post(
             "/products/pipelines/builds/", b5, headers={"Accept": v2_json_type}

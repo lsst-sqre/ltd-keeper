@@ -64,18 +64,18 @@ def test_eups_daily_release_edition(client: TestClient, mocker: Mock) -> None:
     assert r.json["pending_rebuild"] is False
 
     # ========================================================================
-    # Create a build for the 'master' branch that is not tracked
+    # Create a build for the 'main' branch that is not tracked
     b2_data = {
         "slug": "b2",
         "github_requester": "jonathansick",
-        "git_refs": ["master"],
+        "git_refs": ["main"],
     }
     r = client.post("/products/pipelines/builds/", b2_data)
     b2_url = r.headers["Location"]
     r = client.patch(b2_url, {"uploaded": True})
 
     # Test that the main edition *did not* update because this build is
-    # neither for master not a semantic version.
+    # neither for main not a semantic version.
     # with semantic versions
     r = client.get(edition_url)
     assert r.json["build_url"] == b1_url
@@ -114,7 +114,7 @@ def test_eups_daily_release_edition(client: TestClient, mocker: Mock) -> None:
     r = client.patch(b4_url, {"uploaded": True})
 
     # Test that the main edition *did not* update because this build is
-    # neither for master not a semantic version.
+    # neither for main not a semantic version.
     # with semantic versions
     r = client.get(edition_url)
     assert r.json["build_url"] == b3_url

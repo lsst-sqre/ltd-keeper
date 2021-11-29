@@ -223,7 +223,7 @@ def new_product() -> Tuple[str, int, Dict[str, str]]:
 
         # Create a default edition for the product
         edition_data = {
-            "tracked_refs": ["master"],
+            "tracked_refs": ["main"],
             "slug": "main",
             "title": "Latest",
         }
