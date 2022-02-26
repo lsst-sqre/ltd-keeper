@@ -1,14 +1,14 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: keeper
+  name: ltd-keeper
   labels:
-    name: keeper
+    name: ltd-keeper
 spec:
   ports:
-    - name: keeper-http
+    - name: ltd-keeper-http
       protocol: TCP
       port: 8080
-      targetPort: keeper-uwsgi
+      targetPort: ltd-keeper-uwsgi
   selector:
-    name: keeper-api
+    name: ltd-keeper-api
