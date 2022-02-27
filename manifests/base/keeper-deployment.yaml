@@ -16,7 +16,7 @@ spec:
       containers:
         - name: app
           imagePullPolicy: 'Always'
-          image: 'lsstsqre/ltd-keeper:latest'
+          image: 'ghcr.io/lsst-sqre/ltd-keeper:latest'
           ports:
             - containerPort: 3031
               name: ltd-keeper-uwsgi
@@ -93,7 +93,7 @@ spec:
       containers:
         - name: app
           imagePullPolicy: 'Always'
-          image: 'lsstsqre/ltd-keeper:latest'
+          image: 'ghcr.io/lsst-sqre/ltd-keeper:latest'
           command: ['/bin/bash']
           args: ['-c', '/home/appuser/run-celery-worker.bash']
           env:

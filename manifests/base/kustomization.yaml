@@ -7,5 +7,5 @@ resources:
   - keeper-service.yaml
 
 images:
-  - name: lsstsqre/ltd-keeper
-    newTag: 1.20.3
+  - name: 'lsstsqre/ltd-keeper:latest'
+    newTag: u-jsickcodes-deploy-2-0
