@@ -20,59 +20,9 @@ spec:
           ports:
             - containerPort: 3031
               name: ltd-keeper-uwsgi
-          env:
-            # Environment variables from the keeper configmap
-            - name: LTD_KEEPER_PROFILE
-              valueFrom:
-                configMapKeyRef:
-                  name: ltd-keeper
-                  key: profile
-            - name: LTD_KEEPER_URL_SCHEME
-              valueFrom:
-                configMapKeyRef:
-                  name: ltd-keeper
-                  key: url-scheme
-            # Environment variables from the keeper secret
-            - name: LTD_KEEPER_SECRET_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: ltd-keeper
-                  key: secret-key
-            - name: LTD_KEEPER_AWS_ID
-              valueFrom:
-                secretKeyRef:
-                  name: ltd-keeper
-                  key: aws-id
-            - name: LTD_KEEPER_AWS_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: ltd-keeper
-                  key: aws-secret
-            - name: LTD_KEEPER_FASTLY_ID
-              valueFrom:
-                secretKeyRef:
-                  name: ltd-keeper
-                  key: fastly-id
-            - name: LTD_KEEPER_FASTLY_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: ltd-keeper
-                  key: fastly-key
-            - name: LTD_KEEPER_BOOTSTRAP_USER
-              valueFrom:
-                secretKeyRef:
-                  name: ltd-keeper
-                  key: default-user
-            - name: LTD_KEEPER_BOOTSTRAP_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: ltd-keeper
-                  key: default-password
-            - name: LTD_KEEPER_DB_URL
-              valueFrom:
-                secretKeyRef:
-                  name: ltd-keeper
-                  key: db-url
+          envFrom:
+            - configMapRef:
+                name: ltd-keeper
 
 ---
 # Deployment of celery workers for keeper
@@ -96,61 +46,6 @@ spec:
           image: 'ghcr.io/lsst-sqre/ltd-keeper:latest'
           command: ['/bin/bash']
           args: ['-c', '/home/appuser/run-celery-worker.bash']
-          env:
-            # Environment variables from the keeper configmap
-            - name: LTD_KEEPER_PROFILE
-              valueFrom:
-                configMapKeyRef:
-                  name: ltd-keeper
-                  key: profile
-            - name: LTD_KEEPER_URL_SCHEME
-              valueFrom:
-                configMapKeyRef:
-                  name: ltd-keeper
-                  key: url-scheme
-            - name: LTD_DASHER_URL
-              valueFrom:
-                configMapKeyRef:
-                  name: ltd-keeper
-                  key: dasher-url
-            # Environment variables from the keeper secret
-            - name: LTD_KEEPER_SECRET_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: ltd-keeper
-                  key: secret-key
-            - name: LTD_KEEPER_AWS_ID
-              valueFrom:
-                secretKeyRef:
-                  name: ltd-keeper
-                  key: aws-id
-            - name: LTD_KEEPER_AWS_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: ltd-keeper
-                  key: aws-secret
-            - name: LTD_KEEPER_FASTLY_ID
-              valueFrom:
-                secretKeyRef:
-                  name: ltd-keeper
-                  key: fastly-id
-            - name: LTD_KEEPER_FASTLY_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: ltd-keeper
-                  key: fastly-key
-            - name: LTD_KEEPER_BOOTSTRAP_USER
-              valueFrom:
-                secretKeyRef:
-                  name: ltd-keeper
-                  key: default-user
-            - name: LTD_KEEPER_BOOTSTRAP_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: ltd-keeper
-                  key: default-password
-            - name: LTD_KEEPER_DB_URL
-              valueFrom:
-                secretKeyRef:
-                  name: ltd-keeper
-                  key: db-url
+          envFrom:
+            - configMapRef:
+                name: ltd-keeper
