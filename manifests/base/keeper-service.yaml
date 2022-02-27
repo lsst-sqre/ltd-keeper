@@ -9,6 +9,6 @@ spec:
     - name: ltd-keeper-http
       protocol: TCP
       port: 8080
-      targetPort: ltd-keeper-uwsgi
+      targetPort: api
   selector:
     name: ltd-keeper-api

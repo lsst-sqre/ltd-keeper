@@ -19,7 +19,7 @@ spec:
           image: 'ghcr.io/lsst-sqre/ltd-keeper:latest'
           ports:
             - containerPort: 3031
-              name: ltd-keeper-uwsgi
+              name: api
           envFrom:
             - configMapRef:
                 name: ltd-keeper
