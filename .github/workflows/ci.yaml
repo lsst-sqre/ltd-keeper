@@ -120,9 +120,8 @@ jobs:
 
     # Only do Docker builds of ticket branches and tagged releases, as well
     # as J.Sick Codes branches.
-    if: >
-      (startsWith(github.ref, 'refs/tags/') || startsWith(github.ref, 'refs/heads/tickets/')) || startsWith(github.ref, 'refs/heads/u/jsickcodes/')
-
+    # if: >
+    #  (startsWith(github.ref, 'refs/tags/') || startsWith(github.ref, 'refs/heads/tickets/')) || startsWith(github.ref, 'refs/heads/u/jsickcodes/')
 
     steps:
       - uses: actions/checkout@v2
