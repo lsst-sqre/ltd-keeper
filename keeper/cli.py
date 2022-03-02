@@ -6,7 +6,6 @@ Flask CLI subcommands are implemented with Click. The application factory
 
 from __future__ import annotations
 
-import os
 from typing import TYPE_CHECKING
 
 import alembic
@@ -39,15 +38,16 @@ def add_app_commands(app: Flask) -> None:
 
 
 @click.command("createdb")
+@click.argument("alembicconf")
 @with_appcontext
-def createdb_command() -> None:
+def createdb_command(alembicconf: str) -> None:
     """Deploy the current schema in a new database.
 
     This database is 'stamped' as having the current alembic schema version.
 
     Normally, in a new installation, run::
 
-        flask createdb
+        flask createdb migrations/alembic.ini
         flask init
 
     This creates the tables and an initial user.
@@ -57,10 +57,7 @@ def createdb_command() -> None:
     db.create_all()
 
     # stamp tables with latest schema version
-    config_path = os.path.abspath(
-        os.path.join(os.path.dirname(__file__), "..", "migrations/alembic.ini")
-    )
-    alembic_cfg = alembic.config.Config(config_path)
+    alembic_cfg = alembic.config.Config(alembicconf)
     alembic.command.stamp(alembic_cfg, "head")
 
 
