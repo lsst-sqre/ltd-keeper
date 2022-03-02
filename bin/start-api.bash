@@ -3,6 +3,8 @@
 set -eu
 
 echo $PATH
+pwd
+ls migrations
 
 flask createdb migrations/alembic.ini
 flask init

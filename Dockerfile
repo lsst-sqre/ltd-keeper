@@ -54,9 +54,8 @@ WORKDIR /home/appuser
 ENV PATH="/opt/venv/bin:$PATH"
 
 COPY --from=install-image /opt/venv /opt/venv
-COPY uwsgi.ini bin migrations ./
-# Copy the startup script
-COPY bin/start-api.bash /start-api.bash
+COPY bin uwsgi.ini ./
+ADD migrations ./migrations
 
 # Switch to non-root user
 USER appuser
