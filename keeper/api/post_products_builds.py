@@ -61,7 +61,7 @@ def post_products_builds_v1(slug: str) -> Tuple[str, int, Dict[str, str]]:
 
        {
            "git_refs": [
-               "master"
+               "main"
            ],
            "github_requester": "jonathansick",
            "slug": "b1"
@@ -84,7 +84,7 @@ def post_products_builds_v1(slug: str) -> Tuple[str, int, Dict[str, str]]:
            "date_created": "2016-03-01T10:21:27.583795Z",
            "date_ended": null,
            "git_refs": [
-               "master"
+               "main"
            ],
            "github_requester": "jonathansick",
            "product_url": "http://localhost:5000/products/lsst_apps",
@@ -100,7 +100,7 @@ def post_products_builds_v1(slug: str) -> Tuple[str, int, Dict[str, str]]:
 
     :<json array git_refs: Git ref array that describes the version of the
         documentation being built. Typically this array will be a single
-        string, e.g. ``['master']`` but may be a list of several refs for
+        string, e.g. ``['main']`` but may be a list of several refs for
         multi-package builds with ltd-mason.
     :<json github_requester: Optional GitHub username handle of person
         who triggered the build.
@@ -116,7 +116,7 @@ def post_products_builds_v1(slug: str) -> Tuple[str, int, Dict[str, str]]:
         will be ``null`` for builds that are *not deprecated*.
     :>json array git_refs: Git ref array that describes the version of the
         documentation being built. Typically this array will be a single
-        string, e.g. ``['master']`` but may be a list of several refs for
+        string, e.g. ``['main']`` but may be a list of several refs for
         multi-package builds with ltd-mason.
     :>json string github_requester: GitHub username handle of person
         who triggered the build (null is not available).

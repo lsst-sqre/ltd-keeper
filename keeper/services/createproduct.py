@@ -67,10 +67,11 @@ def create_product(
     db.session.add(product)
     db.session.flush()  # Because Edition._validate_slug does not autoflush
 
+    # Create a default edition
     edition = create_edition(
         product=product,
         tracking_mode=default_edition_mode,
-        slug="main",
+        slug="__main",
         title="Latest",
     )
     db.session.add(edition)

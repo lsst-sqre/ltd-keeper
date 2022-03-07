@@ -66,7 +66,7 @@ def test_builds(client: TestClient, mocker: Mock) -> None:
     mocker.resetall()
 
     e = {
-        "tracked_refs": ["master"],
+        "tracked_refs": ["main"],
         "slug": "latest",
         "title": "Latest",
         "published_url": "pipelines.lsst.io",
@@ -86,7 +86,7 @@ def test_builds(client: TestClient, mocker: Mock) -> None:
     b1 = {
         "slug": "b1",
         "github_requester": "jonathansick",
-        "git_refs": ["master"],
+        "git_refs": ["main"],
     }
     r = client.post("/products/pipelines/builds/", b1)
     task_queue.apply_task_side_effects()
@@ -173,7 +173,7 @@ def test_builds(client: TestClient, mocker: Mock) -> None:
     # Add an auto-slugged build
     mocker.resetall()
 
-    b2 = {"git_refs": ["master"]}
+    b2 = {"git_refs": ["main"]}
     r = client.post("/products/pipelines/builds/", b2)
     task_queue.apply_task_side_effects()
 
@@ -184,7 +184,7 @@ def test_builds(client: TestClient, mocker: Mock) -> None:
     # Add another auto-slugged build
     mocker.resetall()
 
-    b3 = {"git_refs": ["master"]}
+    b3 = {"git_refs": ["main"]}
     r = client.post("/products/pipelines/builds/", b3)
     task_queue.apply_task_side_effects()
 
@@ -203,7 +203,7 @@ def test_builds(client: TestClient, mocker: Mock) -> None:
     # Add a build with a badly formatted git_refs
     mocker.resetall()
 
-    b5 = {"slug": "another-bad-build", "git_refs": "master"}
+    b5 = {"slug": "another-bad-build", "git_refs": "main"}
     with pytest.raises(pydantic.ValidationError):
         r = client.post("/products/pipelines/builds/", b5)
 

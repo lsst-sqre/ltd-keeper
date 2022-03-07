@@ -64,16 +64,16 @@ def test_editions(client: TestClient, mocker: Mock) -> None:
     assert e0["pending_rebuild"] is False
 
     # ========================================================================
-    # Create a build of the 'master' branch
+    # Create a build of the 'main' branch
     mocker.resetall()
 
-    r = client.post("/products/pipelines/builds/", {"git_refs": ["master"]})
+    r = client.post("/products/pipelines/builds/", {"git_refs": ["main"]})
     task_queue.apply_task_side_effects()
     b1_url = r.json["self_url"]
     assert r.status == 201
 
     # ========================================================================
-    # Confirm build of the 'master' branch
+    # Confirm build of the 'main' branch
     mocker.resetall()
 
     client.patch(b1_url, {"uploaded": True})
@@ -85,16 +85,16 @@ def test_editions(client: TestClient, mocker: Mock) -> None:
     task_queue.assert_dashboard_build_v1(product_url)
 
     # ========================================================================
-    # Create a second build of the 'master' branch
+    # Create a second build of the 'main' branch
     mocker.resetall()
 
-    r = client.post("/products/pipelines/builds/", {"git_refs": ["master"]})
+    r = client.post("/products/pipelines/builds/", {"git_refs": ["main"]})
     task_queue.apply_task_side_effects()
     assert r.status == 201
     b2_url = r.json["self_url"]
 
     # ========================================================================
-    # Confirm second build of the 'master' branch
+    # Confirm second build of the 'main' branch
     mocker.resetall()
 
     client.patch(b2_url, {"uploaded": True})
@@ -110,11 +110,11 @@ def test_editions(client: TestClient, mocker: Mock) -> None:
     assert e0["pending_rebuild"] is False
 
     # ========================================================================
-    # Setup an edition also tracking master called 'latest'
+    # Setup an edition also tracking main called 'latest'
     mocker.resetall()
 
     e1 = {
-        "tracked_refs": ["master"],
+        "tracked_refs": ["main"],
         "slug": "latest",
         "title": "Latest",
         "build_url": b1_url,
@@ -137,6 +137,16 @@ def test_editions(client: TestClient, mocker: Mock) -> None:
     assert r.json["date_ended"] is None
     assert r.json["published_url"] == "https://pipelines.lsst.io/v/latest"
     assert r.json["pending_rebuild"] is False
+
+    # ========================================================================
+    # Verify we can't make a second 'latest' edition
+    mocker.resetall()
+
+    with pytest.raises(ValidationError):
+        r = client.post(
+            "/products/pipelines/editions/",
+            {"slug": "latest", "tracked_refs": ["main"], "title": "Main"},
+        )
 
     # ========================================================================
     # Re-build the edition with the second build
@@ -171,7 +181,7 @@ def test_editions(client: TestClient, mocker: Mock) -> None:
     # Change the tracked_refs with PATCH
     mocker.resetall()
 
-    r = client.patch(e1_url, {"tracked_refs": ["tickets/DM-9999", "master"]})
+    r = client.patch(e1_url, {"tracked_refs": ["tickets/DM-9999", "main"]})
     task_queue.apply_task_side_effects()
 
     assert r.status == 200
@@ -198,16 +208,6 @@ def test_editions(client: TestClient, mocker: Mock) -> None:
     assert r.status == 200
     # only default edition (main) remains
     assert len(r.json["editions"]) == 1
-
-    # ========================================================================
-    # Verify we can't make a second 'main' edition
-    mocker.resetall()
-
-    with pytest.raises(ValidationError):
-        r = client.post(
-            "/products/pipelines/editions/",
-            {"slug": "main", "tracked_refs": ["master"], "title": "Main"},
-        )
 
 
 # Authorizion tests: POST /products/<slug>/editions/ =========================

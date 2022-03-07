@@ -40,15 +40,12 @@ class LsstDocTrackingMode(TrackingModeBase):
         if edition is None or candidate_build is None:
             return False
 
-        # If the edition is unpublished or showing `master`, and the
-        # build is tracking `master`, then allow this rebuild.
+        # If the edition is unpublished or showing `main`, and the
+        # build is tracking `main`, then allow this rebuild.
         # This is used in the period before a semantic version is
         # available.
-        if candidate_build.git_refs[0] == "master":
-            if (
-                edition.build_id is None
-                or edition.build.git_refs[0] == "master"
-            ):
+        if candidate_build.git_refs[0] == "main":
+            if edition.build_id is None or edition.build.git_refs[0] == "main":
                 return True
 
         # Does the build have the vN.M tag?

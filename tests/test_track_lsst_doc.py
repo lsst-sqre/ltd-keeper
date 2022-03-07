@@ -15,11 +15,11 @@ if TYPE_CHECKING:
 def test_lsst_doc_edition(client: TestClient, mocker: Mock) -> None:
     """Test an edition that tracks LSST Doc semantic versions.
 
-    1. Create a build on `master`; it should be tracked because the LSST_DOC
-       mode tracks master if a semantic version tag hasn't been pushed yet.
+    1. Create a build on `main`; it should be tracked because the LSST_DOC
+       mode tracks main if a semantic version tag hasn't been pushed yet.
     2. Create a ticket branch; it isn't tracked.
     3. Create a v1.0 build; it is tracked.
-    4. Create another build on `master`; it isn't tracked because we already
+    4. Create another build on `main`; it isn't tracked because we already
        have the v1.0 build.
     5. Create a v0.9 build that is not tracked because it's older.
     6. Create a v1.1 build that **is** tracked because it's newer.
@@ -64,45 +64,45 @@ def test_lsst_doc_edition(client: TestClient, mocker: Mock) -> None:
     # ========================================================================
     # Get the URL for the default edition
     r = client.get(p1_url + "/editions/")
-    main_edition_url = sorted(r.json["editions"])[0]
-    assert main_edition_url == "http://example.test/editions/1"
+    default_edition_url = sorted(r.json["editions"])[0]
+    assert default_edition_url == "http://example.test/editions/1"
 
     # ========================================================================
-    # Create a build on 'master'
+    # Create a build on 'main'
     mocker.resetall()
 
     b1_data = {
         "slug": "b1",
         "github_requester": "jonathansick",
-        "git_refs": ["master"],
+        "git_refs": ["main"],
     }
     r = client.post("/products/ldm-151/builds/", b1_data)
     task_queue.apply_task_side_effects()
     b1_url = r.headers["Location"]
 
     # ========================================================================
-    # Confirm build on 'master'
+    # Confirm build on 'main'
     mocker.resetall()
 
     r = client.patch(b1_url, {"uploaded": True})
     task_queue.apply_task_side_effects()
+    task_queue.assert_edition_build_v1(default_edition_url, b1_url)
+
+    # The 'main' edition was also automatically created to track main.
+    r = client.get(p1_url + "/editions/")
+    main_edition_url = sorted(r.json["editions"])[1]
     task_queue.assert_edition_build_v1(main_edition_url, b1_url)
 
-    # The 'master' edition was also automatically created to track master.
-    r = client.get(p1_url + "/editions/")
-    master_edition_url = sorted(r.json["editions"])[1]
-    task_queue.assert_edition_build_v1(master_edition_url, b1_url)
-
-    # Check that it's tracking the master branch
-    r = client.get(master_edition_url)
-    assert r.json["mode"] == "git_refs"
-    assert r.json["slug"] == "master"
-    assert r.json["title"] == "master"
-    assert r.json["tracked_refs"] == ["master"]
-
-    # Test that the main edition updated because there are no builds yet
-    # with semantic versions
+    # Check that it's tracking the main branch
     r = client.get(main_edition_url)
+    assert r.json["mode"] == "git_refs"
+    assert r.json["slug"] == "main"
+    assert r.json["title"] == "main"
+    assert r.json["tracked_refs"] == ["main"]
+
+    # Test that the default edition updated because there are no builds yet
+    # with semantic versions
+    r = client.get(default_edition_url)
     assert r.json["build_url"] == b1_url
     assert r.json["pending_rebuild"] is False
 
@@ -129,10 +129,10 @@ def test_lsst_doc_edition(client: TestClient, mocker: Mock) -> None:
         "http://example.test/editions/3", b2_url
     )
 
-    # Test that the main edition *did not* update because this build is
-    # neither for master not a semantic version.
+    # Test that the default edition *did not* update because this build is
+    # neither for main nor a semantic version.
     # with semantic versions
-    r = client.get(main_edition_url)
+    r = client.get(default_edition_url)
     assert r.json["build_url"] == b1_url
 
     # ========================================================================
@@ -161,8 +161,8 @@ def test_lsst_doc_edition(client: TestClient, mocker: Mock) -> None:
         "http://example.test/editions/4", b3_url
     )
 
-    # Test that the main edition updated
-    r = client.get(main_edition_url)
+    # Test that the default edition updated
+    r = client.get(default_edition_url)
     assert r.json["build_url"] == b3_url
 
     # Test that the v1-0 edition updated
@@ -170,32 +170,32 @@ def test_lsst_doc_edition(client: TestClient, mocker: Mock) -> None:
     assert r.json["build_url"] == b3_url
 
     # ========================================================================
-    # Create another build on 'master'
+    # Create another build on 'main'
     mocker.resetall()
 
     b4_data = {
         "slug": "b4",
         "github_requester": "jonathansick",
-        "git_refs": ["master"],
+        "git_refs": ["main"],
     }
     r = client.post("/products/ldm-151/builds/", b4_data)
     task_queue.apply_task_side_effects()
     b4_url = r.headers["Location"]
 
     # ========================================================================
-    # Confirm master build
+    # Confirm main build
     mocker.resetall()
 
     r = client.patch(b4_url, {"uploaded": True})
     task_queue.apply_task_side_effects()
 
-    # Test that the main edition *did not* update because now it's sticking
+    # Test that the default edition *did not* update because now it's sticking
     # to only show semantic versions.
-    r = client.get(main_edition_url)
+    r = client.get(default_edition_url)
     assert r.json["build_url"] == b3_url
 
-    # Test that the **master** edition did update, though
-    r = client.get(master_edition_url)
+    # Test that the **main** edition did update, though
+    r = client.get(main_edition_url)
     assert r.json["build_url"] == b4_url
 
     # ========================================================================
@@ -218,8 +218,8 @@ def test_lsst_doc_edition(client: TestClient, mocker: Mock) -> None:
     r = client.patch(b5_url, {"uploaded": True})
     task_queue.apply_task_side_effects()
 
-    # Test that the main edition *did not* update b/c it's older
-    r = client.get(main_edition_url)
+    # Test that the default edition *did not* update b/c it's older
+    r = client.get(default_edition_url)
     assert r.json["build_url"] == b3_url
 
     # ========================================================================
@@ -239,8 +239,8 @@ def test_lsst_doc_edition(client: TestClient, mocker: Mock) -> None:
     r = client.patch(b6_url, {"uploaded": True})
     task_queue.apply_task_side_effects()
 
-    # Test that the main edition updated
-    r = client.get(main_edition_url)
+    # Test that the default edition updated
+    r = client.get(default_edition_url)
     assert r.json["build_url"] == b6_url
 
     task_queue.assert_edition_build_v1(
