@@ -1,6 +1,19 @@
 name: CI
 
-"on": [push]
+'on':
+  push:
+    branches-ignore:
+      # These should always correspond to pull requests, so ignore them for
+      # the push trigger and let them be triggered by the pull_request
+      # trigger, avoiding running the workflow twice.  This is a minor
+      # optimization so there's no need to ensure this is comprehensive.
+      - 'dependabot/**'
+      - 'renovate/**'
+      - 'tickets/**'
+      - 'u/**'
+    tags:
+      - '*'
+  pull_request: {}
 
 jobs:
   lint:
@@ -60,11 +73,11 @@ jobs:
           LTD_KEEPER_TEST_AWS_ID: ${{ secrets.LTD_KEEPER_TEST_AWS_ID }}
           LTD_KEEPER_TEST_AWS_SECRET: ${{ secrets.LTD_KEEPER_TEST_AWS_SECRET }}
           LTD_KEEPER_TEST_BUCKET: ${{ secrets.LTD_KEEPER_TEST_BUCKET }}
-        run: tox -e typing,${{matrix.db}},coverage-report  # run tox using Python in path
+        run: tox -e typing,${{matrix.db}},coverage-report # run tox using Python in path
 
       - name: Run tox without external services
         if: ${{ !(matrix.python != 3.9 && matrix.db != 'postgres') }}
-        run: tox -e typing,${{matrix.db}},coverage-report  # run tox using Python in path
+        run: tox -e typing,${{matrix.db}},coverage-report # run tox using Python in path
 
   docs:
     runs-on: ubuntu-latest
@@ -72,6 +85,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v2
@@ -106,15 +121,18 @@ jobs:
     needs: [test]
 
     # Only do Docker builds of ticket branches and tagged releases, as well
-    # as JSick Codes branches.
-    if: startsWith(github.ref, 'refs/tags/') || startsWith(github.ref, 'refs/heads/tickets/') || startsWith(github.ref, 'refs/heads/u/jsickcodes/')
+    # as J.Sick Codes branches.
+    # if: >
+    #  (startsWith(github.ref, 'refs/tags/') || startsWith(github.ref, 'refs/heads/tickets/')) || startsWith(github.ref, 'refs/heads/u/jsickcodes/')
 
     steps:
       - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
 
       - name: Define the Docker tag
         id: vars
-        run: echo ::set-output name=tag::$(bin/docker-tag.sh "$GITHUB_REF")
+        run: echo ::set-output name=tag::$(bin/docker-tag.sh)
 
       - name: Print the tag
         id: print
@@ -123,33 +141,26 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
 
-      - name: Cache Docker layers
-        uses: actions/cache@v2
-        with:
-          path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ github.sha }}
-          restore-keys:
-            ${{ runner.os }}-buildx-
-
       - name: Log in to Docker Hub
         uses: docker/login-action@v1
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_TOKEN }}
 
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Build and push
         uses: docker/build-push-action@v2
         with:
           context: .
           push: true
-          tags: lsstsqre/ltdkeeper:${{ steps.vars.outputs.tag }}
-          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache-new
-
-      # Temp fix
-      # https://github.com/docker/build-push-action/issues/252
-      # https://github.com/moby/buildkit/issues/1896
-      - name: Move cache
-        run: |
-          rm -rf /tmp/.buildx-cache
-          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+          tags: |
+            lsstsqre/ltdkeeper:${{ steps.vars.outputs.tag }}
+            ghcr.io/lsst-sqre/ltd-keeper:${{ steps.vars.outputs.tag }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

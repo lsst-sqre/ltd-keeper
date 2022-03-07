@@ -54,11 +54,14 @@ WORKDIR /home/appuser
 ENV PATH="/opt/venv/bin:$PATH"
 
 COPY --from=install-image /opt/venv /opt/venv
-COPY uwsgi.ini bin migrations ./
+COPY bin uwsgi.ini ./
+ADD migrations ./migrations
 
 # Switch to non-root user
 USER appuser
 
 EXPOSE 3031
 
-CMD ["uwsgi", "uwsgi.ini"]
+ENV FLASK_APP="keeper"
+
+CMD ["./start-api.bash"]

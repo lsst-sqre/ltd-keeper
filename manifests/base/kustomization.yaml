@@ -3,11 +3,9 @@ kind: Kustomization
 
 resources:
   - keeper-cm.yaml
-  - redis-deployment.yaml
-  - redis-service.yaml
   - keeper-deployment.yaml
   - keeper-service.yaml
 
 images:
-  - name: lsstsqre/ltd-keeper
-    newTag: 1.20.3
+  - name: 'lsstsqre/ltd-keeper:latest'
+    newTag: u-jsickcodes-deploy-2-0
