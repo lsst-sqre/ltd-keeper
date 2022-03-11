@@ -15,7 +15,7 @@ from keeper.utils import (
     [
         (["tickets/DM-1234"], "DM-1234"),
         (["tickets/LCR-758"], "LCR-758"),
-        (["master"], "master"),
+        (["main"], "main"),
         (["u/rowen/r12_patch1"], "u-rowen-r12_patch1"),
         (
             ["tickets/DM-1234", "tickets/DM-5678"],

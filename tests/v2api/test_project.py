@@ -104,7 +104,7 @@ def test_projects(client: TestClient, mocker: Mock) -> None:
     # Create a build ==========================================================
     mocker.resetall()
 
-    build1_request = {"git_ref": "master"}
+    build1_request = {"git_ref": "main"}
     r = client.post(project1_builds_url, build1_request)
     task_queue.apply_task_side_effects()
     s3_session_mock.assert_called_once()

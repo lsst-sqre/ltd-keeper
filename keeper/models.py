@@ -556,7 +556,7 @@ class Product(db.Model):  # type: ignore
         edition = (
             Edition.query.join(Product, Product.id == Edition.product_id)
             .filter(Product.id == self.id)
-            .filter(Edition.slug == "main")
+            .filter(Edition.slug == "__main")
             .one_or_none()
         )
         if edition is None:
@@ -812,7 +812,7 @@ class Edition(db.Model):  # type: ignore
     def published_url(self) -> str:
         """URL where this edition is published to the end-user."""
         product_root_url = self.product.published_url
-        if self.slug == "main":
+        if self.slug == "__main":
             # Special case for main; published at the product's base path
             return product_root_url
         else:

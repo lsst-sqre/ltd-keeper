@@ -19,7 +19,7 @@ def test_pach_lsst_doc_edition(client: TestClient, mocker: Mock) -> None:
 
     1. Create a product with the default GIT_REF tracking mode for the
        main edition.
-    2. Post a build on `master`; it is tracked.
+    2. Post a build on `main`; it is tracked.
     3. Post a `v1.0` build; it is not tracked.
     4. Patch the main edition to use the LSST_DOC tracking mode.
     5. Post a `v1.1` build that is tracked.
@@ -64,7 +64,7 @@ def test_pach_lsst_doc_edition(client: TestClient, mocker: Mock) -> None:
     task_queue.assert_launched_once()
 
     # ========================================================================
-    # Create a build on 'master'
+    # Create a build on 'main'
     mocker.resetall()
 
     # Get the URL for the default edition
@@ -74,14 +74,14 @@ def test_pach_lsst_doc_edition(client: TestClient, mocker: Mock) -> None:
     b1_data = {
         "slug": "b1",
         "github_requester": "jonathansick",
-        "git_refs": ["master"],
+        "git_refs": ["main"],
     }
     r = client.post(product_url + "/builds/", b1_data)
     task_queue.apply_task_side_effects()
     b1_url = r.headers["Location"]
 
     # ========================================================================
-    # Create a build on 'master'
+    # Create a build on 'main'
     mocker.resetall()
 
     r = client.patch(b1_url, {"uploaded": True})

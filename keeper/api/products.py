@@ -155,7 +155,7 @@ def new_product() -> Tuple[str, int, Dict[str, str]]:
     """Create a new documentation product.
 
     Every new product also includes a default edition (slug is 'main'). This
-    main edition tracks the master branch by default. Fastly is configured to
+    main edition tracks the main branch by default. Fastly is configured to
     show this main edition at the product's root URL rather than in the /v/
     directory.
 
@@ -207,7 +207,7 @@ def new_product() -> Tuple[str, int, Dict[str, str]]:
     :<json string doc_repo: URL of the Git documentation repo (i.e., on
        GitHub).
     :<json str main_mode: Tracking mode for the main (default) edition.
-       ``git_refs``: track the ``master`` branch.
+       ``git_refs``: track the ``main`` branch.
        ``lsst_doc``: track LSST document version tags.
     :<json string root_domain: Root domain name where documentation for
        this LSST the Docs installation is served from. (e.g., ``lsst.io``).

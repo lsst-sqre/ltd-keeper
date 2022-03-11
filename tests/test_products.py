@@ -75,9 +75,9 @@ def test_products(client: TestClient, mocker: Mock) -> None:
     default_ed_url = r.json["editions"][0]
 
     r = client.get(default_ed_url)
-    assert r.json["slug"] == "main"
+    assert r.json["slug"] == "__main"
     assert r.json["title"] == "Latest"
-    assert r.json["tracked_refs"] == ["master"]
+    assert r.json["tracked_refs"] == ["main"]
     assert r.json["published_url"] == "https://pipelines.lsst.io"
 
     # ========================================================================

@@ -19,7 +19,7 @@ def create_edition(
     tracking_mode: Optional[str] = None,
     slug: Optional[str] = None,
     autoincrement_slug: bool = False,
-    tracked_ref: str = "master",
+    tracked_ref: str = "main",
     build: Optional[Build] = None,
 ) -> Edition:
     """Create a new edition.

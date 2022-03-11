@@ -63,7 +63,7 @@ def new_edition(slug: str) -> Tuple[str, int, Dict[str, str]]:
            "title": "Latest",
            "mode:": "git_refs",
            "tracked_refs": [
-               "master"
+               "main"
            ]
        }
 
@@ -286,9 +286,9 @@ def get_edition(id: int) -> str:
            "self_url": "http://localhost:5000/editions/1",
            "slug": "latest",
            "surrogate_key": "2a5f38f27e3c46258fd9b0e69afe54fd",
-           "title": "Development master",
+           "title": "Development main",
            "tracked_refs": [
-               "master"
+               "main"
            ]
        }
 
@@ -357,7 +357,7 @@ def edit_edition(id: int) -> str:
        User-Agent: HTTPie/0.9.3
 
        {
-           "title": "Development master"
+           "title": "Development main"
        }
 
     **Example response**
@@ -381,9 +381,9 @@ def edit_edition(id: int) -> str:
            "self_url": "http://localhost:5000/editions/1",
            "slug": "latest",
            "surrogate_key": "2a5f38f27e3c46258fd9b0e69afe54fd",
-           "title": "Development master",
+           "title": "Development main",
            "tracked_refs": [
-               "master"
+               "main"
            ]
        }
 
