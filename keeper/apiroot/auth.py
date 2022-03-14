@@ -5,14 +5,14 @@ from __future__ import annotations
 from flask import g
 from flask_accept import accept_fallback
 
-from keeper.api import api
+from keeper.apiroot import apiroot
 from keeper.auth import password_auth
 from keeper.logutils import log_route
 
 from ._models import AuthTokenResponse
 
 
-@api.route("/token")
+@apiroot.route("/token")
 @accept_fallback
 @log_route()
 @password_auth.login_required

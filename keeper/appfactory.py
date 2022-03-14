@@ -57,6 +57,10 @@ def create_flask_app(profile: Optional[str] = None) -> Flask:
     )  # for sqlite; safe for other servers
 
     # Register blueprints
+    from keeper.apiroot import apiroot as apiroot_blueprint
+
+    app.register_blueprint(apiroot_blueprint, url_prefix=None)
+
     if app.config["ENABLE_V1_API"]:
         from keeper.api import api as api_blueprint
 
