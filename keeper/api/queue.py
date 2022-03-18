@@ -2,7 +2,7 @@
 
 from typing import Dict, Tuple
 
-from flask import abort, jsonify, url_for
+from flask import Response, abort, jsonify, url_for
 from flask_accept import accept_fallback
 
 from keeper.api import api
@@ -13,7 +13,7 @@ from keeper.logutils import log_route
 @api.route("/queue/<id>", methods=["GET"])
 @accept_fallback
 @log_route()
-def get_task_status(id: int) -> Tuple[str, int, Dict[str, str]]:
+def get_task_status(id: int) -> Tuple[Response, int, Dict[str, str]]:
     try:
         if celery_app is not None:
             task = celery_app.AsyncResult(id)

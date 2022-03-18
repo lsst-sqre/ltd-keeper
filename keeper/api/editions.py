@@ -26,8 +26,6 @@ from ._models import (
 from ._urls import build_from_url, url_for_edition
 
 if TYPE_CHECKING:
-    from flask import Response
-
     from keeper.models import Build
 
 
@@ -207,7 +205,7 @@ def deprecate_edition(id: int) -> Tuple[str, int]:
 @api.route("/products/<slug>/editions/", methods=["GET"])
 @accept_fallback
 @log_route()
-def get_product_editions(slug: str) -> Response:
+def get_product_editions(slug: str) -> str:
     """List all editions published for a Product.
 
     **Example request**

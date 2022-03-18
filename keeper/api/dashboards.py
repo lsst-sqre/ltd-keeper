@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Dict, Tuple
+from typing import Dict, Tuple
 
 from flask_accept import accept_fallback
 
@@ -14,15 +14,12 @@ from keeper.taskrunner import launch_tasks
 
 from ._models import QueuedResponse
 
-if TYPE_CHECKING:
-    from flask import Response
-
 
 @api.route("/dashboards", methods=["POST"])
 @accept_fallback
 @token_auth.login_required
 @permission_required(Permission.ADMIN_PRODUCT)
-def rebuild_all_dashboards() -> Tuple[Response, int, Dict[str, str]]:
+def rebuild_all_dashboards() -> Tuple[str, int, Dict[str, str]]:
     """Rebuild the LTD Dasher dashboards for all products.
 
     Note that dashboards are built asynchronously.

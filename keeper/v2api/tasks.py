@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Dict, Tuple
 
-from flask import abort, jsonify
+from flask import Response, abort, jsonify
 from flask_accept import accept_fallback
 
 from keeper.auth import token_auth
@@ -19,7 +19,7 @@ from ._urls import url_for_task
 @accept_fallback
 @log_route()
 @token_auth.login_required
-def get_task(id: int) -> Tuple[str, int, Dict[str, str]]:
+def get_task(id: int) -> Tuple[Response, int, Dict[str, str]]:
     try:
         if celery_app is not None:
             task = celery_app.AsyncResult(id)

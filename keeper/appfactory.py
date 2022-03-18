@@ -32,8 +32,9 @@ def create_flask_app(profile: Optional[str] = None) -> Flask:
     config[_profile].init_app(app)  # type: ignore  # doesn't recog classmethod
 
     # Add the middleware to respect headers forwarded from the proxy server
+    # Assigning to the wsgi_app method is recommended by the Flask docs
     if app.config["PROXY_FIX"]:
-        app.wsgi_app = ProxyFix(
+        app.wsgi_app = ProxyFix(  # type: ignore [assignment]
             app.wsgi_app,
             x_for=app.config["TRUST_X_FOR"],
             x_proto=app.config["TRUST_X_PROTO"],
