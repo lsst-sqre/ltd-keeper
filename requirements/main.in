@@ -5,7 +5,8 @@
 # After editing, update requirements/main.txt by running:
 #     make update-deps
 
-Flask<2
+Flask
+itsdangerous<2.1
 uWSGI
 Flask-SQLAlchemy
 SQLAlchemy
