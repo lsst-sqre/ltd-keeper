@@ -14,7 +14,7 @@ sqlalchemy-stubs
 mock
 coverage[toml]
 mypy
-Sphinx<4
+Sphinx
 sphinx-rtd-theme
 numpydoc
 sphinxcontrib-httpdomain
