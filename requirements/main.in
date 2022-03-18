@@ -6,6 +6,7 @@
 #     make update-deps
 
 Flask
+itsdangerous<2.1
 uWSGI
 Flask-SQLAlchemy
 SQLAlchemy

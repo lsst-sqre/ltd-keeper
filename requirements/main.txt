@@ -62,8 +62,10 @@ greenlet==1.1.2
     # via sqlalchemy
 idna==3.3
     # via requests
-itsdangerous==2.1.1
-    # via flask
+itsdangerous==2.0.1
+    # via
+    #   -r requirements/main.in
+    #   flask
 jinja2==3.0.3
     # via flask
 jmespath==1.0.0
