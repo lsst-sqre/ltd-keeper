@@ -552,7 +552,7 @@ class EditionResponse(BaseModel):
 
     tracked_ref: Optional[str]
     """Git ref that describe the version that this Edition is intended to point
-    to when using the ``git_refs`` tracking mode.
+    to when using the ``git_ref`` tracking mode.
     """
 
     mode: str
@@ -565,6 +565,13 @@ class EditionResponse(BaseModel):
         task: celery.Task = None,
     ) -> EditionResponse:
         """Create an EditionResponse from the Edition ORM model instance."""
+        if edition.mode_name == "git_ref":
+            tracked_ref = edition.tracked_ref
+        elif edition.mode_name == "git_refs":
+            tracked_ref = edition.tracked_refs[0]
+        else:
+            tracked_ref = None
+
         obj: Dict[str, Any] = {
             "self_url": url_for_edition(edition),
             "project_url": url_for_project(edition.product),
@@ -584,11 +591,7 @@ class EditionResponse(BaseModel):
             "date_rebuilt": edition.date_rebuilt,
             "date_ended": edition.date_ended,
             "mode": edition.mode_name,
-            "tracked_refs": (
-                edition.tracked_refs[0]
-                if edition.mode_name == "git_refs"
-                else None
-            ),
+            "tracked_ref": tracked_ref,
             "pending_rebuild": edition.pending_rebuild,
             "surrogate_key": edition.surrogate_key,
         }
@@ -640,8 +643,8 @@ class EditionPostRequest(BaseModel):
     mode: str = "git_refs"
     """Tracking mode."""
 
-    tracked_ref: Optional[List[str]] = None
-    """Git ref being tracked if mode is ``git_refs``."""
+    tracked_ref: Optional[str] = None
+    """Git ref being tracked if mode is ``git_ref``."""
 
     @validator("slug")
     def check_slug(cls, v: Optional[str]) -> Optional[str]:
@@ -683,8 +686,8 @@ class EditionPostRequest(BaseModel):
     def check_tracked_refs(
         cls, v: Optional[str], values: Mapping[str, Any]
     ) -> Optional[str]:
-        if values.get("mode") == "git_refs" and v is None:
-            raise ValueError('tracked_ref must be set is mode is "git_refs"')
+        if values.get("mode") in ("git_ref", "git_refs") and v is None:
+            raise ValueError('tracked_ref must be set if mode is "git_ref"')
         return v
 
 
@@ -702,7 +705,7 @@ class EditionPatchRequest(BaseModel):
     build.
     """
 
-    tracked_ref: Optional[List[str]] = None
+    tracked_ref: Optional[str] = None
     """Git ref that describes the version of the project that this this
     edition is intended to point to when using the ``git_refs`` tracking mode.
     """

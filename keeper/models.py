@@ -758,6 +758,13 @@ class Edition(db.Model):  # type: ignore
     mode: ``git_refs``.
     """
 
+    tracked_ref = db.Column(db.Unicode(255), nullable=True)
+    """The Git ref this Edition tracks and publishes if the tracking mode
+    is ``git_ref``.
+
+    For other tracking modes, this field may be `None`.
+    """
+
     tracked_refs = db.Column(MutableList.as_mutable(JSONEncodedVARCHAR(2048)))
     """The list of Git refs this Edition tracks and publishes if the tracking
     mode is ``git_refs``.
@@ -956,7 +963,7 @@ class Edition(db.Model):  # type: ignore
     @property
     def default_mode_name(self) -> str:
         """Default tracking mode name if ``Edition.mode`` is `None` (`str`)."""
-        return "git_refs"
+        return "git_ref"
 
     @property
     def default_mode_id(self) -> int:

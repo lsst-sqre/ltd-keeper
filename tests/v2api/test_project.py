@@ -71,7 +71,7 @@ def test_projects(client: TestClient, mocker: Mock) -> None:
         "slug": "alpha",
         "title": "Alpha",
         "source_repo_url": "https://github.com/example/alpha",
-        "default_edition_mode": "git_refs",
+        "default_edition_mode": "git_ref",
     }
     r = client.post(org1_projects_url, request_data)
     task_queue.apply_task_side_effects()
@@ -152,4 +152,5 @@ def test_projects(client: TestClient, mocker: Mock) -> None:
     assert r.status == 200
     data = r.json
 
+    # It should be tracking build 1 because it's of the main branch
     assert data["build_url"] == build1_url

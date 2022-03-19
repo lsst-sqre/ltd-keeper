@@ -181,7 +181,10 @@ def test_editions(client: TestClient, mocker: Mock) -> None:
     # Change the tracked_refs with PATCH
     mocker.resetall()
 
-    r = client.patch(e1_url, {"tracked_refs": ["tickets/DM-9999", "main"]})
+    r = client.patch(
+        e1_url,
+        {"mode": "git_refs", "tracked_refs": ["tickets/DM-9999", "main"]},
+    )
     task_queue.apply_task_side_effects()
 
     assert r.status == 200
@@ -192,7 +195,7 @@ def test_editions(client: TestClient, mocker: Mock) -> None:
     task_queue.assert_dashboard_build_v1(product_url)
 
     # ========================================================================
-    # Deprecate the editon
+    # Deprecate the edition
     mocker.resetall()
 
     r = client.delete(e1_url)
@@ -206,6 +209,12 @@ def test_editions(client: TestClient, mocker: Mock) -> None:
     # Deprecated editions no longer in the editions list
     r = client.get(product_url + "/editions/")
     assert r.status == 200
+    final_edition_urls = r.json["editions"]
+    print(final_edition_urls)
+    for f_url in final_edition_urls:
+        rf = client.get(f_url)
+        print(rf.json)
+
     # only default edition (main) remains
     assert len(r.json["editions"]) == 1
 
