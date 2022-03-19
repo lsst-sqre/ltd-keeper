@@ -320,7 +320,7 @@ class Organization(db.Model):  # type: ignore
     fastly_domain = db.Column(db.Unicode(255), nullable=True)
     """Fastly CDN domain name."""
 
-    fastly_encrypted_api_key = db.Column(db.String(255), nullable=True)
+    fastly_encrypted_api_key = db.Column(db.LargeBinary, nullable=True)
     """Fastly API key for this organization.
 
     The key is persisted as a fernet token.
@@ -339,7 +339,7 @@ class Organization(db.Model):  # type: ignore
     """
 
     # FIXME nullable for migration
-    aws_encrypted_secret_key = db.Column(db.String(255), nullable=True)
+    aws_encrypted_secret_key = db.Column(db.LargeBinary, nullable=True)
     """The AWS secret key."""
 
     products = db.relationship(
