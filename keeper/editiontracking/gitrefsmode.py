@@ -9,11 +9,11 @@ from keeper.editiontracking.base import TrackingModeBase
 if TYPE_CHECKING:
     from keeper.models import Build, Edition
 
-__all__ = ["GitRefTrackingMode"]
+__all__ = ["GitRefsTrackingMode"]
 
 
-class GitRefTrackingMode(TrackingModeBase):
-    """Default tracking mode where an edition tracks an array of Git refs.
+class GitRefsTrackingMode(TrackingModeBase):
+    """Tracking mode where an edition tracks an array of Git refs.
 
     This is the default mode if Edition.mode is None.
     """
