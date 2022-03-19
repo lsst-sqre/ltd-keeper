@@ -45,14 +45,22 @@ run:
 runpg:
 	FLASK_APP=keeper LTD_KEEPER_PROFILE=development LTD_KEEPER_DEV_DB_URL=postgresql+psycopg2://user:password@localhost:3308/db flask run
 
+.PHONY: db-up-pg
+db-up-pg:
+	docker compose -f docker-compose.pg.yaml up
+
+.PHONY: db-down-pg
+db-down-pg:
+	docker compose -f docker-compose.pg.yaml down
+
 .PHONY: db-init-pg
 db-init-pg:
-	FLASK_APP=keeper LTD_KEEPER_PROFILE=development LTD_KEEPER_DEV_DB_URL="postgresql+psycopg2://user:password@localhost:3308/db" flask createdb
+	FLASK_APP=keeper LTD_KEEPER_PROFILE=development LTD_KEEPER_DEV_DB_URL="postgresql+psycopg2://user:password@localhost:3308/db" flask createdb migrations/alembic.ini
 	FLASK_APP=keeper LTD_KEEPER_PROFILE=development LTD_KEEPER_DEV_DB_URL="postgresql+psycopg2://user:password@localhost:3308/db" flask init
 
 .PHONY: db-init
 db-init:
-	FLASK_APP=keeper LTD_KEEPER_PROFILE=development LTD_KEEPER_DEV_DB_URL="mysql+pymysql://user:password@localhost:3306/db" flask createdb
+	FLASK_APP=keeper LTD_KEEPER_PROFILE=development LTD_KEEPER_DEV_DB_URL="mysql+pymysql://user:password@localhost:3306/db" flask createdb migrations/alembic.ini
 	FLASK_APP=keeper LTD_KEEPER_PROFILE=development LTD_KEEPER_DEV_DB_URL="mysql+pymysql://user:password@localhost:3306/db" flask init
 
 .PHONY: db-upgrade
