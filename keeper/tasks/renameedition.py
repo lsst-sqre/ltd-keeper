@@ -42,6 +42,7 @@ def rename_edition(
     organization = edition.product.organization
     aws_id = organization.aws_id
     aws_secret = organization.get_aws_secret_key()
+    use_public_read_acl = organization.bucket_public_read
     if (
         aws_id is not None
         and aws_secret is not None
@@ -54,6 +55,7 @@ def rename_edition(
             aws_id,
             aws_secret.get_secret_value(),
             surrogate_key=self.surrogate_key,
+            use_public_read_acl=use_public_read_acl,
         )
         s3.delete_directory(
             self.product.bucket_name,

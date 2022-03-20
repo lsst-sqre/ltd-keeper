@@ -62,6 +62,7 @@ def rebuild_edition(
 
     aws_id = organization.aws_id
     aws_secret = organization.get_aws_secret_key
+    use_public_read_acl = organization.bucket_public_read
 
     fastly_service_id = organization.fastly_service_id
     fastly_key = organization.get_fastly_api_id
@@ -77,6 +78,7 @@ def rebuild_edition(
                 dest_path=edition.bucket_root_dirname,
                 aws_access_key_id=aws_id,
                 aws_secret_access_key=aws_secret.get_secret_value(),
+                use_public_read_acl=use_public_read_acl,
                 surrogate_key=edition.surrogate_key,
                 # Force Fastly to cache the edition for 1 year
                 surrogate_control="max-age=31536000",

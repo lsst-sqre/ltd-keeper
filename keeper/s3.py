@@ -129,6 +129,7 @@ def copy_directory(
     cache_control: Optional[str] = None,
     surrogate_control: Optional[str] = None,
     create_directory_redirect_object: bool = True,
+    use_public_read_acl: bool = False,
 ) -> None:
     """Copy objects from one directory in a bucket to another directory in
     the same bucket.
@@ -178,6 +179,8 @@ def copy_directory(
         ``x-amz-meta-dir-redirect=true`` HTTP header. LSST the Docs' Fastly
         VCL is configured to redirect requests for a directory path to the
         directory's ``index.html`` (known as *courtesy redirects*).
+    use_public_read_acl : bool
+        If True, apply the ``public-read`` ACL to bucket objects.
 
     Raises
     ------
@@ -226,27 +229,31 @@ def copy_directory(
         if surrogate_key is not None:
             metadata["surrogate-key"] = surrogate_key
 
-        s3.meta.client.copy_object(
-            Bucket=bucket_name,
-            Key=dest_key_path,
-            CopySource={"Bucket": bucket_name, "Key": src_obj.key},
-            MetadataDirective="REPLACE",
-            Metadata=metadata,
-            ACL="public-read",
-            CacheControl=cache_control,
-            ContentType=content_type,
-        )
+        copy_kwargs = {
+            "Bucket": bucket_name,
+            "Key": dest_key_path,
+            "CopySource": {"Bucket": bucket_name, "Key": src_obj.key},
+            "MetadataDirective": "REPLACE",
+            "Metadata": metadata,
+            "CacheControl": cache_control,
+            "ContentType": content_type,
+        }
+        if use_public_read_acl:
+            copy_kwargs["ACL"] = "public-read"
+        s3.meta.client.copy_object(**copy_kwargs)
 
     if create_directory_redirect_object:
         dest_dirname = dest_path.rstrip("/")
         obj = bucket.Object(dest_dirname)
         metadata = {"dir-redirect": "true"}
-        obj.put(
-            Body="",
-            ACL="public-read",
-            Metadata=metadata,
-            CacheControl=cache_control,
-        )
+        put_kwargs = {
+            "Body": "",
+            "Metadata": metadata,
+            "CacheControl": cache_control,
+        }
+        if use_public_read_acl:
+            put_kwargs["ACL"] = "public-read"
+        obj.put(**put_kwargs)
 
 
 def presign_post_url_for_prefix(

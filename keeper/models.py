@@ -358,6 +358,11 @@ class Organization(db.Model):  # type: ignore
         back_populates="organization",
     )
 
+    # FIXME convert this into a database column
+    @property
+    def bucket_public_read(self) -> bool:
+        return False
+
     def set_fastly_api_key(self, api_key: Optional[SecretStr]) -> None:
         """Encrypt and set the Fastly API key."""
         if api_key is None:
