@@ -21,6 +21,7 @@ from typing import (
 
 import boto3
 import botocore.exceptions
+from botocore.client import Config
 
 from keeper.exceptions import S3Error
 
@@ -82,7 +83,7 @@ def delete_directory(
         aws_access_key_id=aws_access_key_id,
         aws_secret_access_key=aws_secret_access_key,
     )
-    s3 = session.resource("s3")
+    s3 = session.resource("s3", config=Config(signature_version="s3v4"))
     client = s3.meta.client
 
     # Normalize directory path for searching patch prefixes of objects
@@ -206,7 +207,7 @@ def copy_directory(
         aws_access_key_id=aws_access_key_id,
         aws_secret_access_key=aws_secret_access_key,
     )
-    s3 = session.resource("s3")
+    s3 = session.resource("s3", config=Config(signature_version="s3v4"))
     bucket = s3.Bucket(bucket_name)
 
     # Copy each object from source to destination
@@ -326,7 +327,9 @@ def presign_post_url_for_prefix(
     else:
         key = f"{prefix}/${{filename}}"
 
-    s3_client = s3_session.client("s3")
+    s3_client = s3_session.client(
+        "s3", config=Config(signature_version="s3v4")
+    )
     try:
         response = s3_client.generate_presigned_post(
             bucket_name,
@@ -416,7 +419,9 @@ def presign_post_url_for_directory_object(
         condition={"x-amz-meta-dir-redirect": "true"},
     )
 
-    s3_client = s3_session.client("s3")
+    s3_client = s3_session.client(
+        "s3", config=Config(signature_version="s3v4")
+    )
     try:
         response = s3_client.generate_presigned_post(
             bucket_name,
