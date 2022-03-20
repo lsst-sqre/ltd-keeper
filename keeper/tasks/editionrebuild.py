@@ -61,7 +61,7 @@ def rebuild_edition(
     new_build = Build.query.get(build_id)
 
     aws_id = organization.aws_id
-    aws_secret = organization.get_aws_secret_key
+    aws_secret = organization.get_aws_secret_key()
     use_public_read_acl = organization.bucket_public_read
 
     fastly_service_id = organization.fastly_service_id
