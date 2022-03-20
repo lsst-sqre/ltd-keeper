@@ -256,6 +256,13 @@ class EditionResponse(BaseModel):
         task: celery.Task = None,
     ) -> EditionResponse:
         """Create an EditionResponse from the Edition ORM model instance."""
+        if edition.mode_name == "git_refs":
+            tracked_refs = edition.tracked_refs
+        elif edition.mode_name == "git_ref":
+            tracked_refs = [edition.tracked_ref]
+        else:
+            tracked_refs = None
+
         obj: Dict[str, Any] = {
             "self_url": url_for_edition(edition),
             "product_url": url_for_product(edition.product),
@@ -271,11 +278,7 @@ class EditionResponse(BaseModel):
             "date_rebuilt": edition.date_rebuilt,
             "date_ended": edition.date_ended,
             "mode": edition.mode_name,
-            "tracked_refs": (
-                edition.tracked_refs
-                if edition.mode_name == "git_refs"
-                else None
-            ),
+            "tracked_refs": tracked_refs,
             "pending_rebuild": edition.pending_rebuild,
             "surrogate_key": edition.surrogate_key,
             "queue_url": url_for_task(task) if task is not None else None,

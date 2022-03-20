@@ -95,7 +95,7 @@ def test_lsst_doc_edition(client: TestClient, mocker: Mock) -> None:
 
     # Check that it's tracking the main branch
     r = client.get(main_edition_url)
-    assert r.json["mode"] == "git_refs"
+    assert r.json["mode"] == "git_ref"
     assert r.json["slug"] == "main"
     assert r.json["title"] == "main"
     assert r.json["tracked_refs"] == ["main"]

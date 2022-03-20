@@ -137,12 +137,12 @@ def create_autotracking_edition(
     )
     if edition_count == 0 and is_authorized(Permission.ADMIN_EDITION):
         try:
-            edition_slug = auto_slugify_edition(build.git_refs)
+            edition_slug = auto_slugify_edition([build.git_ref])
             edition = create_edition(
                 product=product,
                 title=edition_slug,
                 slug=edition_slug,
-                tracking_mode="git_refs",
+                tracking_mode="git_ref",
                 tracked_ref=build.git_ref,
             )
             db.session.add(edition)
@@ -152,7 +152,7 @@ def create_autotracking_edition(
                 "Created edition because of a build",
                 slug=edition.slug,
                 id=edition.id,
-                tracked_refs=edition.tracked_refs,
+                tracked_ref=edition.tracked_ref,
             )
             return edition
         except Exception:

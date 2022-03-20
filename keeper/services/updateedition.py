@@ -35,6 +35,7 @@ def update_edition(
 
     if tracked_ref is not None:
         edition.tracked_refs = [tracked_ref]
+        edition.tracked_ref = tracked_ref
 
     if tracking_mode is not None:
         edition.set_mode(tracking_mode)

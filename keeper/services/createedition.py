@@ -46,7 +46,7 @@ def create_edition(
         slug.
     tracked_ref : str, optional
         The name of the Git ref that this edition tracks, if ``tracking_mode``
-        is ``"git_refs"``.
+        is ``"git_refs"`` or ``"git_ref"``.
     build : Build, optional
         The build to initially publish with this edition.
 
@@ -73,7 +73,13 @@ def create_edition(
     else:
         edition.set_mode(edition.default_mode_name)
 
+    # Set both tracked_ref and tracked_refs for the purposes of the migration
+    # for now
     if edition.mode_name == "git_refs":
+        edition.tracked_refs = [tracked_ref]
+        edition.tracked_ref = tracked_ref
+    elif edition.mode_name == "git_ref":
+        edition.tracked_ref = tracked_ref
         edition.tracked_refs = [tracked_ref]
 
     db.session.add(edition)

@@ -7,6 +7,7 @@ from keeper.editiontracking.eupsdailymode import EupsDailyReleaseTrackingMode
 from keeper.editiontracking.eupsmajormode import EupsMajorReleaseTrackingMode
 from keeper.editiontracking.eupsweeklymode import EupsWeeklyReleaseTrackingMode
 from keeper.editiontracking.gitrefmode import GitRefTrackingMode
+from keeper.editiontracking.gitrefsmode import GitRefsTrackingMode
 from keeper.editiontracking.lsstdocmode import LsstDocTrackingMode
 from keeper.editiontracking.manualmode import ManualTrackingMode
 from keeper.exceptions import ValidationError
@@ -21,12 +22,13 @@ class EditionTrackingModes:
     """
 
     _modes = {
-        1: GitRefTrackingMode(),
+        1: GitRefsTrackingMode(),
         2: LsstDocTrackingMode(),
         3: EupsMajorReleaseTrackingMode(),
         4: EupsWeeklyReleaseTrackingMode(),
         5: EupsDailyReleaseTrackingMode(),
         6: ManualTrackingMode(),
+        7: GitRefTrackingMode(),
     }
     """Map of tracking mode ID (an integer stored in the DB to the tracking
     mode instance that can evaluate whether an edition should be updated
