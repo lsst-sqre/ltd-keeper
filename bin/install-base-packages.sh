@@ -29,7 +29,7 @@ apt-get -y upgrade
 # Install system packages
 # - build-essentiall needed for uwsgi
 # - git needed for setuptools_scm
-apt-get -y install --no-install-recommends git build-essential redis-server dnsutils wget
+apt-get -y install --no-install-recommends git build-essential redis-server dnsutils wget iputils-ping
 
 # Delete cached files we don't need anymore:
 apt-get clean
