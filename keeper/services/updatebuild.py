@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Optional
 
+import structlog
+
 from keeper.models import db
 
 from .updateedition import update_edition
@@ -30,6 +32,9 @@ def update_build(*, build: Build, uploaded: Optional[bool]) -> Build:
     build : `keeper.models.Build`
         Build model.
     """
+    logger = structlog.get_logger(__name__)
+    logger.info("Updating build", build=build.slug, uploaded=uploaded)
+
     if uploaded is True:
         build.register_uploaded_build()
         db.session.add(build)
