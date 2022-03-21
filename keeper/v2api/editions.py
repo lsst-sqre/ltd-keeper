@@ -113,7 +113,7 @@ def patch_edition(
         .filter(Organization.slug == org)
         .filter(Product.slug == project)
         .filter(Edition.slug == id)
-        .all()
+        .first_or_404()
     )
     request_data = EditionPatchRequest.parse_obj(request.json)
 
