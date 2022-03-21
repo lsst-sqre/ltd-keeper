@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Dict, Tuple
 
+import structlog
 from flask import request
 from flask_accept import accept_fallback
 
@@ -110,6 +111,7 @@ def post_build(org: str, project: str) -> Tuple[str, int, Dict[str, str]]:
 def patch_build(
     org: str, project: str, id: str
 ) -> Tuple[str, int, Dict[str, str]]:
+    logger = structlog.get_logger()
     build = (
         Build.query.join(Product, Product.id == Build.product_id)
         .join(Organization, Organization.id == Product.organization_id)
@@ -124,7 +126,9 @@ def patch_build(
     try:
         build = update_build(build=build, uploaded=request_data.uploaded)
     except Exception:
+        logger.exception("Error patching build")
         db.session.rollback()
+        raise
 
     # Run the task queue
     task = launch_tasks()

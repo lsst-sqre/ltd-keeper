@@ -216,6 +216,7 @@ def copy_directory(
 
     # Copy each object from source to destination
     for src_obj in bucket.objects.filter(Prefix=src_path):
+        print(f"Copying {src_obj.key}")
         src_rel_path = os.path.relpath(src_obj.key, start=src_path)
         dest_key_path = os.path.join(dest_path, src_rel_path)
 

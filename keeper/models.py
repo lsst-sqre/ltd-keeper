@@ -689,10 +689,16 @@ class Build(db.Model):  # type: ignore
 
     def get_tracking_editions(self) -> List[Edition]:
         """Get the editions that should rebuild to this build."""
+        logger = get_logger(__name__)
         editions = (
             Edition.query.autoflush(False)
             .filter(Edition.product == self.product)
             .all()
+        )
+        logger.debug(
+            "In get_tracking_editions found editions for product",
+            count=len(editions),
+            editions=str(editions),
         )
 
         return [
@@ -852,12 +858,15 @@ class Edition(db.Model):  # type: ignore
             `True` if the edition should be rebuilt using this Build, or
             `False` otherwise.
         """
+        logger = get_logger(__name__)
+        logger.debug("Inside Edition.should_rebuild")
+
         # shim during refactoring
         from keeper.api._urls import url_for_edition
 
         logger = get_logger(__name__)
 
-        logger.debug(
+        logger.info(
             "Edition {!r} in should_rebuild".format(url_for_edition(self))
         )
 
@@ -872,7 +881,6 @@ class Edition(db.Model):  # type: ignore
         try:
             tracking_mode = edition_tracking_modes[self.mode]
         except (KeyError, ValidationError):
-
             tracking_mode = edition_tracking_modes[self.default_mode_id]
             logger.warning(
                 "Edition {!r} has an unknown tracking"

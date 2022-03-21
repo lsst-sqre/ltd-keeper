@@ -32,6 +32,11 @@ def update_edition(
     build.
     """
     logger = get_logger(__name__)
+    logger.info(
+        "Updating edition",
+        edition=edition.slug,
+        new_build=build.slug if build else None,
+    )
 
     if tracked_ref is not None:
         edition.tracked_refs = [tracked_ref]

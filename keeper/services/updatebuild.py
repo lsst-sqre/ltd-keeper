@@ -41,6 +41,11 @@ def update_build(*, build: Build, uploaded: Optional[bool]) -> Build:
         db.session.commit()
 
         editions_to_rebuild = build.get_tracking_editions()
+        logger.info(
+            "Found editions tracking this uploaded build",
+            build=build.slug,
+            count=len(editions_to_rebuild),
+        )
         for edition in editions_to_rebuild:
             update_edition(edition=edition, build=build)
 

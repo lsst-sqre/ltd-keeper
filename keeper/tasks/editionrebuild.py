@@ -45,12 +45,6 @@ def rebuild_edition(
     2. Purge Fastly's cache for this edition.
     2. Send a ``edition.updated`` payload to LTD Events (if configured).
     """
-    logger.info(
-        "Starting rebuild edition edition_id=%s retry=%d",
-        edition_id,
-        self.request.retries,
-    )
-
     # LTD_EVENTS_URL = current_app.config["LTD_EVENTS_URL"]
 
     # api_url_parts = urlsplit(edition_url)
@@ -59,6 +53,15 @@ def rebuild_edition(
     edition = Edition.query.get(edition_id)
     organization = edition.product.organization
     new_build = Build.query.get(build_id)
+
+    logger.info(
+        "Starting rebuild_edition for %s/%s/%s with build %s retry=%d",
+        organization.slug,
+        edition.product.slug,
+        edition.slug,
+        new_build.slug,
+        self.request.retries,
+    )
 
     aws_id = organization.aws_id
     aws_secret = organization.get_aws_secret_key()
@@ -72,7 +75,12 @@ def rebuild_edition(
         edition.set_pending_rebuild(new_build)
 
         if aws_id is not None and aws_secret is not None:
-            logger.info("Starting copy_directory")
+            logger.info(
+                "Starting copy_directory %s to %s public_read=%s",
+                new_build.bucket_root_dirname,
+                edition.bucket_root_dirname,
+                use_public_read_acl,
+            )
             s3_service = s3.open_s3_resource(
                 key_id=aws_id,
                 access_key=aws_secret.get_secret_value(),
@@ -120,6 +128,7 @@ def rebuild_edition(
         # if LTD_EVENTS_URL is not None:
         #     send_edition_updated_event(edition, LTD_EVENTS_URL, api_root)
     except Exception:
+        logger.exception("Error during copy")
         db.session.rollback()
 
         edition = Edition.query.get(edition_id)
