@@ -6,9 +6,11 @@ import abc
 import logging
 import os
 import sys
-from typing import TYPE_CHECKING, Dict, Optional, Type
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Type
 
 import structlog
+from structlog.stdlib import add_log_level
+from structlog.types import EventDict
 
 from keeper.models import EditionKind
 
@@ -198,26 +200,60 @@ class ProductionConfig(Config):
         stream_handler = logging.StreamHandler(stream=sys.stdout)
         stream_handler.setFormatter(logging.Formatter("%(message)s"))
         logger = logging.getLogger("keeper")
+        logger.handlers = []
         logger.addHandler(stream_handler)
-        if logger.hasHandlers():
-            logger.handlers.clear()
-        logger.setLevel(logging.INFO)
+        logger.setLevel("INFO")
+
+        processors: List[Any] = [
+            structlog.stdlib.filter_by_level,
+            structlog.stdlib.add_logger_name,
+            structlog.stdlib.PositionalArgumentsFormatter(),
+            structlog.processors.StackInfoRenderer(),
+            structlog.processors.UnicodeDecoder(),
+        ]
+        # JSON-formatted logging
+        processors.append(add_log_severity)
+        processors.append(structlog.processors.format_exc_info)
+        processors.append(structlog.processors.JSONRenderer())
 
         structlog.configure(
-            processors=[
-                structlog.stdlib.filter_by_level,
-                structlog.stdlib.add_logger_name,
-                structlog.stdlib.add_log_level,
-                structlog.stdlib.PositionalArgumentsFormatter(),
-                structlog.processors.StackInfoRenderer(),
-                structlog.processors.format_exc_info,
-                structlog.processors.UnicodeDecoder(),
-                structlog.processors.JSONRenderer(),
-            ],
-            context_class=structlog.threadlocal.wrap_dict(dict),
+            processors=processors,
             logger_factory=structlog.stdlib.LoggerFactory(),
+            wrapper_class=structlog.stdlib.BoundLogger,
             cache_logger_on_first_use=True,
         )
+
+
+def add_log_severity(
+    logger: logging.Logger, method_name: str, event_dict: EventDict
+) -> EventDict:
+    """Add the log level to the event dict as ``severity``.
+
+    Intended for use as a structlog processor.
+
+    This is the same as `structlog.stdlib.add_log_level` except that it
+    uses the ``severity`` key rather than ``level`` for compatibility with
+    Google Log Explorer and its automatic processing of structured logs.
+
+    Parameters
+    ----------
+    logger : `logging.Logger`
+        The wrapped logger object.
+    method_name : `str`
+        The name of the wrapped method (``warning`` or ``error``, for
+        example).
+    event_dict : `structlog.types.EventDict`
+        Current context and current event. This parameter is also modified in
+        place, matching the normal behavior of structlog processors.
+
+    Returns
+    -------
+    event_dict : `structlog.types.EventDict`
+        The modified `~structlog.types.EventDict` with the added key.
+    """
+    severity = add_log_level(logger, method_name, {})["level"]
+    event_dict["severity"] = severity
+    return event_dict
 
 
 config: Dict[str, Type[Config]] = {
