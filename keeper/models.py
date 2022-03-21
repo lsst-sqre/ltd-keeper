@@ -374,11 +374,11 @@ class Organization(db.Model):  # type: ignore
             return
         self.fastly_encrypted_api_key = self._encrypt_secret_str(api_key)
 
-    def get_fastly_api_key(self) -> SecretStr:
+    def get_fastly_api_key(self) -> Optional[SecretStr]:
         """Get the decrypted Fastly API key."""
         encrypted_key = self.fastly_encrypted_api_key
         if encrypted_key is None:
-            raise ValueError("fastly_encrypted_api_key is not set.")
+            return None
         return self._decrypt_to_secret_str(encrypted_key)
 
     def set_aws_secret_key(self, secret_key: Optional[SecretStr]) -> None:

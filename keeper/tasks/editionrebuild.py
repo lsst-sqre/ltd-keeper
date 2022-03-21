@@ -66,7 +66,7 @@ def rebuild_edition(
     use_public_read_acl = organization.bucket_public_read
 
     fastly_service_id = organization.fastly_service_id
-    fastly_key = organization.get_fastly_api_id
+    fastly_key = organization.get_fastly_api_key()
 
     try:
         edition.set_pending_rebuild(new_build)
@@ -96,7 +96,11 @@ def rebuild_edition(
                 "Skipping rebuild because AWS credentials are not set"
             )
 
-        if fastly_service_id is not None and fastly_key is not None:
+        if (
+            organization.fastly_support
+            and fastly_service_id is not None
+            and fastly_key is not None
+        ):
             logger.info("Starting Fastly purge_key")
             fastly_service = fastly.FastlyService(
                 fastly_service_id, fastly_key.get_secret_value()
