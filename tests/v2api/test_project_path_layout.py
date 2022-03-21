@@ -32,8 +32,8 @@ def test_projects(client: TestClient, mocker: Mock) -> None:
         "keeper.services.createbuild.presign_post_url_for_directory_object",
         new=MagicMock(return_value=mock_presigned_url),
     )
-    s3_session_mock = mocker.patch(
-        "keeper.services.createbuild.open_s3_session"
+    s3_service_mock = mocker.patch(
+        "keeper.services.createbuild.open_s3_resource"
     )
 
     # Create a default organization ===========================================
@@ -98,7 +98,7 @@ def test_projects(client: TestClient, mocker: Mock) -> None:
     build1_request = {"git_ref": "main"}
     r = client.post(project1_builds_url, build1_request)
     task_queue.apply_task_side_effects()
-    s3_session_mock.assert_called_once()
+    s3_service_mock.assert_called_once()
     presign_post_mock.assert_called_once()
     assert r.status == 201
     assert r.json["project_url"] == project1_url

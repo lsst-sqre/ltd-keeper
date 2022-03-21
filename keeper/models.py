@@ -360,6 +360,11 @@ class Organization(db.Model):  # type: ignore
 
     # FIXME convert this into a database column
     @property
+    def aws_region(self) -> str:
+        return "ca-central-1"
+
+    # FIXME convert this into a database column
+    @property
     def bucket_public_read(self) -> bool:
         return False
 

@@ -11,7 +11,7 @@ from keeper.exceptions import ValidationError
 from keeper.models import Build, Edition, Permission, db
 from keeper.s3 import (
     format_bucket_prefix,
-    open_s3_session,
+    open_s3_resource,
     presign_post_url_for_directory_object,
     presign_post_url_for_prefix,
 )
@@ -176,14 +176,14 @@ def create_presigned_post_urls(
     organization = build.product.organization
     aws_id = organization.aws_id
     aws_secret = organization.get_aws_secret_key()
+    aws_region = organization.aws_region
     use_public_read_acl = organization.bucket_public_read
 
-    if aws_secret is None:
-        s3_session = open_s3_session(key_id=aws_id, access_key="")
-    else:
-        s3_session = open_s3_session(
-            key_id=aws_id, access_key=aws_secret.get_secret_value()
-        )
+    s3_service = open_s3_resource(
+        key_id=aws_id,
+        access_key=aws_secret.get_secret_value() if aws_secret else "",
+        aws_region=aws_region,
+    )
     presigned_prefix_urls = {}
     presigned_dir_urls = {}
     for d in set(directories):
@@ -191,7 +191,7 @@ def create_presigned_post_urls(
         dir_key = bucket_prefix.rstrip("/")
 
         presigned_prefix_url = _create_presigned_url_for_prefix(
-            s3_session=s3_session,
+            s3=s3_service,
             bucket_name=build.product.bucket_name,
             prefix=bucket_prefix,
             surrogate_key=build.surrogate_key,
@@ -200,7 +200,7 @@ def create_presigned_post_urls(
         presigned_prefix_urls[d] = deepcopy(presigned_prefix_url)
 
         presigned_dir_url = _create_presigned_url_for_directory(
-            s3_session=s3_session,
+            s3=s3_service,
             bucket_name=build.product.bucket_name,
             key=dir_key,
             surrogate_key=build.surrogate_key,
@@ -221,7 +221,7 @@ def create_presigned_post_urls(
 
 def _create_presigned_url_for_prefix(
     *,
-    s3_session: boto3.session.Session,
+    s3: boto3.resources.base.ServiceResource,
     bucket_name: str,
     prefix: str,
     surrogate_key: str,
@@ -249,7 +249,7 @@ def _create_presigned_url_for_prefix(
     if use_public_read_acl:
         url_fields["acl"] = "public-read"
     return presign_post_url_for_prefix(
-        s3_session=s3_session,
+        s3=s3,
         bucket_name=bucket_name,
         prefix=prefix,
         expiration=3600,
@@ -260,7 +260,7 @@ def _create_presigned_url_for_prefix(
 
 def _create_presigned_url_for_directory(
     *,
-    s3_session: boto3.session.Session,
+    s3: boto3.resources.base.ServiceResource,
     bucket_name: str,
     key: str,
     surrogate_key: str,
@@ -285,7 +285,7 @@ def _create_presigned_url_for_directory(
     if use_public_read_acl:
         url_fields["acl"] = "public-read"
     return presign_post_url_for_directory_object(
-        s3_session=s3_session,
+        s3=s3,
         bucket_name=bucket_name,
         key=key,
         fields=url_fields,

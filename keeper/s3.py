@@ -29,6 +29,8 @@ if TYPE_CHECKING:
     import botocore.client.S3
 
 __all__ = (
+    "open_aws_session",
+    "open_s3_resource",
     "delete_directory",
     "copy_directory",
     "presign_post_url_for_prefix",
@@ -37,8 +39,10 @@ __all__ = (
 )
 
 
-def open_s3_session(*, key_id: str, access_key: str) -> boto3.session.Session:
-    """Create a boto3 S3 session that can be reused by multiple requests.
+def open_aws_session(
+    *, key_id: str, access_key: str, aws_region: str
+) -> boto3.session.Session:
+    """Create a boto3 AWS session that can be reused by multiple requests.
 
     Parameters
     ----------
@@ -46,31 +50,43 @@ def open_s3_session(*, key_id: str, access_key: str) -> boto3.session.Session:
         The access key for your AWS account. Also set `aws_secret_access_key`.
     aws_secret_access_key : str
         The secret key for your AWS account.
+    aws_region : str
+        The AWS region (``us-east-1`` or ``ca-central-1``).
     """
     return boto3.session.Session(
-        aws_access_key_id=key_id, aws_secret_access_key=access_key
+        aws_access_key_id=key_id,
+        aws_secret_access_key=access_key,
+        region_name=aws_region,
     )
 
 
+def open_s3_resource(
+    *, key_id: str, access_key: str, aws_region: str
+) -> boto3.resources.base.ServiceResource:
+    session = open_aws_session(
+        key_id=key_id, access_key=access_key, aws_region=aws_region
+    )
+    s3 = session.resource("s3", config=Config(signature_version="s3v4"))
+    return s3
+
+
 def delete_directory(
+    *,
+    s3: boto3.resources.base.ServiceResource,
     bucket_name: str,
     root_path: str,
-    aws_access_key_id: str,
-    aws_secret_access_key: str,
 ) -> None:
     """Delete all objects in the S3 bucket named `bucket_name` that are
     found in the `root_path` directory.
 
     Parameters
     ----------
+    s3
+        The S3 service.
     bucket_name : str
         Name of an S3 bucket.
     root_path : str
         Directory in the S3 bucket that will be deleted.
-    aws_access_key_id : str
-        The access key for your AWS account. Also set `aws_secret_access_key`.
-    aws_secret_access_key : str
-        The secret key for your AWS account.
 
     Raises
     ------
@@ -79,18 +95,13 @@ def delete_directory(
     """
     log = logging.getLogger(__name__)
 
-    session = boto3.session.Session(
-        aws_access_key_id=aws_access_key_id,
-        aws_secret_access_key=aws_secret_access_key,
-    )
-    s3 = session.resource("s3", config=Config(signature_version="s3v4"))
-    client = s3.meta.client
+    s3_client = s3.meta.client
 
     # Normalize directory path for searching patch prefixes of objects
     if not root_path.endswith("/"):
         root_path.rstrip("/")
 
-    paginator = client.get_paginator("list_objects_v2")
+    paginator = s3_client.get_paginator("list_objects_v2")
     pages = paginator.paginate(Bucket=bucket_name, Prefix=root_path)
 
     keys: Dict[str, List[Dict[str, str]]] = dict(Objects=[])
@@ -103,7 +114,7 @@ def delete_directory(
         # the delete_objects method can only take a maximum of 1000 keys
         if len(keys["Objects"]) >= 1000:
             try:
-                client.delete_objects(Bucket=bucket_name, Delete=keys)
+                s3_client.delete_objects(Bucket=bucket_name, Delete=keys)
             except Exception:
                 message = "Error deleting objects from %r" % root_path
                 log.exception("Error deleting objects from %r", root_path)
@@ -113,7 +124,7 @@ def delete_directory(
     # Delete remaining keys
     if len(keys["Objects"]) > 0:
         try:
-            client.delete_objects(Bucket=bucket_name, Delete=keys)
+            s3_client.delete_objects(Bucket=bucket_name, Delete=keys)
         except Exception:
             message = "Error deleting objects from %r" % root_path
             log.exception(message)
@@ -121,11 +132,11 @@ def delete_directory(
 
 
 def copy_directory(
+    *,
+    s3: boto3.resources.base.ServiceResource,
     bucket_name: str,
     src_path: str,
     dest_path: str,
-    aws_access_key_id: str,
-    aws_secret_access_key: str,
     surrogate_key: Optional[str] = None,
     cache_control: Optional[str] = None,
     surrogate_control: Optional[str] = None,
@@ -143,6 +154,8 @@ def copy_directory(
 
     Parameters
     ----------
+    s3
+        The S3 resource.
     bucket_name : str
         Name of an S3 bucket.
     src_path : str
@@ -152,10 +165,6 @@ def copy_directory(
         Destination directory in the S3 bucket. The `dest_path` should ideally
         end in a trailing `'/'`. E.g. `'dir/dir2/'`. The destination path
         cannot contain the source path.
-    aws_access_key_id : str
-        The access key for your AWS account. Also set `aws_secret_access_key`.
-    aws_secret_access_key : str
-        The secret key for your AWS account.
     surrogate_key : str, optional
         The surrogate key to insert in the header of all objects in the
         ``x-amz-meta-surrogate-key`` field. This key is used to purge
@@ -188,6 +197,8 @@ def copy_directory(
     app.exceptions.S3Error
         Thrown by any unexpected faults from the S3 API.
     """
+    s3_client = s3.meta.client
+
     if not src_path.endswith("/"):
         src_path += "/"
     if not dest_path.endswith("/"):
@@ -199,15 +210,8 @@ def copy_directory(
     assert common_prefix != dest_path
 
     # Delete any existing objects in the destination
-    delete_directory(
-        bucket_name, dest_path, aws_access_key_id, aws_secret_access_key
-    )
+    delete_directory(s3=s3, bucket_name=bucket_name, root_path=dest_path)
 
-    session = boto3.session.Session(
-        aws_access_key_id=aws_access_key_id,
-        aws_secret_access_key=aws_secret_access_key,
-    )
-    s3 = session.resource("s3", config=Config(signature_version="s3v4"))
     bucket = s3.Bucket(bucket_name)
 
     # Copy each object from source to destination
@@ -216,7 +220,7 @@ def copy_directory(
         dest_key_path = os.path.join(dest_path, src_rel_path)
 
         # the src_obj (ObjectSummary) doesn't include headers afaik
-        head = s3.meta.client.head_object(Bucket=bucket_name, Key=src_obj.key)
+        head = s3_client.head_object(Bucket=bucket_name, Key=src_obj.key)
         metadata = head["Metadata"]
         content_type = head["ContentType"]
 
@@ -241,7 +245,7 @@ def copy_directory(
         }
         if use_public_read_acl:
             copy_kwargs["ACL"] = "public-read"
-        s3.meta.client.copy_object(**copy_kwargs)
+        s3_client.copy_object(**copy_kwargs)
 
     if create_directory_redirect_object:
         dest_dirname = dest_path.rstrip("/")
@@ -259,7 +263,7 @@ def copy_directory(
 
 def presign_post_url_for_prefix(
     *,
-    s3_session: botocore.client.S3,
+    s3: boto3.resources.base.ServiceResource,
     bucket_name: str,
     prefix: str,
     fields: Optional[Dict[str, str]] = None,
@@ -271,8 +275,8 @@ def presign_post_url_for_prefix(
 
     Parameters
     ----------
-    s3_session
-        S3 session, typically created with `open_s3_session`.
+    s3
+        S3 service.
     bucket_name : `str`
         Name of the S3 bucket.
     prefix : `str`
@@ -327,9 +331,7 @@ def presign_post_url_for_prefix(
     else:
         key = f"{prefix}/${{filename}}"
 
-    s3_client = s3_session.client(
-        "s3", config=Config(signature_version="s3v4")
-    )
+    s3_client = s3.meta.client
     try:
         response = s3_client.generate_presigned_post(
             bucket_name,
@@ -347,7 +349,7 @@ def presign_post_url_for_prefix(
 
 def presign_post_url_for_directory_object(
     *,
-    s3_session: botocore.client.S3,
+    s3: boto3.resources.base.ServiceResource,
     bucket_name: str,
     key: str,
     fields: Optional[Dict[str, str]] = None,
@@ -364,8 +366,8 @@ def presign_post_url_for_directory_object(
 
     Parameters
     ----------
-    s3_session
-        S3 session, typically created with `open_s3_session`.
+    s3
+        The S3 service.
     bucket_name : `str`
         Name of the S3 bucket.
     key : `str`
@@ -419,9 +421,7 @@ def presign_post_url_for_directory_object(
         condition={"x-amz-meta-dir-redirect": "true"},
     )
 
-    s3_client = s3_session.client(
-        "s3", config=Config(signature_version="s3v4")
-    )
+    s3_client = s3.meta.client
     try:
         response = s3_client.generate_presigned_post(
             bucket_name,

@@ -62,6 +62,7 @@ def rebuild_edition(
 
     aws_id = organization.aws_id
     aws_secret = organization.get_aws_secret_key()
+    aws_region = organization.aws_region
     use_public_read_acl = organization.bucket_public_read
 
     fastly_service_id = organization.fastly_service_id
@@ -72,12 +73,16 @@ def rebuild_edition(
 
         if aws_id is not None and aws_secret is not None:
             logger.info("Starting copy_directory")
+            s3_service = s3.open_s3_resource(
+                key_id=aws_id,
+                access_key=aws_secret.get_secret_value(),
+                aws_region=aws_region,
+            )
             s3.copy_directory(
+                s3=s3_service,
                 bucket_name=edition.product.bucket_name,
                 src_path=new_build.bucket_root_dirname,
                 dest_path=edition.bucket_root_dirname,
-                aws_access_key_id=aws_id,
-                aws_secret_access_key=aws_secret.get_secret_value(),
                 use_public_read_acl=use_public_read_acl,
                 surrogate_key=edition.surrogate_key,
                 # Force Fastly to cache the edition for 1 year
