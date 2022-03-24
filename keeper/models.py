@@ -861,14 +861,7 @@ class Edition(db.Model):  # type: ignore
         logger = get_logger(__name__)
         logger.debug("Inside Edition.should_rebuild")
 
-        # shim during refactoring
-        from keeper.api._urls import url_for_edition
-
         logger = get_logger(__name__)
-
-        logger.info(
-            "Edition {!r} in should_rebuild".format(url_for_edition(self))
-        )
 
         candidate_build = build
 
@@ -883,8 +876,7 @@ class Edition(db.Model):  # type: ignore
         except (KeyError, ValidationError):
             tracking_mode = edition_tracking_modes[self.default_mode_id]
             logger.warning(
-                "Edition {!r} has an unknown tracking"
-                "mode".format(url_for_edition(self))
+                "Edition {!r} has an unknown tracking" "mode".format(self.slug)
             )
 
         return tracking_mode.should_update(self, candidate_build)
