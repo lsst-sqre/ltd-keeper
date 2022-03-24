@@ -49,7 +49,7 @@ def update_edition(
         edition.title = title
 
     if slug is not None:
-        request_edition_rename(edition=edition)
+        request_edition_rename(edition=edition, slug=slug)
 
     product = edition.product
 

@@ -28,7 +28,7 @@ if TYPE_CHECKING:
 def create_build(
     *,
     product: Product,
-    git_ref: str,
+    git_ref: Optional[str],
     github_requester: Optional[str] = None,
     slug: Optional[str] = None,
 ) -> Tuple[Build, Optional[Edition]]:
