@@ -16,6 +16,9 @@ from flask.cli import with_appcontext
 from keeper.models import Permission, User, db
 from keeper.version import get_version
 
+# from psycopg2.errors import UndefinedTable
+
+
 if TYPE_CHECKING:
     from flask import Flask
 
@@ -54,11 +57,14 @@ def createdb_command(alembicconf: str) -> None:
 
     To migrate database servers, see the copydb sub-command.
     """
-    db.create_all()
+    try:
+        User.query.get(1)
+    except Exception:
+        db.create_all()
 
-    # stamp tables with latest schema version
-    alembic_cfg = alembic.config.Config(alembicconf)
-    alembic.command.stamp(alembic_cfg, "head")
+        # stamp tables with latest schema version
+        alembic_cfg = alembic.config.Config(alembicconf)
+        alembic.command.stamp(alembic_cfg, "head")
 
 
 @click.command("init")
