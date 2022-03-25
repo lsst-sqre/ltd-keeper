@@ -65,8 +65,8 @@ def rebuild_edition(
 
     aws_id = organization.aws_id
     aws_secret = organization.get_aws_secret_key()
-    aws_region = organization.aws_region
-    use_public_read_acl = organization.bucket_public_read
+    aws_region = organization.get_aws_region()
+    use_public_read_acl = organization.get_bucket_public_read()
 
     fastly_service_id = organization.fastly_service_id
     fastly_key = organization.get_fastly_api_key()

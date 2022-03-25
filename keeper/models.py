@@ -342,6 +342,17 @@ class Organization(db.Model):  # type: ignore
     aws_encrypted_secret_key = db.Column(db.LargeBinary, nullable=True)
     """The AWS secret key."""
 
+    # FIXME nullable for migration
+    aws_region = db.Column(db.Unicode(255), nullable=True, default="us-east-1")
+    """The AWS region of the S3 bucket."""
+
+    # FIXME nullable for migration
+    bucket_public_read = db.Column(db.Boolean, nullable=True, default=False)
+    """If True, objects in the S3 bucket will have the ``public-read`` ACL.
+
+    For objects using a proxy, this can be False.
+    """
+
     products = db.relationship(
         "Product", back_populates="organization", lazy="dynamic"
     )
@@ -358,15 +369,23 @@ class Organization(db.Model):  # type: ignore
         back_populates="organization",
     )
 
-    # FIXME convert this into a database column
-    @property
-    def aws_region(self) -> str:
-        return "ca-central-1"
+    def get_aws_region(self) -> str:
+        """Get the AWS region (adapter while column is nullable for
+        migration).
+        """
+        if self.aws_region is None:
+            return "us-east-1"
+        else:
+            return self.aws_region
 
-    # FIXME convert this into a database column
-    @property
-    def bucket_public_read(self) -> bool:
-        return False
+    def get_bucket_public_read(self) -> bool:
+        """Get the S3 public public-read ACL configuration (adapter while
+        column is nullable for migration.
+        """
+        if self.bucket_public_read is None:
+            return False
+        else:
+            return self.bucket_public_read
 
     def set_fastly_api_key(self, api_key: Optional[SecretStr]) -> None:
         """Encrypt and set the Fastly API key."""

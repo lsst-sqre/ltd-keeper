@@ -45,7 +45,7 @@ def test_projects(client: TestClient, mocker: Mock) -> None:
         "layout": "path",
         "domain": "www.example.org",
         "path_prefix": "/orgprefix",
-        "bucket_name": "test-bucket",
+        "s3_bucket": "test-bucket",
         "fastly_support": False,
     }
     r = client.post("/v2/orgs", request_data)

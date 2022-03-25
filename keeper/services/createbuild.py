@@ -176,8 +176,8 @@ def create_presigned_post_urls(
     organization = build.product.organization
     aws_id = organization.aws_id
     aws_secret = organization.get_aws_secret_key()
-    aws_region = organization.aws_region
-    use_public_read_acl = organization.bucket_public_read
+    aws_region = organization.get_aws_region()
+    use_public_read_acl = organization.get_bucket_public_read()
 
     s3_service = open_s3_resource(
         key_id=aws_id,

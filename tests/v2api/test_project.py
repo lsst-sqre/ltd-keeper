@@ -45,7 +45,7 @@ def test_projects(client: TestClient, mocker: Mock) -> None:
         "layout": "subdomain",
         "domain": "example.org",
         "path_prefix": "/",
-        "bucket_name": "test-bucket",
+        "s3_bucket": "test-bucket",
         "fastly_support": True,
         "fastly_domain": "fastly.example.org",
         "fastly_service_id": "abc",
