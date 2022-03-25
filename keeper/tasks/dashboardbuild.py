@@ -31,7 +31,7 @@ def build_dashboard(self: celery.task.Task, product_id: str) -> None:
         self.request.retries,
     )
 
-    product = Product.query(id=product_id).one()
+    product = Product.query.get(product_id)
     build_dashboard_svc(product, logger)
 
     logger.info("Finished triggering dashboard build")

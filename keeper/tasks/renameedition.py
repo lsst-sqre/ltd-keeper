@@ -42,24 +42,30 @@ def rename_edition(
     organization = edition.product.organization
     aws_id = organization.aws_id
     aws_secret = organization.get_aws_secret_key()
+    aws_region = organization.aws_region
+    use_public_read_acl = organization.bucket_public_read
     if (
         aws_id is not None
         and aws_secret is not None
         and self.build is not None
     ):
+        s3_service = s3.open_s3_resource(
+            key_id=aws_id,
+            access_key=aws_secret.get_secret_value(),
+            aws_region=aws_region,
+        )
         s3.copy_directory(
-            self.product.bucket_name,
-            old_bucket_root_dir,
-            new_bucket_root_dir,
-            aws_id,
-            aws_secret.get_secret_value(),
+            s3=s3_service,
+            bucket_name=self.product.bucket_name,
+            src_path=old_bucket_root_dir,
+            dest_path=new_bucket_root_dir,
             surrogate_key=self.surrogate_key,
+            use_public_read_acl=use_public_read_acl,
         )
         s3.delete_directory(
-            self.product.bucket_name,
-            old_bucket_root_dir,
-            aws_id,
-            aws_secret.get_secret_value(),
+            s3=s3_service,
+            bucket_name=self.product.bucket_name,
+            root_path=old_bucket_root_dir,
         )
 
     edition.pending_rebuild = False

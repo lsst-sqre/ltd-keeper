@@ -37,8 +37,8 @@ def test_builds_v2(client: TestClient, mocker: Mock) -> None:
         "keeper.services.createbuild.presign_post_url_for_directory_object",
         new=MagicMock(return_value=mock_presigned_url),
     )
-    s3_session_mock = mocker.patch(
-        "keeper.services.createbuild.open_s3_session"
+    s3_resource_mock = mocker.patch(
+        "keeper.services.createbuild.open_s3_resource"
     )
 
     # Create default organization
@@ -103,7 +103,7 @@ def test_builds_v2(client: TestClient, mocker: Mock) -> None:
         "/products/pipelines/builds/", b1, headers={"Accept": v2_json_type}
     )
     task_queue.apply_task_side_effects()
-    s3_session_mock.assert_called_once()
+    s3_resource_mock.assert_called_once()
     presign_post_mock.assert_called_once()
     assert r.status == 201
     assert r.json["product_url"] == product_url

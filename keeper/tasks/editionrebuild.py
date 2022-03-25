@@ -45,12 +45,6 @@ def rebuild_edition(
     2. Purge Fastly's cache for this edition.
     2. Send a ``edition.updated`` payload to LTD Events (if configured).
     """
-    logger.info(
-        "Starting rebuild edition edition_id=%s retry=%d",
-        edition_id,
-        self.request.retries,
-    )
-
     # LTD_EVENTS_URL = current_app.config["LTD_EVENTS_URL"]
 
     # api_url_parts = urlsplit(edition_url)
@@ -60,23 +54,44 @@ def rebuild_edition(
     organization = edition.product.organization
     new_build = Build.query.get(build_id)
 
+    logger.info(
+        "Starting rebuild_edition for %s/%s/%s with build %s retry=%d",
+        organization.slug,
+        edition.product.slug,
+        edition.slug,
+        new_build.slug,
+        self.request.retries,
+    )
+
     aws_id = organization.aws_id
-    aws_secret = organization.get_aws_secret_key
+    aws_secret = organization.get_aws_secret_key()
+    aws_region = organization.get_aws_region()
+    use_public_read_acl = organization.get_bucket_public_read()
 
     fastly_service_id = organization.fastly_service_id
-    fastly_key = organization.get_fastly_api_id
+    fastly_key = organization.get_fastly_api_key()
 
     try:
         edition.set_pending_rebuild(new_build)
 
         if aws_id is not None and aws_secret is not None:
-            logger.info("Starting copy_directory")
+            logger.info(
+                "Starting copy_directory %s to %s public_read=%s",
+                new_build.bucket_root_dirname,
+                edition.bucket_root_dirname,
+                use_public_read_acl,
+            )
+            s3_service = s3.open_s3_resource(
+                key_id=aws_id,
+                access_key=aws_secret.get_secret_value(),
+                aws_region=aws_region,
+            )
             s3.copy_directory(
+                s3=s3_service,
                 bucket_name=edition.product.bucket_name,
                 src_path=new_build.bucket_root_dirname,
                 dest_path=edition.bucket_root_dirname,
-                aws_access_key_id=aws_id,
-                aws_secret_access_key=aws_secret.get_secret_value(),
+                use_public_read_acl=use_public_read_acl,
                 surrogate_key=edition.surrogate_key,
                 # Force Fastly to cache the edition for 1 year
                 surrogate_control="max-age=31536000",
@@ -89,7 +104,11 @@ def rebuild_edition(
                 "Skipping rebuild because AWS credentials are not set"
             )
 
-        if fastly_service_id is not None and fastly_key is not None:
+        if (
+            organization.fastly_support
+            and fastly_service_id is not None
+            and fastly_key is not None
+        ):
             logger.info("Starting Fastly purge_key")
             fastly_service = fastly.FastlyService(
                 fastly_service_id, fastly_key.get_secret_value()
@@ -109,6 +128,7 @@ def rebuild_edition(
         # if LTD_EVENTS_URL is not None:
         #     send_edition_updated_event(edition, LTD_EVENTS_URL, api_root)
     except Exception:
+        logger.exception("Error during copy")
         db.session.rollback()
 
         edition = Edition.query.get(edition_id)

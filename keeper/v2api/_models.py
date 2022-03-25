@@ -84,6 +84,14 @@ class OrganizationResponse(BaseModel):
     s3_bucket: Optional[str]
     """Name of the S3 bucket hosting builds."""
 
+    s3_public_read: bool
+    """Whether objects in the S3 bucket have a public-read ACL applied or
+    not.
+    """
+
+    aws_region: str
+    """Name of the AWS region for the S3 bucket."""
+
     self_url: HttpUrl
     """The URL of the organization response."""
 
@@ -103,6 +111,8 @@ class OrganizationResponse(BaseModel):
                 org.fastly_service_id if org.fastly_support else None
             ),
             s3_bucket=org.bucket_name,
+            s3_public_read=org.get_bucket_public_read(),
+            aws_region=org.get_aws_region(),
             self_url=url_for_organization(org),
             projects_url=url_for_organization_projects(org),
         )
@@ -154,7 +164,7 @@ class OrganizationPostRequest(BaseModel):
     if documentation is served from the root of a domain.
     """
 
-    bucket_name: str
+    s3_bucket: str
     """Name of the S3 bucket hosting builds."""
 
     fastly_support: bool
@@ -174,6 +184,14 @@ class OrganizationPostRequest(BaseModel):
 
     aws_secret: Optional[SecretStr] = None
     """AWS secret key."""
+
+    aws_region: str = "us-east-1"
+    """AWS region of the S3 bucket."""
+
+    s3_public_read: bool = False
+    """Whether objects in the S3 bucket have a public-read ACL applied or
+    not.
+    """
 
     @validator("slug")
     def check_slug(cls, v: str) -> str:

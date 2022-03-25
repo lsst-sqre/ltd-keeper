@@ -38,11 +38,11 @@ def launch_tasks() -> celery.chain:
     inspect_task_queue(task_commands)
 
     if len(task_commands) == 0:
-        logger.debug("Did not launch any tasks", ntasks=0)
+        logger.info("Did not launch any tasks", ntasks=0)
         return
 
     if not current_app.config["ENABLE_TASKS"]:
-        logger.debug("Celery taks are disabled")
+        logger.info("Celery taks are disabled")
         return
 
     celery_task_signatures: List[celery.Signature] = []

@@ -342,6 +342,17 @@ class Organization(db.Model):  # type: ignore
     aws_encrypted_secret_key = db.Column(db.LargeBinary, nullable=True)
     """The AWS secret key."""
 
+    # FIXME nullable for migration
+    aws_region = db.Column(db.Unicode(255), nullable=True, default="us-east-1")
+    """The AWS region of the S3 bucket."""
+
+    # FIXME nullable for migration
+    bucket_public_read = db.Column(db.Boolean, nullable=True, default=False)
+    """If True, objects in the S3 bucket will have the ``public-read`` ACL.
+
+    For objects using a proxy, this can be False.
+    """
+
     products = db.relationship(
         "Product", back_populates="organization", lazy="dynamic"
     )
@@ -358,17 +369,35 @@ class Organization(db.Model):  # type: ignore
         back_populates="organization",
     )
 
+    def get_aws_region(self) -> str:
+        """Get the AWS region (adapter while column is nullable for
+        migration).
+        """
+        if self.aws_region is None:
+            return "us-east-1"
+        else:
+            return self.aws_region
+
+    def get_bucket_public_read(self) -> bool:
+        """Get the S3 public public-read ACL configuration (adapter while
+        column is nullable for migration.
+        """
+        if self.bucket_public_read is None:
+            return False
+        else:
+            return self.bucket_public_read
+
     def set_fastly_api_key(self, api_key: Optional[SecretStr]) -> None:
         """Encrypt and set the Fastly API key."""
         if api_key is None:
             return
         self.fastly_encrypted_api_key = self._encrypt_secret_str(api_key)
 
-    def get_fastly_api_key(self) -> SecretStr:
+    def get_fastly_api_key(self) -> Optional[SecretStr]:
         """Get the decrypted Fastly API key."""
         encrypted_key = self.fastly_encrypted_api_key
         if encrypted_key is None:
-            raise ValueError("fastly_encrypted_api_key is not set.")
+            return None
         return self._decrypt_to_secret_str(encrypted_key)
 
     def set_aws_secret_key(self, secret_key: Optional[SecretStr]) -> None:
@@ -679,10 +708,16 @@ class Build(db.Model):  # type: ignore
 
     def get_tracking_editions(self) -> List[Edition]:
         """Get the editions that should rebuild to this build."""
+        logger = get_logger(__name__)
         editions = (
             Edition.query.autoflush(False)
             .filter(Edition.product == self.product)
             .all()
+        )
+        logger.debug(
+            "In get_tracking_editions found editions for product",
+            count=len(editions),
+            editions=str(editions),
         )
 
         return [
@@ -842,14 +877,10 @@ class Edition(db.Model):  # type: ignore
             `True` if the edition should be rebuilt using this Build, or
             `False` otherwise.
         """
-        # shim during refactoring
-        from keeper.api._urls import url_for_edition
+        logger = get_logger(__name__)
+        logger.debug("Inside Edition.should_rebuild")
 
         logger = get_logger(__name__)
-
-        logger.debug(
-            "Edition {!r} in should_rebuild".format(url_for_edition(self))
-        )
 
         candidate_build = build
 
@@ -862,11 +893,9 @@ class Edition(db.Model):  # type: ignore
         try:
             tracking_mode = edition_tracking_modes[self.mode]
         except (KeyError, ValidationError):
-
             tracking_mode = edition_tracking_modes[self.default_mode_id]
             logger.warning(
-                "Edition {!r} has an unknown tracking"
-                "mode".format(url_for_edition(self))
+                "Edition {!r} has an unknown tracking" "mode".format(self.slug)
             )
 
         return tracking_mode.should_update(self, candidate_build)

@@ -15,11 +15,11 @@ if TYPE_CHECKING:
 def create_edition(
     *,
     product: Product,
-    title: str,
+    title: Optional[str],
     tracking_mode: Optional[str] = None,
     slug: Optional[str] = None,
-    autoincrement_slug: bool = False,
-    tracked_ref: str = "main",
+    autoincrement_slug: Optional[bool] = False,
+    tracked_ref: Optional[str] = "main",
     build: Optional[Build] = None,
 ) -> Edition:
     """Create a new edition.
@@ -39,7 +39,8 @@ def create_edition(
         The URL-safe slug for this edition. Can be `None` if
         ``autoincrement_slug`` is True.
     title : str
-        The human-readable title.
+        The human-readable title; can be None if ``autoincrement_slug`` is
+        True.
     autoincrement_slug : bool
         If True, rather then use the provided ``slug``, the slug is an
         integer that is incremented by one from the previously-existing integer

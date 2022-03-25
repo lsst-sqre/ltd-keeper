@@ -29,6 +29,7 @@ def test_get_orgs(client: TestClient, mocker: Mock) -> None:
         root_domain="lsst.io",
         fastly_domain="global.ssl.fastly.net",
         bucket_name="bucket-name",
+        bucket_public_read=False,
     )
     db.session.add(org1)
     db.session.commit()
@@ -72,7 +73,7 @@ def test_create_fastly_org(client: TestClient, mocker: Mock) -> None:
         "layout": "subdomain",
         "domain": "example.org",
         "path_prefix": "/",
-        "bucket_name": "test-bucket",
+        "s3_bucket": "test-bucket",
         "fastly_support": True,
         "fastly_domain": "fastly.example.org",
         "fastly_service_id": "abc",

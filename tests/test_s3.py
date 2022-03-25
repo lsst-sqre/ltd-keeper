@@ -24,22 +24,21 @@ import os
 import tempfile
 import uuid
 from typing import TYPE_CHECKING, Any, List
+from unittest.mock import Mock, PropertyMock
 
-import boto3
 import pytest
 
 from keeper.s3 import (
     copy_directory,
     delete_directory,
     format_bucket_prefix,
+    open_s3_resource,
     presign_post_url_for_directory_object,
     presign_post_url_for_prefix,
     set_condition,
 )
 
 if TYPE_CHECKING:
-    from unittest.mock import Mock
-
     from _pytest.fixtures import FixtureRequest
 
 
@@ -52,22 +51,21 @@ if TYPE_CHECKING:
     "LTD_KEEPER_TEST_BUCKET",
 )
 def test_delete_directory(request: FixtureRequest) -> None:
-    session = boto3.session.Session(
-        aws_access_key_id=os.getenv("LTD_KEEPER_TEST_AWS_ID"),
-        aws_secret_access_key=os.getenv("LTD_KEEPER_TEST_AWS_SECRET"),
+    s3_service = open_s3_resource(
+        key_id=os.getenv("LTD_KEEPER_TEST_AWS_ID", ""),
+        access_key=os.getenv("LTD_KEEPER_TEST_AWS_SECRET", ""),
+        aws_region=os.getenv("LTD_KEEPER_TEST_AWS_REGION", "us-east-1"),
     )
-    s3 = session.resource("s3")
-    bucket = s3.Bucket(os.getenv("LTD_KEEPER_TEST_BUCKET"))
+    bucket = s3_service.Bucket(os.getenv("LTD_KEEPER_TEST_BUCKET", ""))
 
     bucket_root = str(uuid.uuid4()) + "/"
 
     def cleanup() -> None:
         print("Cleaning up the bucket")
         delete_directory(
-            os.getenv("LTD_KEEPER_TEST_BUCKET", ""),
-            bucket_root,
-            os.getenv("LTD_KEEPER_TEST_AWS_ID", ""),
-            os.getenv("LTD_KEEPER_TEST_AWS_SECRET", ""),
+            s3=s3_service,
+            bucket_name=os.getenv("LTD_KEEPER_TEST_BUCKET", ""),
+            root_path=bucket_root,
         )
 
     request.addfinalizer(cleanup)
@@ -84,10 +82,9 @@ def test_delete_directory(request: FixtureRequest) -> None:
 
     # Delete b/*
     delete_directory(
-        os.getenv("LTD_KEEPER_TEST_BUCKET", ""),
-        bucket_root + "a/b/",
-        os.getenv("LTD_KEEPER_TEST_AWS_ID", ""),
-        os.getenv("LTD_KEEPER_TEST_AWS_SECRET", ""),
+        s3=s3_service,
+        bucket_name=os.getenv("LTD_KEEPER_TEST_BUCKET", ""),
+        root_path=bucket_root + "a/b/",
     )
 
     # Ensure paths outside of that are still available, but paths in b/ are
@@ -107,10 +104,9 @@ def test_delete_directory(request: FixtureRequest) -> None:
 
     # Attempt to delete an empty prefix. Ensure it does not raise an exception.
     delete_directory(
-        os.getenv("LTD_KEEPER_TEST_BUCKET", ""),
-        bucket_root + "empty-prefix/",
-        os.getenv("LTD_KEEPER_TEST_AWS_ID", ""),
-        os.getenv("LTD_KEEPER_TEST_AWS_SECRET", ""),
+        s3=s3_service,
+        bucket_name=os.getenv("LTD_KEEPER_TEST_BUCKET", ""),
+        root_path=bucket_root + "empty-prefix/",
     )
 
 
@@ -123,22 +119,21 @@ def test_delete_directory(request: FixtureRequest) -> None:
     "LTD_KEEPER_TEST_BUCKET",
 )
 def test_copy_directory(request: FixtureRequest) -> None:
-    session = boto3.session.Session(
-        aws_access_key_id=os.getenv("LTD_KEEPER_TEST_AWS_ID"),
-        aws_secret_access_key=os.getenv("LTD_KEEPER_TEST_AWS_SECRET"),
+    s3_service = open_s3_resource(
+        key_id=os.getenv("LTD_KEEPER_TEST_AWS_ID", ""),
+        access_key=os.getenv("LTD_KEEPER_TEST_AWS_SECRET", ""),
+        aws_region=os.getenv("LTD_KEEPER_TEST_AWS_REGION", "us-east-1"),
     )
-    s3 = session.resource("s3")
-    bucket = s3.Bucket(os.getenv("LTD_KEEPER_TEST_BUCKET"))
+    bucket = s3_service.Bucket(os.getenv("LTD_KEEPER_TEST_BUCKET", ""))
 
     bucket_root = str(uuid.uuid4()) + "/"
 
     def cleanup() -> None:
         print("Cleaning up the bucket")
         delete_directory(
-            os.getenv("LTD_KEEPER_TEST_BUCKET", ""),
-            bucket_root,
-            os.getenv("LTD_KEEPER_TEST_AWS_ID", ""),
-            os.getenv("LTD_KEEPER_TEST_AWS_SECRET", ""),
+            s3=s3_service,
+            bucket_name=os.getenv("LTD_KEEPER_TEST_BUCKET", ""),
+            root_path=bucket_root,
         )
 
     request.addfinalizer(cleanup)
@@ -166,11 +161,10 @@ def test_copy_directory(request: FixtureRequest) -> None:
 
     # copy files
     copy_directory(
+        s3=s3_service,
         bucket_name=os.getenv("LTD_KEEPER_TEST_BUCKET", ""),
         src_path=bucket_root + "b/",
         dest_path=bucket_root + "a/",
-        aws_access_key_id=os.getenv("LTD_KEEPER_TEST_AWS_ID", ""),
-        aws_secret_access_key=os.getenv("LTD_KEEPER_TEST_AWS_SECRET", ""),
         surrogate_key="new-key",
         surrogate_control="max-age=31536000",
         cache_control="no-cache",
@@ -181,7 +175,7 @@ def test_copy_directory(request: FixtureRequest) -> None:
         bucket_path = os.path.relpath(obj.key, start=bucket_root + "a/")
         assert bucket_path in new_paths
         # ensure correct metadata
-        head = s3.meta.client.head_object(
+        head = s3_service.meta.client.head_object(
             Bucket=os.getenv("LTD_KEEPER_TEST_BUCKET"), Key=obj.key
         )
         assert head["CacheControl"] == "no-cache"
@@ -196,20 +190,56 @@ def test_copy_directory(request: FixtureRequest) -> None:
     assert os.path.join(bucket_root, "a") in bucket_paths
 
 
+@pytest.mark.skipif(
+    os.getenv("LTD_KEEPER_TEST_AWS_ID") is None
+    or os.getenv("LTD_KEEPER_TEST_AWS_SECRET") is None
+    or os.getenv("LTD_KEEPER_TEST_BUCKET") is None,
+    reason="Set LTD_KEEPER_TEST_AWS_ID, "
+    "LTD_KEEPER_TEST_AWS_SECRET and "
+    "LTD_KEEPER_TEST_BUCKET",
+)
 def test_copy_dir_src_in_dest() -> None:
     """Test that copy_directory fails raises an assertion error if source in
     destination.
     """
+    s3_service = open_s3_resource(
+        key_id=os.getenv("LTD_KEEPER_TEST_AWS_ID", ""),
+        access_key=os.getenv("LTD_KEEPER_TEST_AWS_SECRET", ""),
+        aws_region=os.getenv("LTD_KEEPER_TEST_AWS_REGION", "us-east-1"),
+    )
     with pytest.raises(AssertionError):
-        copy_directory("example", "dest/src", "dest", "id", "key")
+        copy_directory(
+            s3=s3_service,
+            bucket_name="example",
+            src_path="dest/src",
+            dest_path="dest",
+        )
 
 
+@pytest.mark.skipif(
+    os.getenv("LTD_KEEPER_TEST_AWS_ID") is None
+    or os.getenv("LTD_KEEPER_TEST_AWS_SECRET") is None
+    or os.getenv("LTD_KEEPER_TEST_BUCKET") is None,
+    reason="Set LTD_KEEPER_TEST_AWS_ID, "
+    "LTD_KEEPER_TEST_AWS_SECRET and "
+    "LTD_KEEPER_TEST_BUCKET",
+)
 def test_copy_dir_dest_in_src() -> None:
     """Test that copy_directory fails raises an assertion error if destination
     is part of the source.
     """
+    s3_service = open_s3_resource(
+        key_id=os.getenv("LTD_KEEPER_TEST_AWS_ID", ""),
+        access_key=os.getenv("LTD_KEEPER_TEST_AWS_SECRET", ""),
+        aws_region=os.getenv("LTD_KEEPER_TEST_AWS_REGION", "us-east-1"),
+    )
     with pytest.raises(AssertionError):
-        copy_directory("example", "src", "src/dest", "id", "key")
+        copy_directory(
+            s3=s3_service,
+            bucket_name="example",
+            src_path="src",
+            dest_path="src/dest",
+        )
 
 
 def _upload_files(
@@ -334,14 +364,16 @@ def test_set_condition(
 
 
 def test_presign_post_url_for_prefix(mocker: Mock) -> None:
-    mock_s3_session = mocker.MagicMock()
+    mock_s3_service = mocker.MagicMock()
+    mock_s3_meta = mocker.MagicMock()
     mock_s3_client = mocker.MagicMock()
-    mock_s3_session.client.return_value = mock_s3_client
+    type(mock_s3_meta).client = mock_s3_client
+    type(mock_s3_service).meta = PropertyMock(return_value=mock_s3_meta)
 
     expiration = 3600
     bucket_name = "example-bucket"
     presign_post_url_for_prefix(
-        s3_session=mock_s3_session,
+        s3=mock_s3_service,
         bucket_name=bucket_name,
         prefix="base/prefix",
         expiration=expiration,
@@ -359,14 +391,16 @@ def test_presign_post_url_for_prefix_malformed(mocker: Mock) -> None:
     """Same test as test_presign_post_url_for_prefix, but prefix has a trailing
     slash.
     """
-    mock_s3_session = mocker.MagicMock()
+    mock_s3_service = mocker.MagicMock()
+    mock_s3_meta = mocker.MagicMock()
     mock_s3_client = mocker.MagicMock()
-    mock_s3_session.client.return_value = mock_s3_client
+    type(mock_s3_meta).client = mock_s3_client
+    type(mock_s3_service).meta = PropertyMock(return_value=mock_s3_meta)
 
     expiration = 3600
     bucket_name = "example-bucket"
     presign_post_url_for_prefix(
-        s3_session=mock_s3_session,
+        s3=mock_s3_service,
         bucket_name=bucket_name,
         prefix="base/prefix/",
         expiration=expiration,
@@ -381,9 +415,11 @@ def test_presign_post_url_for_prefix_malformed(mocker: Mock) -> None:
 
 
 def test_presign_post_url_for_prefix_with_conditions(mocker: Mock) -> None:
-    mock_s3_session = mocker.MagicMock()
+    mock_s3_service = mocker.MagicMock()
+    mock_s3_meta = mocker.MagicMock()
     mock_s3_client = mocker.MagicMock()
-    mock_s3_session.client.return_value = mock_s3_client
+    type(mock_s3_meta).client = mock_s3_client
+    type(mock_s3_service).meta = PropertyMock(return_value=mock_s3_meta)
 
     url_conditions = [
         {"acl": "public-read"},
@@ -402,7 +438,7 @@ def test_presign_post_url_for_prefix_with_conditions(mocker: Mock) -> None:
     expiration = 3600
     bucket_name = "example-bucket"
     presign_post_url_for_prefix(
-        s3_session=mock_s3_session,
+        s3=mock_s3_service,
         bucket_name=bucket_name,
         prefix="base/prefix",
         expiration=expiration,
@@ -419,14 +455,16 @@ def test_presign_post_url_for_prefix_with_conditions(mocker: Mock) -> None:
 
 
 def test_presign_post_url_for_directory_objects(mocker: Mock) -> None:
-    mock_s3_session = mocker.MagicMock()
+    mock_s3_service = mocker.MagicMock()
+    mock_s3_meta = mocker.MagicMock()
     mock_s3_client = mocker.MagicMock()
-    mock_s3_session.client.return_value = mock_s3_client
+    type(mock_s3_meta).client = mock_s3_client
+    type(mock_s3_service).meta = PropertyMock(return_value=mock_s3_meta)
 
     expiration = 3600
     bucket_name = "example-bucket"
     presign_post_url_for_directory_object(
-        s3_session=mock_s3_session,
+        s3=mock_s3_service,
         bucket_name=bucket_name,
         key="base/prefix",
         expiration=expiration,
@@ -443,14 +481,16 @@ def test_presign_post_url_for_directory_objects(mocker: Mock) -> None:
 def test_presign_post_url_for_directory_objects_with_conditions(
     mocker: Mock,
 ) -> None:
-    mock_s3_session = mocker.MagicMock()
+    mock_s3_service = mocker.MagicMock()
+    mock_s3_meta = mocker.MagicMock()
     mock_s3_client = mocker.MagicMock()
-    mock_s3_session.client.return_value = mock_s3_client
+    type(mock_s3_meta).client = mock_s3_client
+    type(mock_s3_service).meta = PropertyMock(return_value=mock_s3_meta)
 
     expiration = 3600
     bucket_name = "example-bucket"
     presign_post_url_for_directory_object(
-        s3_session=mock_s3_session,
+        s3=mock_s3_service,
         bucket_name=bucket_name,
         key="base/prefix",
         expiration=expiration,

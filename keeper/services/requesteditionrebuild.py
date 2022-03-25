@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from structlog import get_logger
+
 from keeper.exceptions import ValidationError
 from keeper.taskrunner import queue_task_command
 
@@ -14,6 +16,13 @@ __all__ = ["request_edition_rebuild"]
 
 
 def request_edition_rebuild(*, edition: Edition, build: Build) -> Edition:
+    logger = get_logger(__name__)
+    logger.info(
+        "Starting request_edition_rebuild",
+        edition=edition.slug,
+        build=build.slug,
+    )
+
     # if edition.pending_rebuild:
     #     raise ValidationError(
     #         "This edition already has a pending rebuild, this request "
