@@ -58,7 +58,7 @@ jobs:
 
       - name: Cache tox environments
         id: cache-tox
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: .tox
           # requirements/*.txt and pyproject.toml have versioning info
@@ -98,7 +98,7 @@ jobs:
 
       - name: Cache tox environment for docs
         id: cache-tox
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: .tox
           # requirements/*.txt, pyproject.toml, and .pre-commit-config.yaml
