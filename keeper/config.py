@@ -92,8 +92,8 @@ class Config(abc.ABC):
     >>> key = Fernet.generate_key()
     """
 
-    @abc.abstractclassmethod
-    def init_app(cls, app: Flask) -> None:
+    @staticmethod
+    def init_app(app: Flask) -> None:
         pass
 
 
@@ -108,8 +108,8 @@ class DevelopmentConfig(Config):
     DEFAULT_USER = "user"
     DEFAULT_PASSWORD = "pass"
 
-    @classmethod
-    def init_app(cls, app: Flask) -> None:
+    @staticmethod
+    def init_app(app: Flask) -> None:
         """Initialization hook called during
         `keeper.appfactory.create_flask_app`.
         """
@@ -150,8 +150,8 @@ class TestConfig(Config):
     ) or "sqlite:///" + os.path.join(BASEDIR, "ltd-keeper-test.sqlite")
     ENABLE_TASKS = False
 
-    @classmethod
-    def init_app(cls, app: Flask) -> None:
+    @staticmethod
+    def init_app(app: Flask) -> None:
         """Initialization hook called during `
         `keeper.appfactory.create_flask_app`.
         """
@@ -192,8 +192,8 @@ class ProductionConfig(Config):
     DEFAULT_PASSWORD = os.environ.get("LTD_KEEPER_BOOTSTRAP_PASSWORD")
     PREFERRED_URL_SCHEME = os.environ.get("LTD_KEEPER_URL_SCHEME", "https")
 
-    @classmethod
-    def init_app(cls, app: Flask) -> None:
+    @staticmethod
+    def init_app(app: Flask) -> None:
         """Initialization hook called during
         `keeper.appfactory.create_flask_app`.
         """
