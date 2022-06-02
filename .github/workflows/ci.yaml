@@ -25,7 +25,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v3
         with:
-          python-version: 3.9
+          python-version: "3.10"
 
       - name: Run pre-commit
         uses: pre-commit/action@v2.0.3
@@ -37,7 +37,7 @@ jobs:
     strategy:
       matrix:
         python:
-          - 3.9
+          - "3.10"
         db:
           - sqlite
           - postgres
@@ -68,7 +68,7 @@ jobs:
             tox-${{ matrix.python }}-${{ matrix.db }}-${{ hashFiles('requirements/*.txt') }}-
 
       - name: Run tox with external services
-        if: ${{ matrix.python == 3.9 && matrix.db == 'postgres' }}
+        if: ${{ matrix.python == '3.10' && matrix.db == 'postgres' }}
         env:
           LTD_KEEPER_TEST_AWS_ID: ${{ secrets.LTD_KEEPER_TEST_AWS_ID }}
           LTD_KEEPER_TEST_AWS_SECRET: ${{ secrets.LTD_KEEPER_TEST_AWS_SECRET }}
@@ -76,7 +76,7 @@ jobs:
         run: tox -e typing,${{matrix.db}},coverage-report # run tox using Python in path
 
       - name: Run tox without external services
-        if: ${{ !(matrix.python != 3.9 && matrix.db != 'postgres') }}
+        if: ${{ !(matrix.python != '3.10' && matrix.db != 'postgres') }}
         run: tox -e typing,${{matrix.db}},coverage-report # run tox using Python in path
 
   docs:
@@ -91,7 +91,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v3
         with:
-          python-version: 3.9
+          python-version: "3.10"
 
       - name: Install Python dependencies
         run: pip install tox ltd-conveyor
