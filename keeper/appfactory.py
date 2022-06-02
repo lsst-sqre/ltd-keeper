@@ -29,7 +29,7 @@ def create_flask_app(profile: Optional[str] = None) -> Flask:
     else:
         _profile = profile
     app.config.from_object(config[_profile])
-    config[_profile].init_app(app)  # type: ignore  # doesn't recog classmethod
+    config[_profile].init_app(app)
 
     # Add the middleware to respect headers forwarded from the proxy server
     # Assigning to the wsgi_app method is recommended by the Flask docs
