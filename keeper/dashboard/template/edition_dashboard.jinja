@@ -1,0 +1,29 @@
+{% extends "base.jinja" %}
+
+{% block page_title %}{{ project.title }} editions{% endblock page_title %}
+{% block page_description %}Find documentation editions.{% endblock page_description %}
+
+{% block body %}
+<main>
+  <header>
+    <h1>{{ project.title }}</h1>
+  </header>
+
+  <section>
+    <header>
+      <h2>Current edition</h2>
+    </header>
+    <article class="dashboard-item">
+      {% set mainedition = editions.main_edition %}
+      <p class="current-edition__url"><a href=""></a></p>
+      <ul class="dashboard-item-metadata">
+        <li>Updated {{ mainedition.date_updated | simple_date }}</li>
+        {% if mainedition.git_ref %}
+          <li>Git ref <code>{{ mainedition.git_ref}}</code></li>
+        {% endif %}
+      </ul>
+    </article>
+  </section>
+
+</main>
+{% endblock body %}
