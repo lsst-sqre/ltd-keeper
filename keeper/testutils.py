@@ -43,6 +43,8 @@ class TestClient:
     - `json`: the return data, parse as JSON into a Python `dict` object.
     """
 
+    __test__ = False
+
     def __init__(self, app: Flask, username: str, password: str = "") -> None:
         self.app = app
         self.auth = "Basic " + b64encode(
