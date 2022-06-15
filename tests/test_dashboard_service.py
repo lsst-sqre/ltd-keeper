@@ -61,4 +61,3 @@ def test_builtin_template(client: TestClient, mocker: Mock) -> None:
     db.session.commit()
 
     build_dashboard(product, logger)
-    assert False
