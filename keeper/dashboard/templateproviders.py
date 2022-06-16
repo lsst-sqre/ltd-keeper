@@ -17,7 +17,7 @@ class BuiltinTemplateProvider:
 
     def __init__(self) -> None:
         self.template_dir = Path(__file__).parent.joinpath("template")
-        self.static_dir = self.template_dir.joinpath("static")
+        self.static_dir = Path(__file__).parent.joinpath("static")
 
         self.jinja_env = self._create_environment()
 
