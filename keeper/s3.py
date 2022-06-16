@@ -17,6 +17,7 @@ from typing import (
     List,
     Optional,
     Sequence,
+    Union,
 )
 
 import boto3
@@ -250,16 +251,119 @@ def copy_directory(
 
     if create_directory_redirect_object:
         dest_dirname = dest_path.rstrip("/")
-        obj = bucket.Object(dest_dirname)
         metadata = {"dir-redirect": "true"}
-        put_kwargs = {
-            "Body": "",
-            "Metadata": metadata,
-            "CacheControl": cache_control,
-        }
-        if use_public_read_acl:
-            put_kwargs["ACL"] = "public-read"
-        obj.put(**put_kwargs)
+        upload_dir_redirect_object(
+            bucket_dir_path=dest_dirname,
+            bucket=bucket,
+            metadata=metadata,
+            acl="public-read" if use_public_read_acl else None,
+            cache_control=cache_control,
+        )
+
+
+def upload_object(
+    *,
+    bucket_path: str,
+    bucket: Any,
+    content: Union[str, bytes] = "",
+    metadata: Optional[Dict[str, str]] = None,
+    acl: Optional[str] = None,
+    cache_control: Optional[str] = None,
+    content_type: Optional[str] = None,
+) -> None:
+    """Upload an arbitrary object to an S3 bucket.
+
+    Parameters
+    ----------
+    bucket_path : `str`
+        Destination path (also known as the key name) of the file in the
+        S3 bucket.
+    content : `str` or `bytes`, optional
+        Object content.
+    bucket : boto3 Bucket instance
+        S3 bucket.
+    metadata : `dict`, optional
+        Header metadata values. These keys will appear in headers as
+        ``x-amz-meta-*``.
+    acl : `str`, optional
+        A pre-canned access control list. See
+        https://docs.aws.amazon.com/AmazonS3/latest/dev/acl-overview.html#canned-acl
+        Default is `None`, meaning that no ACL is applied to the object.
+    cache_control : `str`, optional
+        The cache-control header value. For example, ``'max-age=31536000'``.
+    content_type : `str`, optional
+        The object's content type (such as ``text/html``). If left unset,
+        no MIME type is passed to boto3 (which defaults to
+        ``binary/octet-stream``).
+    """
+    print(f"Upload file bucket path: {bucket_path}")
+    obj = bucket.Object(bucket_path)
+
+    # Object.put seems to be sensitive to None-type kwargs, so we filter first
+    args: Dict[str, Any] = {}
+    if metadata is not None and len(metadata) > 0:  # avoid empty Metadata
+        args["Metadata"] = metadata
+    if acl is not None:
+        args["ACL"] = acl
+    if cache_control is not None:
+        args["CacheControl"] = cache_control
+    if content_type is not None:
+        args["ContentType"] = content_type
+
+    print("Put args")
+    print(args)
+    obj.put(Body=content, **args)
+
+
+def upload_dir_redirect_object(
+    *,
+    bucket_dir_path: str,
+    bucket: Any,
+    metadata: Optional[Dict[str, str]] = None,
+    acl: Optional[str] = None,
+    cache_control: Optional[str] = None,
+) -> None:
+    """Create an S3 object representing a directory that's designed to
+    redirect a browser (via Fastly) to the ``index.html`` contained inside
+    that directory.
+
+    Parameters
+    ----------
+    bucket_dir_path : `str`
+        Full name of the object in the S3, which is equivalent to a POSIX
+        directory path, like ``dir1/dir2``.
+    bucket : boto3 Bucket instance
+        S3 bucket.
+    metadata : `dict`, optional
+        Header metadata values. These keys will appear in headers as
+        ``x-amz-meta-*``.
+    acl : `str`, optional
+        A pre-canned access control list. See
+        https://docs.aws.amazon.com/AmazonS3/latest/dev/acl-overview.html#canned-acl
+        Default is None, meaning that no ACL is applied to the object.
+    cache_control : `str`, optional
+        The cache-control header value. For example, ``'max-age=31536000'``.
+    """
+    # Just the name of the 'directory' itself
+    bucket_dir_path = bucket_dir_path.rstrip("/")
+
+    # create a copy of metadata
+    if metadata is not None:
+        metadata = dict(metadata)
+    else:
+        metadata = {}
+
+    # header used by LTD's Fastly Varnish config to create a 301 redirect
+    metadata["dir-redirect"] = "true"
+
+    upload_object(
+        bucket_path=bucket_dir_path,
+        bucket=bucket,
+        content="",
+        metadata=metadata,
+        acl=acl,
+        cache_control=cache_control,
+    )
 
 
 def presign_post_url_for_prefix(

@@ -6,20 +6,24 @@ from pathlib import PurePosixPath
 from typing import TYPE_CHECKING, Any
 
 import boto3
-from ltdconveyor.s3 import (
-    create_dir_redirect_object,
-    upload_dir,
-    upload_object,
-)
+from ltdconveyor.s3 import upload_dir
+from structlog import get_logger
 
-from keeper import fastly, s3
+from keeper import fastly
 from keeper.dashboard.context import Context
 from keeper.dashboard.templateproviders import BuiltinTemplateProvider
+from keeper.s3 import (
+    open_s3_resource,
+    upload_dir_redirect_object,
+    upload_object,
+)
 
 if TYPE_CHECKING:
     from keeper.models import Product
 
 __all__ = ["build_dashboard"]
+
+logger = get_logger(__name__)
 
 
 def build_dashboard(product: Product, logger: Any) -> None:
@@ -51,7 +55,7 @@ def build_dashboard(product: Product, logger: Any) -> None:
     )
 
     if aws_id is not None and aws_secret is not None:
-        s3_service = s3.open_s3_resource(
+        s3_service = open_s3_resource(
             key_id=aws_id,
             access_key=aws_secret.get_secret_value(),
             aws_region=aws_region,
@@ -67,7 +71,7 @@ def build_dashboard(product: Product, logger: Any) -> None:
             cache_control="no-cache",
             acl="public-read" if use_public_read_acl else None,
             aws_access_key_id=aws_id,
-            aws_secret_access_key=aws_secret,
+            aws_secret_access_key=aws_secret.get_secret_value(),
         )
 
         upload_dashboard_html(
@@ -110,26 +114,29 @@ def upload_dashboard_html(
     product: Product,
     s3_service: boto3.resources.base.ServiceResource,
 ) -> None:
-    bucket = s3_service.Bucket(product.organization.bucket_name)
+    organization = product.organization
+    use_public_read_acl = organization.get_bucket_public_read()
+    bucket = s3_service.Bucket(organization.bucket_name)
 
     if not key.startswith("/"):
         key = f"/{key}"
 
     object_path = f"{product.slug}{key}"
+    logger.debug("Object path for html upload", path=object_path)
 
     # Have Fastly cache the dashboard for a year (or until purged)
     metadata = {
         "surrogate-key": product.surrogate_key,
         "surrogate-control": "max-age=31536000",
     }
-    acl = "public-read"
+    acl = "public-read" if use_public_read_acl else None
     # Have the *browser* never cache the dashboard
     cache_control = "no-cache"
 
     # Upload HTML object
     upload_object(
-        object_path,
-        bucket,
+        bucket_path=object_path,
+        bucket=bucket,
         content=html,
         metadata=metadata,
         acl=acl,
@@ -138,10 +145,10 @@ def upload_dashboard_html(
     )
 
     # Upload directory redirect object
-    bucket_dir_path = PurePosixPath(object_path).parent
-    create_dir_redirect_object(
-        bucket_dir_path,
-        bucket,
+    bucket_dir_path = str(PurePosixPath(object_path).parent)
+    upload_dir_redirect_object(
+        bucket_dir_path=bucket_dir_path,
+        bucket=bucket,
         metadata=metadata,
         acl=acl,
         cache_control=cache_control,
