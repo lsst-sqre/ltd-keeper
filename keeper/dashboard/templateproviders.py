@@ -4,6 +4,7 @@ Jinja2 rendering environment.
 
 from __future__ import annotations
 
+import shutil
 from pathlib import Path
 
 import jinja2
@@ -54,3 +55,38 @@ class BuiltinTemplateProvider:
             builds=build_contexts,
             asset_dir="../_dashboard-assets",
         )
+
+    def render_locally(
+        self,
+        *,
+        directory: Path,
+        project_context: ProjectContext,
+        edition_contexts: EditionContextList,
+        build_contexts: BuildContextList,
+        clobber: bool = True,
+    ) -> None:
+        """Render the dashboard into a local directory for testing."""
+        if directory.exists():
+            shutil.rmtree(directory)
+        directory.mkdir()
+        assets_dir = directory.joinpath("_dashboard-assets")
+        # assets_dir.mkdir()
+        v_dir = directory.joinpath("v")
+        v_dir.mkdir()
+        builds_dir = directory.joinpath("builds")
+        builds_dir.mkdir()
+
+        shutil.copytree(self.static_dir, assets_dir)
+
+        edition_dashboard = self.render_edition_dashboard(
+            project_context=project_context,
+            edition_contexts=edition_contexts,
+        )
+        v_html_path = v_dir.joinpath("index.html")
+        v_html_path.write_text(edition_dashboard)
+
+        build_dashboard = self.render_build_dashboard(
+            project_context=project_context, build_contexts=build_contexts
+        )
+        build_html_path = builds_dir.joinpath("index.html")
+        build_html_path.write_text(build_dashboard)
