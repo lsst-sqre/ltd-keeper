@@ -99,13 +99,17 @@ class EditionContextList(UserList):
 
     @property
     def releases(self) -> List[EditionContext]:
-        """All edititions tagged as releases."""
+        """All editions tagged as releases."""
         release_kinds = (
             EditionKind.release,
             EditionKind.major,
             EditionKind.minor,
         )
-        release_items = [e for e in self.data if e.kind in release_kinds]
+        release_items = [
+            e
+            for e in self.data
+            if (e.kind in release_kinds and e.slug != "__main")
+        ]
         sorted_items = sorted(
             release_items, key=lambda x: x.slug, reverse=True
         )
@@ -118,7 +122,11 @@ class EditionContextList(UserList):
     @property
     def drafts(self) -> List[EditionContext]:
         """All editions tagged as drafts."""
-        draft_items = [e for e in self.data if e.kind == EditionKind.draft]
+        draft_items = [
+            e
+            for e in self.data
+            if (e.kind == EditionKind.draft and e.slug != "__main")
+        ]
         return sorted(draft_items, key=lambda x: x.date_updated, reverse=True)
 
 
