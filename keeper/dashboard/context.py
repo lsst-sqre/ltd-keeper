@@ -54,8 +54,21 @@ class EditionContext:
     git_ref: Optional[str]
     """The git ref that this edition tracks."""
 
+    github_url: Optional[str]
+    """URL to this git ref on GitHub."""
+
     @classmethod
-    def from_edition(cls, edition: Edition) -> EditionContext:
+    def from_edition(
+        cls, edition: Edition, product: Product
+    ) -> EditionContext:
+        if edition.tracked_ref and product.doc_repo:
+            repo_url = product.doc_repo.rstrip("/")
+            if repo_url[-4:] == ".git":
+                repo_url = repo_url[:-4]
+            github_url = f"{repo_url}/tree/{edition.tracked_ref}"
+        else:
+            github_url = None
+
         return cls(
             title=edition.title,
             url=edition.published_url,
@@ -63,6 +76,7 @@ class EditionContext:
             kind=edition.kind,
             slug=edition.slug,
             git_ref=edition.tracked_ref,
+            github_url=github_url,
         )
 
 
@@ -73,10 +87,39 @@ class EditionContextList(UserList):
 
     @property
     def main_edition(self) -> EditionContext:
+        """The main (current) edition."""
         for edition in self.data:
             if edition.slug == "__main":
                 return edition
         raise ValueError("No __main edition found")
+
+    @property
+    def has_releases(self) -> bool:
+        return len(self.releases) > 0
+
+    @property
+    def releases(self) -> List[EditionContext]:
+        """All edititions tagged as releases."""
+        release_kinds = (
+            EditionKind.release,
+            EditionKind.major,
+            EditionKind.minor,
+        )
+        release_items = [e for e in self.data if e.kind in release_kinds]
+        sorted_items = sorted(
+            release_items, key=lambda x: x.slug, reverse=True
+        )
+        return sorted_items
+
+    @property
+    def has_drafts(self) -> bool:
+        return len(self.drafts) > 0
+
+    @property
+    def drafts(self) -> List[EditionContext]:
+        """All editions tagged as drafts."""
+        draft_items = [e for e in self.data if e.kind == EditionKind.draft]
+        return sorted(draft_items, key=lambda x: x.date_updated, reverse=True)
 
 
 @dataclass
@@ -129,7 +172,7 @@ class Context:
 
         edition_contexts: EditionContextList = EditionContextList(
             [
-                EditionContext.from_edition(edition)
+                EditionContext.from_edition(edition=edition, product=product)
                 for edition in product.editions
             ]
         )

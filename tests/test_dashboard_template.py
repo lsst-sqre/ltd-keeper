@@ -33,10 +33,56 @@ def test_templates() -> None:
         EditionContext(
             title="Current",
             url="https://example.com/ltd-test/",
-            date_updated=datetime(2022, 6, 21, tzinfo=timezone.utc),
+            date_updated=datetime(2022, 6, 24, tzinfo=timezone.utc),
             kind=EditionKind.main,
             slug="__main",
             git_ref="main",
+            github_url="https://example.com/ltd-test/tree/main",
+        )
+    )
+
+    editions.append(
+        EditionContext(
+            title="1.0.0",
+            url="https://example.com/ltd-test/v/1.0.0",
+            date_updated=datetime(2022, 6, 21, tzinfo=timezone.utc),
+            kind=EditionKind.release,
+            slug="1.0.0",
+            git_ref="1.0.0",
+            github_url="https://example.com/ltd-test/tree/1.0.0",
+        )
+    )
+    editions.append(
+        EditionContext(
+            title="1.1.0",
+            url="https://example.com/ltd-test/v/1.1.0",
+            date_updated=datetime(2022, 6, 22, tzinfo=timezone.utc),
+            kind=EditionKind.release,
+            slug="1.1.0",
+            git_ref="1.1.0",
+            github_url="https://example.com/ltd-test/tree/1.1.0",
+        )
+    )
+    editions.append(
+        EditionContext(
+            title="2.0.0",
+            url="https://example.com/ltd-test/v/2.0.0",
+            date_updated=datetime(2022, 6, 24, tzinfo=timezone.utc),
+            kind=EditionKind.release,
+            slug="2.0.0",
+            git_ref="2.0.0",
+            github_url="https://example.com/ltd-test/tree/2.0.0",
+        )
+    )
+    editions.append(
+        EditionContext(
+            title="my-branch",
+            url="https://example.com/ltd-test/v/my-branch",
+            date_updated=datetime(2022, 6, 24, tzinfo=timezone.utc),
+            kind=EditionKind.draft,
+            slug="my-branch",
+            git_ref="my-branch",
+            github_url="https://example.com/ltd-test/tree/my-branch",
         )
     )
 
