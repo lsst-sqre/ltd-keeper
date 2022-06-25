@@ -6,11 +6,13 @@ from typing import Dict, Tuple
 
 from flask import request
 from flask_accept import accept_fallback
+from structlog import get_logger
 
 from keeper.auth import token_auth
 from keeper.logutils import log_route
 from keeper.models import Organization, Product, db
 from keeper.services.createproduct import create_product
+from keeper.services.requestdashboardbuild import request_dashboard_build
 from keeper.services.updateproduct import update_product
 from keeper.taskrunner import launch_tasks
 from keeper.v2api import v2api
@@ -24,6 +26,8 @@ from ._models import (
 from ._urls import url_for_project
 
 __all__ = ["get_projects", "get_project", "create_project", "update_project"]
+
+logger = get_logger(__name__)
 
 
 @v2api.route("/orgs/<org>/projects", methods=["GET"])
@@ -116,6 +120,33 @@ def update_project(org: str, slug: str) -> Tuple[str, int, Dict[str, str]]:
             new_title=request_data.title,
         )
     except Exception:
+        db.session.rollback()
+        raise
+
+    task = launch_tasks()
+    response = ProjectResponse.from_product(product, task=task)
+    project_url = url_for_project(product)
+    return response.json(), 200, {"Location": project_url}
+
+
+@v2api.route("/orgs/<org>/projects/<slug>/dashboard", methods=["POST"])
+@accept_fallback
+@log_route()
+@token_auth.login_required
+def refresh_dashboard(org: str, slug: str) -> Tuple[str, int, Dict[str, str]]:
+    product = (
+        Product.query.join(
+            Organization, Organization.id == Product.organization_id
+        )
+        .filter(Organization.slug == org)
+        .filter(Product.slug == slug)
+        .first_or_404()
+    )
+
+    try:
+        request_dashboard_build(product)
+    except Exception as e:
+        logger.error(f"Error building dashboard: {str(e)}")
         db.session.rollback()
         raise
 

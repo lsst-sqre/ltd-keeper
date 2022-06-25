@@ -1,0 +1,76 @@
+{% extends "base.jinja" %}
+
+{% block page_title %}{{ project.title }} editions{% endblock page_title %}
+{% block page_description %}Find documentation editions.{% endblock page_description %}
+
+{% macro edition_article(project, edition) -%}
+  <article class="dashboard-item">
+    <header>
+      <a href="{{ edition.url }}">
+        <h3>{{ edition.title }}</h3>
+      </a>
+    </header>
+    <ul class="dashboard-item-metadata">
+      <li>
+        Updated {{ edition.date_updated | simple_date }}
+      </li>
+      {% if edition.git_ref %}
+      <li>
+        GitHub: <a href="{{ edition.github_url }}"><code>{{ edition.git_ref }}</code></a>
+      </li>
+      {% endif %}
+    </ul>
+  </article>
+{%- endmacro %}
+
+{% block body %}
+<main>
+  {% set main_edition = editions.main_edition %}
+
+  <header>
+    <a href="{{main_edition.url}}"><h1>{{ project.title }}</h1></a>
+  </header>
+
+  <section class="main-edition-section">
+    <p class="main-edition-section__url"><a href="{{main_edition.url}}">{{main_edition.url}}</a></p>
+    <p>
+      Default edition last updated {{ main_edition.date_updated | simple_date }}.
+      {% if main_edition.git_ref %}
+        Based on the <a href="{{ main_edition.github_url }}"><code>{{ main_edition.git_ref }}</code></a>
+        branch/tag at <a href="{{ project.source_repo_url }}">{{ project.source_repo_url }}</a>.
+      {% endif %}
+    </p>
+  </section>
+
+  {% if editions.has_releases %}
+  <section class="version-section">
+    <header>
+      <h2>Releases</h2>
+    </header>
+    <ul class="version-section__listing">
+      {% for edition in editions.releases %}
+        <li>
+          {{ edition_article(project, edition) }}
+        </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+
+  {% if editions.has_drafts %}
+  <section class="version-section">
+    <header>
+      <h2>Drafts</h2>
+    </header>
+    <ul class="version-section__listing">
+      {% for edition in editions.drafts %}
+        <li>
+          {{ edition_article(project, edition) }}
+        </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+
+</main>
+{% endblock body %}

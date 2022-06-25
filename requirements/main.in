@@ -22,3 +22,5 @@ structlog
 celery[redis]
 pydantic
 cryptography
+Jinja2
+ltd-conveyor

@@ -57,6 +57,7 @@ def create_product(
     product.title = title
     # Compatibility with v1 table architecture. This can be removed once
     # these fields are dropped from the Product model
+    # print(f"create_product {org.root_domain}")
     product.root_domain = org.root_domain
     product.root_fastly_domain = org.fastly_domain
     product.bucket_name = org.bucket_name

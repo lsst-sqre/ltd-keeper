@@ -69,6 +69,9 @@ pgdb/
 
 integration_tests/ltd_keeper_doc_examples.txt
 
+# Dashboard development
+dashboard_dev
+
 # Kubernetes deployment
 kubernetes/cloudsql-secrets.yaml
 kubernetes/keeper-secrets.yaml

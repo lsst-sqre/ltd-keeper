@@ -1,0 +1,17 @@
+{% extends "base.jinja" %}
+
+{% block page_title %}{{ project.title }} builds{% endblock page_title %}
+{% block page_description %}Find documentation builds.{% endblock page_description %}
+
+{% block body %}
+<main>
+<header>
+<h1>{{ project.title }} builds</h1>
+</header>
+<section>
+  <header>
+  <h2>Builds</h2>
+  </header>
+</section>
+</main>
+{% endblock body %}
