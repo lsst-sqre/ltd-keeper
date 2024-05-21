@@ -119,7 +119,6 @@ class OrganizationResponse(BaseModel):
 
 
 class LayoutEnum(str, Enum):
-
     subdomain = "subdomain"
 
     path = "path"
@@ -576,6 +575,9 @@ class EditionResponse(BaseModel):
     mode: str
     """The edition tracking mode."""
 
+    kind: str
+    """The edition kind."""
+
     @classmethod
     def from_edition(
         cls,
@@ -609,6 +611,7 @@ class EditionResponse(BaseModel):
             "date_rebuilt": edition.date_rebuilt,
             "date_ended": edition.date_ended,
             "mode": edition.mode_name,
+            "kind": edition.kind_name,
             "tracked_ref": tracked_ref,
             "pending_rebuild": edition.pending_rebuild,
             "surrogate_key": edition.surrogate_key,

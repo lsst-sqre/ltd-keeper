@@ -1012,6 +1012,16 @@ class Edition(db.Model):  # type: ignore
         else:
             return self.default_mode_name
 
+    @property
+    def kind_name(self) -> str:
+        """Name of the kind (`str`).
+
+        See also
+        --------
+        EditionKind
+        """
+        return self.kind.name
+
     def update_slug(self, new_slug: str) -> None:
         """Update the edition's slug by migrating files on S3.
 
