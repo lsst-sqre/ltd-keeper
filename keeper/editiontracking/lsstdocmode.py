@@ -22,12 +22,16 @@ DOCUSHARE_PATTERN = re.compile(r"docushare-v(?P<version>[\d\.]+)")
 
 # The RFC-405/LPM-51 format for LSST semantic document versions.
 # v<minor>.<major>
-LSST_DOC_V_TAG = re.compile(r"^v(?P<major>[\d]+)\.(?P<minor>[\d]+)$")
+LSST_DOC_V_TAG = re.compile(
+    r"^v?(?P<major>[\d]+)\.(?P<minor>[\d]+)(\.(?P<patch>[\d]+))?$"
+)
 
 
 class LsstDocTrackingMode(TrackingModeBase):
     """LSST document-specific tracking mode where an edition publishes the
     most recent ``vN.M`` tag.
+
+    Semantic versions are also supported: ``N.M.P`` or ``vN.M.P``.
     """
 
     @property
@@ -100,7 +104,10 @@ class LsstDocVersionTag:
             raise ValueError(
                 "{:r} is not a LSST document version tag".format(version_str)
             )
-        self.version = (int(match.group("major")), int(match.group("minor")))
+        major = int(match.group("major"))
+        minor = int(match.group("minor"))
+        patch = int(match.group("patch") or 0)
+        self.version = (major, minor, patch)
 
     @property
     def major(self) -> int:
@@ -109,6 +116,10 @@ class LsstDocVersionTag:
     @property
     def minor(self) -> int:
         return self.version[1]
+
+    @property
+    def patch(self) -> int:
+        return self.version[2]
 
     def __repr__(self) -> str:
         return "LsstDocVersion({:r})".format(self.version_str)
