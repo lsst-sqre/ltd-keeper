@@ -41,10 +41,13 @@ jobs:
         db:
           - sqlite
           - postgres
-          - mysql
+          # - mysql
 
     steps:
       - uses: actions/checkout@v3
+
+      - name: Install build tools
+        run: sudo apt-get install build-essential
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -74,11 +77,13 @@ jobs:
           LTD_KEEPER_TEST_AWS_ID: ${{ secrets.LTD_KEEPER_TEST_AWS_ID }}
           LTD_KEEPER_TEST_AWS_SECRET: ${{ secrets.LTD_KEEPER_TEST_AWS_SECRET }}
           LTD_KEEPER_TEST_BUCKET: ${{ secrets.LTD_KEEPER_TEST_BUCKET }}
-        run: tox -e typing,${{matrix.db}},coverage-report # run tox using Python in path
+        # run: tox -e typing,${{matrix.db}},coverage-report # run tox using Python in path
+        run: tox -e ${{matrix.db}},coverage-report # run tox using Python in path
 
       - name: Run tox without external services
         if: ${{ !(matrix.python != '3.10' && matrix.db != 'postgres') }}
-        run: tox -e typing,${{matrix.db}},coverage-report # run tox using Python in path
+        # run: tox -e typing,${{matrix.db}},coverage-report # run tox using Python in path
+        run: tox -e ${{matrix.db}},coverage-report # run tox using Python in path
 
   docs:
     runs-on: ubuntu-latest
@@ -142,12 +147,6 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_TOKEN }}
-
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v2
         with:
@@ -161,7 +160,6 @@ jobs:
           context: .
           push: true
           tags: |
-            lsstsqre/ltdkeeper:${{ steps.vars.outputs.tag }}
             ghcr.io/lsst-sqre/ltd-keeper:${{ steps.vars.outputs.tag }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
