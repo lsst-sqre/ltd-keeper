@@ -53,6 +53,7 @@ jobs:
 
       - name: Install tox
         run: |
+          pip install 'requests<2.32.0'
           pip install tox
           pip install --pre tox-docker
 
