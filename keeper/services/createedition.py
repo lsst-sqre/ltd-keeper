@@ -21,6 +21,7 @@ def create_edition(
     autoincrement_slug: Optional[bool] = False,
     tracked_ref: Optional[str] = "main",
     build: Optional[Build] = None,
+    kind: Optional[str] = None,
 ) -> Edition:
     """Create a new edition.
 
@@ -50,6 +51,8 @@ def create_edition(
         is ``"git_refs"`` or ``"git_ref"``.
     build : Build, optional
         The build to initially publish with this edition.
+    kind : str, optional
+        The kind of the edition.
 
     Returns
     -------
@@ -82,6 +85,9 @@ def create_edition(
     elif edition.mode_name == "git_ref":
         edition.tracked_ref = tracked_ref
         edition.tracked_refs = [tracked_ref]
+
+    if kind is not None:
+        edition.set_kind(kind)
 
     db.session.add(edition)
     db.session.commit()

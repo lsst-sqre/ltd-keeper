@@ -1012,6 +1012,21 @@ class Edition(db.Model):  # type: ignore
         else:
             return self.default_mode_name
 
+    def set_kind(self, kind: str) -> None:
+        """Set the edition kind.
+
+        Parameters
+        ----------
+        kind : `str`
+            Kind identifier. Validated to be one defined in `EditionKind`.
+
+        Raises
+        ------
+        ValidationError
+            Raised if `kind` is unknown.
+        """
+        self.kind = EditionKind[kind]
+
     @property
     def kind_name(self) -> str:
         """Name of the kind (`str`).
