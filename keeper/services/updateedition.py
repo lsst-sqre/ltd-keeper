@@ -27,6 +27,7 @@ def update_edition(
     tracking_mode: Optional[str] = None,
     tracked_ref: Optional[str] = None,
     pending_rebuild: Optional[bool] = None,
+    kind: Optional[str] = None,
 ) -> Edition:
     """Update the metadata of an existing edititon or to point at a new
     build.
@@ -62,6 +63,9 @@ def update_edition(
             new_pending_rebuild=pending_rebuild,
         )
         edition.pending_rebuild = pending_rebuild
+
+    if kind is not None:
+        edition.set_kind(kind)
 
     db.session.add(edition)
     db.session.commit()

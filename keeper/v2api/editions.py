@@ -88,6 +88,7 @@ def post_edition(org: str, project: str) -> Tuple[str, int, Dict[str, str]]:
             slug=request_data.slug,
             autoincrement_slug=request_data.autoincrement,
             tracked_ref=request_data.tracked_ref,
+            kind=request_data.kind,
             build=build,
         )
     except Exception:
@@ -130,6 +131,7 @@ def patch_edition(
             slug=request_data.slug,
             tracking_mode=request_data.mode,
             tracked_ref=request_data.tracked_ref,
+            kind=request_data.kind,
             pending_rebuild=request_data.pending_rebuild,
         )
     except Exception:

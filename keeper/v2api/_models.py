@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field, HttpUrl, SecretStr, validator
 
 from keeper.editiontracking import EditionTrackingModes
 from keeper.exceptions import ValidationError
-from keeper.models import OrganizationLayoutMode
+from keeper.models import EditionKind, OrganizationLayoutMode
 from keeper.utils import (
     format_utc_datetime,
     validate_path_slug,
@@ -119,7 +119,6 @@ class OrganizationResponse(BaseModel):
 
 
 class LayoutEnum(str, Enum):
-
     subdomain = "subdomain"
 
     path = "path"
@@ -576,6 +575,9 @@ class EditionResponse(BaseModel):
     mode: str
     """The edition tracking mode."""
 
+    kind: str
+    """The edition kind."""
+
     @classmethod
     def from_edition(
         cls,
@@ -609,6 +611,7 @@ class EditionResponse(BaseModel):
             "date_rebuilt": edition.date_rebuilt,
             "date_ended": edition.date_ended,
             "mode": edition.mode_name,
+            "kind": edition.kind_name,
             "tracked_ref": tracked_ref,
             "pending_rebuild": edition.pending_rebuild,
             "surrogate_key": edition.surrogate_key,
@@ -661,6 +664,9 @@ class EditionPostRequest(BaseModel):
     mode: str = "git_refs"
     """Tracking mode."""
 
+    kind: Optional[str] = None
+    """The edition kind."""
+
     tracked_ref: Optional[str] = None
     """Git ref being tracked if mode is ``git_ref``."""
 
@@ -708,6 +714,17 @@ class EditionPostRequest(BaseModel):
             raise ValueError('tracked_ref must be set if mode is "git_ref"')
         return v
 
+    @validator("kind")
+    def check_kind(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return None
+
+        # Get all known kinds from the EditionKind enum
+        kind_names = [kind.name for kind in EditionKind]
+        if v not in kind_names:
+            raise ValueError(f"Kind {v!r} is not known.")
+        return v
+
 
 class EditionPatchRequest(BaseModel):
     """The model for a PATCH /editions/:id request."""
@@ -730,6 +747,9 @@ class EditionPatchRequest(BaseModel):
 
     mode: Optional[str] = None
     """The edition tracking mode."""
+
+    kind: Optional[str] = None
+    """The edition kind."""
 
     build_url: Optional[HttpUrl] = None
     """URL of the build to initially publish with the edition, if available.
@@ -754,6 +774,17 @@ class EditionPatchRequest(BaseModel):
         modes = EditionTrackingModes()
         if v not in modes:
             raise ValueError(f"Tracking mode {v!r} is not known.")
+        return v
+
+    @validator("kind")
+    def check_kind(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return None
+
+        # Get all known kinds from the EditionKind enum
+        kind_names = [kind.name for kind in EditionKind]
+        if v not in kind_names:
+            raise ValueError(f"Kind {v!r} is not known.")
         return v
 
 

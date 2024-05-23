@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import uuid
 from typing import TYPE_CHECKING, Optional
 
@@ -21,6 +22,7 @@ def create_edition(
     autoincrement_slug: Optional[bool] = False,
     tracked_ref: Optional[str] = "main",
     build: Optional[Build] = None,
+    kind: Optional[str] = None,
 ) -> Edition:
     """Create a new edition.
 
@@ -50,6 +52,8 @@ def create_edition(
         is ``"git_refs"`` or ``"git_ref"``.
     build : Build, optional
         The build to initially publish with this edition.
+    kind : str, optional
+        The kind of the edition.
 
     Returns
     -------
@@ -83,6 +87,16 @@ def create_edition(
         edition.tracked_ref = tracked_ref
         edition.tracked_refs = [tracked_ref]
 
+    if edition.slug == "__main":
+        # Always mark the default edition as the main edition
+        edition.set_kind("main")
+    elif kind is not None:
+        # Manually set the edition kind
+        edition.set_kind(kind)
+    elif tracked_ref is not None:
+        # Set the EditionKind based on the tracked_ref value
+        edition.set_kind(determine_edition_kind(tracked_ref))
+
     db.session.add(edition)
     db.session.commit()
 
@@ -92,3 +106,23 @@ def create_edition(
     request_dashboard_build(product)
 
     return edition
+
+
+SEMVER_PATTERN = re.compile(
+    r"^v?(?P<major>[\d]+)(\.(?P<minor>[\d]+)(\.(?P<patch>[\d]+))?)?$"
+)
+
+
+def determine_edition_kind(git_ref: str) -> str:
+    """Determine the kind of edition based on the git ref."""
+    match = SEMVER_PATTERN.match(git_ref)
+    if match is None:
+        return "draft"
+
+    if match.group("patch") is not None and match.group("minor") is not None:
+        return "release"
+
+    if match.group("minor") is not None and match.group("patch") is None:
+        return "minor"
+
+    return "major"
